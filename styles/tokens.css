@@ -7,6 +7,15 @@
   --color-graphite: #242321;
   --color-navy: #0d1b3d;
   --color-sapphire: #102a6b;
+  --color-sapphire-soft: #d9e1ee;
+  --color-moon: #eef0ef;
+  --color-stone-lapis: #12306f;
+  --color-stone-clear: #f8fbff;
+  --color-stone-onyx: #202126;
+  --color-stone-emerald: #1f6f5b;
+  --color-stone-rose: #e8b7c5;
+  --color-stone-violet: #7a5aa6;
+  --color-stone-champagne: #d6c3a4;
 
   --radius-card: 28px;
   --radius-button: 999px;
@@ -14,5 +23,5 @@
   --space-section: 96px;
   --space-card: 32px;
 
-  --font-persian: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-persian: "Vazirmatn", "Estedad", "Dana", "Peyda", "IRANSansX", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }

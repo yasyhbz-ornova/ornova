@@ -17,6 +17,15 @@
   --color-graphite: var(--color-graphite);
   --color-navy: var(--color-navy);
   --color-sapphire: var(--color-sapphire);
+  --color-sapphire-soft: var(--color-sapphire-soft);
+  --color-moon: var(--color-moon);
+  --color-stone-lapis: var(--color-stone-lapis);
+  --color-stone-clear: var(--color-stone-clear);
+  --color-stone-onyx: var(--color-stone-onyx);
+  --color-stone-emerald: var(--color-stone-emerald);
+  --color-stone-rose: var(--color-stone-rose);
+  --color-stone-violet: var(--color-stone-violet);
+  --color-stone-champagne: var(--color-stone-champagne);
   --font-sans: var(--font-persian);
 }
 
@@ -29,6 +38,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-persian);
   text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "ss02";
 }
 
 a {
