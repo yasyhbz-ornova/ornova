@@ -80,3 +80,6 @@ git status -sb
 
 A sprint is not complete unless validation passes or failures are clearly reported.
 
+
+Before any ORNOVA UI implementation task, also read docs/ORNOVA_UI_DESIGN_CONTRACT.md.
+
