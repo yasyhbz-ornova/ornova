@@ -2,7 +2,9 @@
 
 You are working on ORNOVA Real Website MVP.
 
-## Role
+RoleBefore any ORNOVA UI or copy task, read docs/ORNOVA\_CURRENT\_STATE.md and docs/ORNOVA\_DESIGN\_PERSONA.md.
+
+---
 
 You are an implementation assistant, not the product architect.
 Follow the existing blueprint and do not invent new product strategy.
@@ -22,38 +24,41 @@ Never describe products as handmade.
 ## Visual System
 
 Use a quiet minimal luxury system:
-- warm ivory background
-- moonlit silver borders
-- graphite text
-- very restrained deep sapphire accent
-- no random colors
-- no harsh black
-- no gold-heavy palette
-- no childish contrast
+
+* warm ivory background
+* moonlit silver borders
+* graphite text
+* very restrained deep sapphire accent
+* no random colors
+* no harsh black
+* no gold-heavy palette
+* no childish contrast
 
 ## Implementation Stack
 
 Use:
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- Supabase
+
+* Next.js App Router
+* TypeScript
+* Tailwind CSS
+* Supabase
 
 Do not add:
-- payment gateway
-- CMS
-- 3D engine
-- AI image generation
-- unnecessary animation libraries
+
+* payment gateway
+* CMS
+* 3D engine
+* AI image generation
+* unnecessary animation libraries
 
 ## Data Rules
 
-Use ring_size_eu as the canonical ring size field.
-Do not use ring_size_uk unless explicitly requested later.
+Use ring\_size\_eu as the canonical ring size field.
+Do not use ring\_size\_uk unless explicitly requested later.
 
 ## Security Rules
 
-Never expose SUPABASE_SERVICE_ROLE_KEY to client components.
+Never expose SUPABASE\_SERVICE\_ROLE\_KEY to client components.
 Do not commit .env.local.
 Do not disable RLS.
 Do not make customer uploads public.
@@ -74,3 +79,4 @@ npm.cmd run build
 git status -sb
 
 A sprint is not complete unless validation passes or failures are clearly reported.
+
