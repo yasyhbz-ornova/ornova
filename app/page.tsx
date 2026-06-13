@@ -4,11 +4,11 @@ import { products } from "@/lib/constants/products";
 export default function Home() {
   return (
     <div>
-      <section className="border-b border-silver/70">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 md:grid-cols-[1.08fr_0.92fr] md:items-center md:py-24">
+      <section className="border-b border-silver/70 bg-ivory-soft">
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-18 md:grid-cols-[1.08fr_0.92fr] md:items-center md:py-28">
           <div>
             <p className="text-sm font-medium text-sapphire">Ornova by Yas</p>
-            <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.35] text-graphite md:text-6xl">
+            <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.35] text-graphite md:text-6xl md:leading-[1.25]">
               نقره‌ای برای خاطره‌هایی که نزدیک قلب می‌مانند
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-graphite/75 md:text-lg">
@@ -24,12 +24,14 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-silver bg-navy p-6 text-ivory">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[24px] border border-ivory/20 bg-ivory/10">
-              <div className="absolute left-10 top-10 h-36 w-36 rounded-full border border-moon/45" />
-              <div className="absolute bottom-16 left-1/2 h-44 w-44 -translate-x-1/2 rounded-full border-[18px] border-silver/60" />
-              <div className="absolute bottom-28 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full border border-ivory/40 bg-stone-lapis shadow-lg" />
-              <div className="absolute bottom-6 right-6">
+          <div className="rounded-[32px] border border-silver bg-navy p-4 text-ivory shadow-sm">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] border border-ivory/20 bg-ivory/10">
+              <div className="absolute inset-6 rounded-[26px] border border-ivory/10" />
+              <div className="absolute left-8 top-8 h-32 w-32 rounded-full border border-moon/40" />
+              <div className="absolute bottom-20 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full border-[18px] border-silver/65" />
+              <div className="absolute bottom-32 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full border border-ivory/45 bg-stone-lapis shadow-lg ring-8 ring-silver/20" />
+              <div className="absolute inset-x-10 bottom-18 h-16 rounded-full bg-graphite/30 blur-sm" />
+              <div className="absolute bottom-7 right-7">
                 <p className="text-sm text-ivory/65">طراحی دیجیتال جواهر</p>
                 <h2 className="mt-2 text-2xl font-semibold">آتلیه نقره Ornova</h2>
               </div>
@@ -61,9 +63,9 @@ export default function Home() {
             </div>
             <Link href="/shop" className="text-sm text-sapphire">ورود به فروشگاه</Link>
           </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-5">
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
             {products.map((product) => (
-              <Link key={product.slug} href={`/shop/${product.slug}`} className="group rounded-[24px] border border-silver bg-ivory p-4">
+              <Link key={product.slug} href={`/shop/${product.slug}`} className="group rounded-[26px] border border-silver bg-ivory p-4 transition hover:border-sapphire">
                 <ProductVisual />
                 <p className="mt-5 text-xs text-sapphire">{product.category}</p>
                 <h3 className="mt-2 min-h-14 text-base font-semibold leading-7 text-graphite">{product.name}</h3>
@@ -99,10 +101,12 @@ export default function Home() {
 
 function ProductVisual() {
   return (
-    <div className="relative aspect-[4/5] overflow-hidden rounded-[20px] border border-silver bg-navy">
-      <div className="absolute inset-x-5 bottom-6 h-20 rounded-full bg-graphite/35" />
-      <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-[10px] border-silver/70" />
-      <div className="absolute left-1/2 top-[38%] h-10 w-10 -translate-x-1/2 rounded-full bg-moon" />
+    <div className="relative aspect-[4/5] overflow-hidden rounded-[22px] border border-silver bg-navy">
+      <div className="absolute inset-4 rounded-[20px] border border-ivory/10" />
+      <div className="absolute inset-x-8 bottom-8 h-20 rounded-full bg-graphite/35 blur-sm" />
+      <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border-[11px] border-silver/75" />
+      <div className="absolute left-1/2 top-[38%] h-11 w-11 -translate-x-1/2 rounded-full bg-moon ring-4 ring-silver/25" />
+      <div className="absolute right-6 top-6 h-12 w-12 rounded-full border border-moon/30" />
     </div>
   );
 }
