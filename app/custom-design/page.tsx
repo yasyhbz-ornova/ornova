@@ -3,12 +3,9 @@ import Link from "next/link";
 const steps = [
   "آپلود ایده",
   "بررسی Ornova",
-  "ارسال پیش‌فاکتور",
-  "تایید مشتری",
   "طراحی دیجیتال",
   "رندر اولیه",
-  "اصلاحات",
-  "آماده تولید",
+  "ارسال پیش‌فاکتور",
 ];
 
 export default function CustomDesignPage() {
@@ -20,7 +17,7 @@ export default function CustomDesignPage() {
         این فضا برای تبدیل ایده، تصویر، نشانه یا روایت شخصی به طراحی دیجیتال جواهر و طراحی قابل ساخت آماده شده است.
       </p>
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2">
+      <div className="mt-10 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="rounded-[30px] border border-silver bg-ivory-soft p-6">
           <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] border border-silver bg-navy">
             <div className="absolute inset-8 rounded-[22px] border border-ivory/20 bg-ivory/10" />
@@ -34,33 +31,24 @@ export default function CustomDesignPage() {
           <button className="mt-6 rounded-full bg-sapphire px-5 py-3 text-sm font-medium text-ivory">آپلود ایده</button>
         </div>
 
-        <div className="rounded-[30px] border border-silver bg-ivory-soft p-6">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] border border-silver bg-navy">
-            <div className="absolute bottom-10 left-1/2 h-24 w-24 -translate-x-1/2 rounded-full border-[10px] border-silver/70" />
-            <div className="absolute left-1/2 top-14 h-16 w-16 -translate-x-1/2 rounded-full bg-stone-rose ring-4 ring-moon" />
-            <div className="absolute right-12 top-12 text-2xl text-moon">گل</div>
-          </div>
-          <h2 className="mt-6 text-2xl font-semibold text-graphite">می‌خواهم با پنل طراحی کنم</h2>
+        <section className="rounded-[30px] border border-silver bg-ivory-muted p-6">
+          <h2 className="text-2xl font-semibold text-graphite">مسیر سفارش اختصاصی</h2>
           <p className="mt-3 text-sm leading-7 text-graphite/70">
-            با پنل بصری Ornova پایه، سنگ، رنگ و نشانه تزئینی را انتخاب کنید و طرح اولیه را برای بررسی بفرستید.
+            این مسیر برای سفارش‌هایی است که از ایده، تصویر یا توضیح شخصی آغاز می‌شوند و پس از بررسی Ornova به طراحی دیجیتال می‌رسند.
           </p>
-          <Link href="/ring-builder" className="mt-6 inline-flex rounded-full bg-sapphire px-5 py-3 text-sm font-medium text-ivory">
-            باز کردن پنل طراحی
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {steps.map((step, index) => (
+              <div key={step} className="rounded-[18px] border border-silver bg-ivory p-4">
+                <p className="text-xs text-sapphire">مرحله {index + 1}</p>
+                <p className="mt-2 text-sm text-graphite/78">{step}</p>
+              </div>
+            ))}
+          </div>
+          <Link href="/ring-builder" className="mt-7 inline-flex rounded-full border border-silver px-5 py-3 text-sm font-medium text-graphite hover:border-sapphire">
+            طراحی انگشتر جداگانه
           </Link>
-        </div>
+        </section>
       </div>
-
-      <section className="mt-12 rounded-[30px] border border-silver bg-ivory-muted p-6">
-        <h2 className="text-2xl font-semibold text-graphite">مسیر طراحی اختصاصی</h2>
-        <div className="mt-6 grid gap-3 md:grid-cols-4">
-          {steps.map((step, index) => (
-            <div key={step} className="rounded-[18px] border border-silver bg-ivory p-4">
-              <p className="text-xs text-sapphire">مرحله {index + 1}</p>
-              <p className="mt-2 text-sm text-graphite/78">{step}</p>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

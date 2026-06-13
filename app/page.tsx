@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { products } from "@/lib/constants/products";
 
-const studioSteps = ["آپلود ایده", "بررسی Ornova", "طراحی دیجیتال", "رندر اولیه"];
-
 export default function Home() {
   return (
     <div>
@@ -18,10 +16,10 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link className="rounded-full bg-sapphire px-6 py-3 text-center text-sm font-medium text-ivory" href="/shop">
-                مشاهده فروشگاه
+                فروشگاه
               </Link>
               <Link className="rounded-full border border-silver px-6 py-3 text-center text-sm font-medium text-graphite hover:border-sapphire" href="/custom-design">
-                شروع طراحی اختصاصی
+                طراحی اختصاصی
               </Link>
             </div>
           </div>
@@ -43,8 +41,8 @@ export default function Home() {
       <section className="mx-auto grid max-w-6xl gap-5 px-5 py-16 md:grid-cols-3">
         {[
           ["فروشگاه", "قطعات نقره با طراحی قابل ساخت و نگاه آرام.", "/shop"],
-          ["استودیو طراحی اختصاصی", "آغاز طراحی از تصویر، نشانه یا روایت شخصی.", "/custom-design"],
-          ["طراحی انگشتر", "ساخت یک پیش‌نمایش بصری برای بررسی Ornova.", "/ring-builder"],
+          ["طراحی اختصاصی", "آغاز طراحی از تصویر، نشانه یا روایت شخصی.", "/custom-design"],
+          ["طراحی انگشتر", "ساخت پیش‌نمایش بصری برای بررسی Ornova.", "/ring-builder"],
         ].map(([title, text, href]) => (
           <Link key={href} href={href} className="rounded-[26px] border border-silver bg-ivory-soft p-7 transition hover:border-sapphire">
             <div className="mb-6 h-24 rounded-[22px] border border-silver bg-silver-muted" />
@@ -76,30 +74,22 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-5 px-5 py-16 md:grid-cols-[1fr_1.1fr]">
+      <section className="mx-auto grid max-w-6xl gap-6 px-5 py-16 md:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-[28px] border border-silver bg-ivory-soft p-8">
-          <p className="text-sm text-sapphire">استودیو طراحی اختصاصی Ornova</p>
-          <h2 className="mt-3 text-3xl font-semibold leading-tight text-graphite">از ایده تا طراحی دیجیتال جواهر</h2>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            {studioSteps.map((step) => (
-              <div key={step} className="rounded-[18px] border border-silver bg-ivory p-4 text-sm text-graphite/75">
-                {step}
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-sapphire">Ornova by Yas</p>
+          <h2 className="mt-3 text-3xl font-semibold leading-tight text-graphite">طراحی نقره با نگاه یاس</h2>
+          <p className="mt-5 text-base leading-8 text-graphite/70">
+            Ornova بر پایه طراحی دیجیتال جواهر شکل گرفته است؛ جایی برای تبدیل خاطره، نشانه و سلیقه شخصی به قطعات نقره قابل ساخت، ظریف و آرام.
+          </p>
         </div>
-        <div className="rounded-[28px] border border-silver bg-navy p-8 text-ivory">
-          <p className="text-sm text-ivory/70">طراحی انگشتر با پنل Ornova</p>
-          <h2 className="mt-3 text-3xl font-semibold">پیش‌نمایش طرح شما</h2>
-          <div className="mt-8 flex justify-center">
-            <div className="relative h-48 w-64">
-              <div className="absolute bottom-4 left-1/2 h-32 w-32 -translate-x-1/2 rounded-full border-[14px] border-silver/70" />
-              <div className="absolute left-1/2 top-8 h-20 w-20 -translate-x-1/2 rounded-full bg-stone-lapis ring-4 ring-silver/70" />
-              <div className="absolute right-14 top-10 text-2xl text-moon">ماه</div>
-            </div>
-          </div>
-          <Link href="/ring-builder" className="mt-6 inline-flex rounded-full bg-ivory px-5 py-3 text-sm font-medium text-graphite">
-            شروع طراحی انگشتر
+        <div className="rounded-[28px] border border-silver bg-ivory-muted p-8">
+          <p className="text-sm text-sapphire">راهنمای Ornova</p>
+          <h2 className="mt-3 text-3xl font-semibold leading-tight text-graphite">قبل از ثبت درخواست</h2>
+          <p className="mt-5 text-base leading-8 text-graphite/70">
+            راهنمای سایز، نگهداری نقره و پرسش‌های رایج در یک مسیر ساده جمع شده‌اند.
+          </p>
+          <Link href="/guide" className="mt-7 inline-flex rounded-full bg-sapphire px-5 py-3 text-sm font-medium text-ivory">
+            ورود به راهنما
           </Link>
         </div>
       </section>
