@@ -6,6 +6,17 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Ornova by Yas",
   description: "خانه‌ای آرام برای جواهرات نقره با طراحی دیجیتال",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://ornova.ir"),
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "fa_IR",
+    siteName: "Ornova by Yas",
+    title: "Ornova by Yas",
+    description: "خانه‌ای آرام برای جواهرات نقره با طراحی دیجیتال",
+    url: "/",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

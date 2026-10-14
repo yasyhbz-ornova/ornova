@@ -16,7 +16,7 @@ Codex must work as a patch assistant on the current codebase.
 * Next.js App Router
 * TypeScript
 * Tailwind CSS
-* Supabase planned but not connected yet
+* Supabase client/server scaffold, auth callback, proxy session refresh, migration and RLS policies are configured; local credentials are configured for the dedicated `ornova` project in Central EU (Frankfurt), and the core migration has been executed successfully
 * Persian-only UI
 * RTL layout
 * Inquiry-based commerce, not direct checkout
@@ -39,7 +39,11 @@ Existing areas:
 * Custom Design page
 * Ring Builder concept page
 * Account / client dashboard concept
-* Placeholder routes for guide and info pages
+* Guide, size guide, silver care, silver properties and FAQ content routes
+* Concept routes including approved Archive Home route
+* Local request basket with product actions
+* Inquiry API and private-file upload routes ready for authenticated Supabase use
+* Real Ornova product images restored and wired to product cards
 
 ---
 
@@ -149,9 +153,7 @@ Avoid:
 
 Do not generate product photos.
 
-Do not add fake real product photos.
-
-Until real product images are available, use elegant abstract placeholders that feel like:
+Do not add fake real product photos. The current selected product images are real Ornova assets restored from project history. For products without approved imagery, use elegant abstract placeholders that feel like:
 
 * dark textile
 * moonlit silver
@@ -184,17 +186,12 @@ Future work should be small scoped patches.
 
 These are not finished yet:
 
-* Supabase Auth
-* profiles table
-* real cart/request basket
-* custom request upload
+* Verify authenticated inquiry submission and private upload with real accounts
 * admin panel
 * quote/pre-invoice logic
 * messages
-* storage buckets
-* real product images
-* final copy polish
-* final mobile polish
+* production deployment and domain verification on ornova.ir
+* final cross-device mobile polish
 
 Do not implement these unless the current sprint explicitly asks for them.
 

@@ -1,9 +1,24 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProductBySlug, products } from "@/lib/constants/products";
+import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 
 export function generateStaticParams() {
   return products.map((product) => ({ slug: product.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = getProductBySlug(slug);
+  if (!product) return {};
+  return {
+    title: `${product.name} | Ornova by Yas`,
+    description: product.description,
+    alternates: { canonical: `/shop/${product.slug}` },
+    openGraph: { title: product.name, description: product.description, images: [product.image] },
+  };
 }
 
 export default async function ProductDetailPage({
@@ -27,20 +42,15 @@ export default async function ProductDetailPage({
           <h1 className="mt-4 text-4xl font-semibold leading-tight text-graphite md:text-5xl">{product.name}</h1>
           <p className="mt-6 max-w-xl text-lg leading-9 text-graphite/75">{product.description}</p>
           <div className="mt-9 flex flex-wrap gap-3">
-            <button className="rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory">درخواست قیمت</button>
-            <button className="rounded-full border border-silver bg-ivory-soft px-6 py-3 text-sm font-medium text-graphite">افزودن به سبد درخواست</button>
+            <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} label="درخواست قیمت" />
+            <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} />
             <button className="rounded-full border border-silver px-6 py-3 text-sm font-medium text-graphite">پرسش درباره محصول</button>
           </div>
         </div>
 
         <div className="md:order-1">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[34px] border border-silver bg-navy p-8">
-            <div className="absolute inset-7 rounded-[28px] border border-ivory/10" />
-            <div className="absolute inset-x-12 bottom-14 h-28 rounded-full bg-graphite/35 blur-sm" />
-            <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border-[19px] border-silver/75" />
-            <div className="absolute left-1/2 top-[37%] h-20 w-20 -translate-x-1/2 rounded-full bg-stone-lapis ring-8 ring-silver/25" />
-            <div className="absolute left-12 top-12 h-28 w-28 rounded-full border border-moon/30" />
-            <div className="absolute right-8 top-8 text-sm text-ivory/60">برگه محصول Ornova</div>
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[34px] border border-silver bg-navy">
+            <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
           </div>
         </div>
       </section>

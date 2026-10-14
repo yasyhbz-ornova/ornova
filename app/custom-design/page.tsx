@@ -3,9 +3,12 @@ import Link from "next/link";
 const steps = [
   "آپلود ایده",
   "بررسی Ornova",
+  "ارسال پیش‌فاکتور",
+  "تایید مشتری",
   "طراحی دیجیتال",
   "رندر اولیه",
-  "ارسال پیش‌فاکتور",
+  "اصلاحات",
+  "آماده تولید",
 ];
 
 export default function CustomDesignPage() {
@@ -28,7 +31,7 @@ export default function CustomDesignPage() {
           <p className="mt-3 text-sm leading-7 text-graphite/70">
             تصویر الهام، اسکچ، اسکرین‌شات، مرجع فیلم، مودبرد یا توضیح خود را برای بررسی اولیه آماده کنید.
           </p>
-          <button className="mt-6 rounded-full bg-sapphire px-5 py-3 text-sm font-medium text-ivory">آپلود ایده</button>
+          <Link href="/contact" className="mt-6 inline-flex rounded-full bg-sapphire px-5 py-3 text-sm font-medium text-ivory">ثبت ایده در فرم درخواست</Link>
         </div>
 
         <section className="rounded-[30px] border border-silver bg-ivory-muted p-6">

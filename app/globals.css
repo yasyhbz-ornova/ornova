@@ -45,3 +45,113 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+.mobile-menu[open] > summary {
+  border-color: var(--color-sapphire);
+  color: var(--color-sapphire);
+}
+
+.concept-stage {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  background: var(--color-navy);
+}
+
+.concept-stage::before,
+.concept-stage::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.concept-archive::before {
+  inset: 12% 18%;
+  border: 1px solid color-mix(in srgb, var(--color-moon) 34%, transparent);
+  transform: rotate(-7deg);
+}
+
+.concept-archive::after {
+  right: 22%;
+  bottom: 23%;
+  width: 190px;
+  height: 190px;
+  border: 14px solid color-mix(in srgb, var(--color-silver) 78%, transparent);
+  border-radius: 999px;
+  box-shadow: 0 0 0 26px color-mix(in srgb, var(--color-silver) 10%, transparent);
+}
+
+.concept-orbit::before {
+  inset: 14% 27%;
+  border: 1px solid color-mix(in srgb, var(--color-moon) 45%, transparent);
+  border-radius: 50%;
+  transform: rotate(26deg) scaleX(0.52);
+}
+
+.concept-orbit::after {
+  left: 31%;
+  top: 28%;
+  width: 150px;
+  height: 150px;
+  border: 9px solid color-mix(in srgb, var(--color-silver) 80%, transparent);
+  border-radius: 50%;
+  box-shadow: 54px 44px 0 -42px var(--color-stone-lapis);
+}
+
+.concept-room::before {
+  inset: 9% 13% 12% 35%;
+  border-right: 1px solid color-mix(in srgb, var(--color-moon) 38%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-moon) 38%, transparent);
+  background: linear-gradient(135deg, transparent 48%, color-mix(in srgb, var(--color-moon) 14%, transparent) 49%, transparent 51%);
+}
+
+.concept-room::after {
+  left: 21%;
+  bottom: 18%;
+  width: 210px;
+  height: 110px;
+  border: 1px solid color-mix(in srgb, var(--color-silver) 78%, transparent);
+  border-radius: 50% 50% 12% 12%;
+  transform: rotate(-12deg);
+}
+
+.concept-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-moon);
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-sapphire) 65%, transparent), 0 0 40px color-mix(in srgb, var(--color-moon) 35%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .concept-mark { animation: concept-pulse 6s ease-in-out infinite; }
+
+  /* Home archive: a restrained light drift across the silver form. */
+  main > section:nth-child(3) .bg-navy img {
+    transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  main > section:nth-child(3) .group:hover .bg-navy img,
+  main > section:nth-child(3) .group:focus-visible .bg-navy img {
+    transform: scale(1.035);
+  }
+
+  main > section:nth-child(1) .archive-ring {
+    animation: archive-ring-breathe 9s ease-in-out infinite;
+    transform-origin: center;
+  }
+}
+
+@keyframes concept-pulse {
+  0%, 100% { opacity: 0.72; transform: translate(-50%, -50%) scale(0.92); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+@keyframes archive-ring-breathe {
+  0%, 100% { opacity: 0.72; transform: translateX(-50%) scale(0.98); }
+  50% { opacity: 0.94; transform: translateX(-50%) scale(1.025); }
+}
