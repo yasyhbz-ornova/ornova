@@ -199,6 +199,7 @@ Verified deployment state (2026-10-17):
 * Production HTML contains the current ritual archive hero and commerce paths.
 * Vercel Production now has `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` configured; an unauthenticated production inquiry request correctly returns HTTP 401.
 * On 2026-10-18, migration `002_restrict_inquiry_updates.sql` was executed on project `urtufzyhqgwszmufhkyt`; verification of `pg_policies` confirms `inquiries_update_own` is absent while the own-row insert/select policies remain.
+* On 2026-10-18, Supabase Auth URL Configuration was set to Site URL `https://ornova.ir` with the allowed callback `https://ornova.ir/auth/callback`; `components/auth/MagicLinkForm.tsx` already builds the callback from the active origin and requires no code change.
 * Authenticated inquiry submission and private-file upload still need a real customer account test.
 
 Do not implement these unless the current sprint explicitly asks for them.
