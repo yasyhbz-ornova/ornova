@@ -1,12 +1,29 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 const DRAFT_KEY = "ornova-inquiry-draft";
+const BASKET_KEY = "ornova-request-basket";
+type SelectedItem = { slug: string; name: string; category: string; quantity: number };
 
 export function InquiryForm() {
   const [saved, setSaved] = useState(false);
   const [uploadWarning, setUploadWarning] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+
+  useEffect(() => {
+    const syncSelectedItems = () => {
+      try {
+        const stored = JSON.parse(window.localStorage.getItem(BASKET_KEY) ?? "[]") as SelectedItem[];
+        setSelectedItems(Array.isArray(stored) ? stored : []);
+      } catch {
+        setSelectedItems([]);
+      }
+    };
+    syncSelectedItems();
+    window.addEventListener("ornova-basket-updated", syncSelectedItems);
+    return () => window.removeEventListener("ornova-basket-updated", syncSelectedItems);
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,7 +37,7 @@ export function InquiryForm() {
     };
 
     try {
-      const storedItems = JSON.parse(window.localStorage.getItem("ornova-request-basket") ?? "[]") as Array<{ slug: string; name: string; quantity: number }>;
+      const storedItems = JSON.parse(window.localStorage.getItem(BASKET_KEY) ?? "[]") as Array<{ slug: string; name: string; quantity: number }>;
       const response = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,6 +74,7 @@ export function InquiryForm() {
       <p className="text-sm text-sapphire">پیش‌نویس درخواست</p>
       <h2 className="mt-3 text-2xl font-semibold text-graphite">از ایده‌تان برای ما بگویید</h2>
       <p className="mt-3 text-sm leading-7 text-graphite/70">در صورت ورود، درخواست و قطعات انتخابی برای بررسی Ornova ثبت می‌شوند؛ در غیر این صورت پیش‌نویس فقط در همین مرورگر نگه داشته می‌شود.</p>
+      {selectedItems.length > 0 && <div className="mt-6 border-y border-silver py-4"><p className="text-xs text-sapphire">قطعات انتخاب‌شده</p><ul className="mt-3 grid gap-3">{selectedItems.map((item) => <li key={item.slug} className="flex items-baseline justify-between gap-4 text-sm text-graphite"><span>{item.name}</span><span className="shrink-0 text-xs text-graphite/55">تعداد {item.quantity}</span></li>)}</ul></div>}
       <div className="mt-7 grid gap-5">
         <label className="grid gap-2 text-sm text-graphite"><span>نام</span><input required name="name" className="rounded-[16px] border border-silver bg-ivory px-4 py-3 outline-none focus:border-sapphire" /></label>
         <label className="grid gap-2 text-sm text-graphite"><span>راه ارتباطی</span><input required name="contact" className="rounded-[16px] border border-silver bg-ivory px-4 py-3 outline-none focus:border-sapphire" placeholder="ایمیل یا شماره تماس" /></label>
