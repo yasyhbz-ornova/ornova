@@ -190,8 +190,14 @@ These are not finished yet:
 * admin panel
 * quote/pre-invoice logic
 * messages
-* production deployment and domain verification on ornova.ir
 * final cross-device mobile polish
+
+Verified deployment state (2026-10-17):
+
+* The latest `main` deployment is Ready on Vercel.
+* `https://ornova.ir/` and `https://www.ornova.ir/` resolve through Cloudflare and return HTTP 200.
+* Production HTML contains the current ritual archive hero and commerce paths.
+* Supabase authenticated inquiry testing and the pending security migration still require an authenticated dashboard session.
 
 Do not implement these unless the current sprint explicitly asks for them.
 
