@@ -56,7 +56,7 @@ export default async function ProductDetailPage({
           <div className="mt-9 flex flex-wrap gap-3">
             <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} label="درخواست قیمت" />
             <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} />
-            <button className="product-question">پرسش درباره محصول</button>
+            <Link href="/contact" className="product-question">پرسش درباره محصول</Link>
           </div>
         </div>
 
