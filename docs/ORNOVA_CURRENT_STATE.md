@@ -197,6 +197,7 @@ Verified deployment state (2026-10-17):
 * The latest `main` deployment is Ready on Vercel.
 * `https://ornova.ir/` and `https://www.ornova.ir/` resolve through Cloudflare and return HTTP 200.
 * Production HTML contains the current ritual archive hero and commerce paths.
+* Vercel Production now has `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` configured; an unauthenticated production inquiry request correctly returns HTTP 401.
 * Supabase authenticated inquiry testing and the pending security migration still require an authenticated dashboard session.
 
 Do not implement these unless the current sprint explicitly asks for them.
