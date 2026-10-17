@@ -33,8 +33,20 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: `https://ornova.ir${product.image}`,
+    category: product.category,
+    brand: { "@type": "Brand", name: "Ornova by Yas" },
+    url: `https://ornova.ir/shop/${product.slug}`,
+  };
+
   return (
     <div className="product-sheet mx-auto max-w-6xl px-5 py-16">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <Link href="/shop" className="product-back text-sm text-sapphire">بازگشت به آرشیو</Link>
       <section className="mt-9 grid gap-12 md:grid-cols-[0.95fr_1.05fr] md:items-center">
         <div className="md:order-2">
