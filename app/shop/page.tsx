@@ -12,26 +12,24 @@ export const metadata: Metadata = {
 
 export default function ShopPage() {
   return (
-    <div className="mx-auto max-w-6xl px-5 py-16">
-      <div className="max-w-2xl">
-        <p className="text-sm text-sapphire">فروشگاه Ornova</p>
-        <h1 className="mt-3 text-4xl font-semibold leading-tight text-graphite md:text-5xl">کالکشن نقره</h1>
-        <p className="mt-5 text-base leading-8 text-graphite/70">
-          قطعاتی با طراحی دیجیتال جواهر، نگاه فنی و هنری، و امکان ارسال درخواست قیمت.
-        </p>
+    <div className="shop-archive mx-auto max-w-6xl px-5 py-16">
+      <div className="shop-archive-heading">
+        <p className="ritual-label">آرشیو قطعات / Ornova by Yas</p>
+        <h1>چیزهایی برای نزدیک ماندن.</h1>
+        <p>قطعات نقره‌ای Ornova با طراحی دیجیتال جواهر؛ هرکدام یک فرم، یک نشانه و یک امکان برای همراه‌شدن.</p>
       </div>
 
       <div className="mt-12 grid gap-7 md:grid-cols-3">
         {products.map((product) => (
-          <article key={product.slug} className="group rounded-[30px] border border-silver bg-ivory-soft p-5 transition hover:border-sapphire">
+          <article key={product.slug} className="shop-archive-card group">
             <Link href={`/shop/${product.slug}`}>
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[24px] border border-silver bg-navy">
+            <div className="shop-archive-image relative aspect-[4/5] overflow-hidden border border-silver bg-navy">
               <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" />
             </div>
-            <p className="mt-5 text-sm text-sapphire">{product.category}</p>
-            <h2 className="mt-2 min-h-16 text-xl font-semibold leading-8 text-graphite">{product.name}</h2>
+            <p className="mt-5 text-xs text-sapphire">{product.category}</p>
+            <h2 className="mt-2 min-h-16 text-lg font-semibold leading-8 text-graphite">{product.name}</h2>
             </Link>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-3">
               <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} label="درخواست قیمت" />
               <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} />
             </div>

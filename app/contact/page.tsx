@@ -1,5 +1,11 @@
 import { InquiryForm } from "@/components/commerce/InquiryForm";
 
+export const metadata = {
+  title: "ارتباط با Ornova | Ornova by Yas",
+  description: "برای سفارش طراحی اختصاصی یا پرسش درباره قطعات نقره Ornova با ما در ارتباط باشید.",
+  alternates: { canonical: "/contact" },
+};
+
 export default function ContactPage() {
   return (
     <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[0.8fr_1.2fr] md:py-20">

@@ -34,32 +34,32 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-16">
-      <Link href="/shop" className="text-sm text-sapphire">بازگشت به فروشگاه</Link>
+    <div className="product-sheet mx-auto max-w-6xl px-5 py-16">
+      <Link href="/shop" className="product-back text-sm text-sapphire">بازگشت به آرشیو</Link>
       <section className="mt-9 grid gap-12 md:grid-cols-[0.95fr_1.05fr] md:items-center">
         <div className="md:order-2">
-          <p className="text-sm text-sapphire">{product.category}</p>
+          <p className="ritual-label">{product.category} / پروندهٔ قطعه</p>
           <h1 className="mt-4 text-4xl font-semibold leading-tight text-graphite md:text-5xl">{product.name}</h1>
           <p className="mt-6 max-w-xl text-lg leading-9 text-graphite/75">{product.description}</p>
           <div className="mt-9 flex flex-wrap gap-3">
             <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} label="درخواست قیمت" />
             <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} />
-            <button className="rounded-full border border-silver px-6 py-3 text-sm font-medium text-graphite">پرسش درباره محصول</button>
+            <button className="product-question">پرسش درباره محصول</button>
           </div>
         </div>
 
         <div className="md:order-1">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[34px] border border-silver bg-navy">
+          <div className="product-sheet-image relative aspect-[4/5] overflow-hidden border border-silver bg-navy">
             <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
           </div>
         </div>
       </section>
 
-      <section className="mt-14 rounded-[30px] border border-silver bg-ivory-soft p-7">
+      <section className="product-details mt-14 border-t border-silver pt-8">
         <h2 className="text-xl font-semibold text-graphite">جزئیات قطعه</h2>
         <div className="mt-7 grid gap-4 md:grid-cols-4">
           {product.details.map((detail) => (
-            <div key={detail.label} className="rounded-[20px] border border-silver bg-ivory p-4">
+            <div key={detail.label} className="product-detail-item border-b border-silver/70 pb-4">
               <p className="text-xs text-sapphire">{detail.label}</p>
               <p className="mt-2 text-sm leading-7 text-graphite/78">{detail.value}</p>
             </div>

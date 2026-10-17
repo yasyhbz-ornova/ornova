@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function ArchiveConceptPage() {
-  return <ArchiveHome conceptMode />;
+  return <ArchiveHome />;
 }
