@@ -11,7 +11,7 @@ export default function LoginPage() {
       <div className="rounded-[30px] border border-silver bg-ivory-soft p-7 md:p-10">
         <p className="text-sm text-sapphire">حساب Ornova</p>
         <h1 className="mt-3 text-4xl font-semibold leading-tight text-graphite">ورود به حساب Ornova</h1>
-        <p className="mt-5 text-base leading-8 text-graphite/70">ایمیل‌تان را وارد کنید تا لینک ورود یک‌بارمصرف برای شما ارسال شود. رمز عبور در Ornova ذخیره نمی‌شود.</p>
+        <p className="mt-5 text-base leading-8 text-graphite/70">با شماره موبایل یا حساب Google وارد شوید. اگر ترجیح می‌دهید، لینک یک‌بارمصرف ایمیل هم در دسترس است.</p>
         <MagicLinkForm />
       </div>
     </div>
