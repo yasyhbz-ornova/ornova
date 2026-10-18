@@ -202,6 +202,7 @@ Verified deployment state (2026-10-17):
 * On 2026-10-18, Supabase Auth URL Configuration was set to Site URL `https://ornova.ir` with the allowed callback `https://ornova.ir/auth/callback`; `components/auth/MagicLinkForm.tsx` already builds the callback from the active origin and requires no code change.
 * On 2026-10-18, the production smoke audit returned HTTP 200 for `/`, `/shop`, `/custom-design`, `/ring-builder`, `/contact`, `/login`, `/robots.txt`, and `/sitemap.xml`; service-role, forbidden-copy, and tracked-environment-file scans were clean.
 * On 2026-10-19, the shop catalog was upgraded from a static card grid to a client-side catalog with Persian search, category filters, sorting, request status, detail links, and a single clear request-basket action. Real prices remain intentionally unpopulated until the owner provides verified pricing data.
+* On 2026-10-19, `ORNOVA_DESIGN_DNA.md` was expanded into an actionable experience grammar rooted in language, signification, rhythm, lived context, and honest commerce; it now governs discovery, graphics, motion, interface voice, product policies, privacy, and the page-design checklist.
 * Authenticated inquiry submission and private-file upload still need a real customer account test.
 
 Do not implement these unless the current sprint explicitly asks for them.
