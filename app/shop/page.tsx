@@ -1,8 +1,6 @@
-import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { products } from "@/lib/constants/products";
-import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
+import { ShopCatalog } from "@/components/commerce/ShopCatalog";
 
 export const metadata: Metadata = {
   title: "فروشگاه نقره | Ornova by Yas",
@@ -19,23 +17,7 @@ export default function ShopPage() {
         <p>قطعات نقره‌ای Ornova با طراحی دیجیتال جواهر؛ هرکدام یک فرم، یک نشانه و یک امکان برای همراه‌شدن.</p>
       </div>
 
-      <div className="mt-12 grid gap-7 md:grid-cols-3">
-        {products.map((product) => (
-          <article key={product.slug} className="shop-archive-card group">
-            <Link href={`/shop/${product.slug}`}>
-            <div className="shop-archive-image relative aspect-[4/5] overflow-hidden border border-silver bg-navy">
-              <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <p className="mt-5 text-xs text-sapphire">{product.category}</p>
-            <h2 className="mt-2 min-h-16 text-lg font-semibold leading-8 text-graphite">{product.name}</h2>
-            </Link>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} label="درخواست قیمت" />
-              <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} />
-            </div>
-          </article>
-        ))}
-      </div>
+      <ShopCatalog products={products} />
     </div>
   );
 }
