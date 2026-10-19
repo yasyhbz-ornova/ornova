@@ -12,7 +12,7 @@ export const products: Product[] = [
     slug: "lajvard-shab-ring",
     name: "انگشتر نقره «لاجورد شب»",
     category: "انگشتر",
-    image: "/images/ornova/lajvard-shab-01.jfif",
+    image: "/images/ornova/lajvard-shab-01.jpg",
     description:
       "انگشتری آرام با قاب نقره و آبی شبانه؛ طراحی قابل ساخت برای خاطره‌ای نزدیک.",
     details: [
@@ -30,7 +30,7 @@ export const products: Product[] = [
     slug: "silent-vase-pin",
     name: "سنجاق سینه نقره «گلدان خاموش»",
     category: "سنجاق سینه",
-    image: "/images/ornova/goldan-khamoosh-01.jfif",
+    image: "/images/ornova/goldan-khamoosh-01.jpg",
     description:
       "سنجاقی ظریف با حجم آرام و نقره‌ای؛ طراحی شده با نگاه فنی و هنری برای همراهی لباس‌های رسمی.",
     details: [
