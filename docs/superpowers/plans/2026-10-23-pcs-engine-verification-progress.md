@@ -1,0 +1,10 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-10-23-pcs-engine-verification.md
+
+- Owner requested step-by-step native execution in this chat. Current branch codex/private-quote-snapshots, HEAD8d80cc9; preserve all unrelated work and the3 staged photos.
+- Ruling: retain current checkout/branch rather than a new worktree — owner chose native continuation and prior site changes are prerequisites — scoped checkpoints must not absorb unrelated files.
+- Ruling: this plan implements the existing integration note's verified-SDK/isolated-test prerequisite, not a new service design — no new business/hosting decisions — existing tests cannot establish web connection or quick-method parity.
+- Prerequisite complete: recovered SDK10.0.402 through official Azure Blob endpoint after CDN/Docker failures. Whole archive SHA512 matched official metadata before extraction; local SDK launches with runtime10.0.13. No global install or PATH change.
+- Prerequisite evidence: separate source-baseline copy, offline restore using existing NuGet cache, then dotnet test;68 passed,0 failed/skipped, exit0. TRX at D:\Temp\ornova-pcs-dotnet10-aba628f0c96647ec96279e2cf6136a6b\test-results\pcs-baseline.trx. No operational DB or desktop UI.
+- Pre-flight1→2: fixture helper provides a fresh source tree; CLI must build/test only that tree and derive success from its own fresh TRX. Environment must preserve the explicit SDK for child testhost without provider credentials.
+- Task1: complete. Five new assertions failed on absent helper exports, then all5 passed after implementation. Full Node suite145 tests passed (dot reporter), exit0. Helpers enforce fresh/non-overlapping source-only fixture, pinned engine provenance, wholly green counters and a credential-free child environment. Scoped checkpoint excludes staged photos and all prior changes.
+- Task2: in progress; add explicit CLI and real native run next, not a live engine connection.
