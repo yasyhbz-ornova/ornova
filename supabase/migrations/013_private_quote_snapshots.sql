@@ -1,6 +1,6 @@
 -- Reviewed quote snapshots, not an online calculator or a payment workflow.
 create table public.inquiry_quote_sources (
-  id uuid primary key default gen_random_uuid(), source_key text not null,
+  id uuid primary key default gen_random_uuid(), document_id uuid not null unique default gen_random_uuid(), source_key text not null,
   source_quote_no text not null, source_order_no text not null,
   inquiry_id uuid not null references public.inquiries(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
@@ -9,6 +9,7 @@ create table public.inquiry_quote_sources (
 create table public.inquiry_quote_snapshots (
   id uuid primary key default gen_random_uuid(),
   source_id uuid not null references public.inquiry_quote_sources(id) on delete cascade,
+  document_id uuid not null,
   inquiry_id uuid not null references public.inquiries(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
   source_quote_no text not null, source_order_no text not null,
@@ -33,7 +34,8 @@ alter table public.inquiry_quote_snapshots enable row level security;
 alter table public.inquiry_quote_withdrawals enable row level security;
 alter table public.inquiry_quote_withdrawal_reasons enable row level security;
 revoke all on public.inquiry_quote_sources,public.inquiry_quote_snapshots,public.inquiry_quote_withdrawals,public.inquiry_quote_withdrawal_reasons from public,anon,authenticated;
-grant select on public.inquiry_quote_sources,public.inquiry_quote_snapshots,public.inquiry_quote_withdrawals,public.inquiry_quote_withdrawal_reasons to authenticated;
+grant select on public.inquiry_quote_sources,public.inquiry_quote_withdrawals,public.inquiry_quote_withdrawal_reasons to authenticated;
+grant select(id,document_id,inquiry_id,source_quote_no,source_order_no,source_revision,payload,published_at) on public.inquiry_quote_snapshots to authenticated;
 create policy quote_sources_staff on public.inquiry_quote_sources for select to authenticated using((select public.is_ornova_staff()));
 create policy quote_snapshots_read on public.inquiry_quote_snapshots for select to authenticated using(
   (select public.is_ornova_staff()) or (owner_id=(select auth.uid()) and exists(select 1 from public.inquiries i where i.id=inquiry_id and i.user_id=(select auth.uid())))
@@ -107,8 +109,8 @@ begin
     insert into public.inquiry_quote_sources(source_key,source_quote_no,source_order_no,inquiry_id,owner_id)
       values(p_source_key,normalized->>'source_quote_no',normalized->>'source_order_no',p_inquiry_id,owner) returning * into source;
   end if;
-  insert into public.inquiry_quote_snapshots(source_id,inquiry_id,owner_id,source_quote_no,source_order_no,source_revision,payload,created_by)
-    values(source.id,p_inquiry_id,owner,normalized->>'source_quote_no',normalized->>'source_order_no',revision,normalized,auth.uid()) returning id into quote_id;
+  insert into public.inquiry_quote_snapshots(source_id,document_id,inquiry_id,owner_id,source_quote_no,source_order_no,source_revision,payload,created_by)
+    values(source.id,source.document_id,p_inquiry_id,owner,normalized->>'source_quote_no',normalized->>'source_order_no',revision,normalized,auth.uid()) returning id into quote_id;
   return jsonb_build_object('id',quote_id,'created',true);
 end;$$;
 revoke all on function public.publish_inquiry_quote(uuid,text,jsonb) from public,anon;
@@ -140,7 +142,7 @@ revoke all on function public.protect_quoted_inquiry_owner() from public,anon,au
 create trigger protect_quoted_inquiry_owner before update of user_id on public.inquiries for each row execute function public.protect_quoted_inquiry_owner();
 
 create view public.customer_inquiry_quotes with(security_invoker=true) as
-select q.id,q.inquiry_id,q.source_quote_no,q.source_order_no,q.source_revision,q.payload,q.published_at,w.withdrawn_at
+select q.id,q.document_id,q.inquiry_id,q.source_quote_no,q.source_order_no,q.source_revision,q.payload,q.published_at,w.withdrawn_at
 from public.inquiry_quote_snapshots q left join public.inquiry_quote_withdrawals w on w.snapshot_id=q.id;
 revoke all on public.customer_inquiry_quotes from public,anon;
 grant select on public.customer_inquiry_quotes to authenticated;

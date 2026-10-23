@@ -29,3 +29,22 @@ test("customer card renders exact amounts and source revision without internal d
   const withdrawn=renderToStaticMarkup(React.createElement(InquiryQuoteCard,{quote:{...quote,withdrawn_at:"2026-10-22T01:00:00Z"},isPreviousVersion:true,now:"2026-10-24T00:00:00Z"}));
   assert.match(withdrawn,/پس گرفته شده/);assert.match(withdrawn,/نسخهٔ پیشین/);
 });
+
+test("quote deadline uses a visible Tehran timezone identically on server and client",()=>{
+  const {InquiryQuoteCard}=loadTs("components/commerce/InquiryQuoteCard.tsx"), original=process.env.TZ;
+  const quote={id:"q",document_id:"doc-a",inquiry_id:"a",source_quote_no:"Q-TEST",source_order_no:"O-TEST",source_revision:1,payload:{...payload,issued_at:"2026-10-22T20:00:00Z"},published_at:"2026-10-22T20:00:00Z",withdrawn_at:null};
+  try {
+    process.env.TZ="UTC";const server=renderToStaticMarkup(React.createElement(InquiryQuoteCard,{quote,isPreviousVersion:false,now:"2026-10-22T20:01:00Z"}));
+    process.env.TZ="Asia/Tehran";const client=renderToStaticMarkup(React.createElement(InquiryQuoteCard,{quote,isPreviousVersion:false,now:"2026-10-22T20:01:00Z"}));
+    assert.equal(server,client);assert.match(server,/۲۳:۳۰/);assert.match(server,/به وقت تهران/);
+  } finally { if(original===undefined)delete process.env.TZ;else process.env.TZ=original; }
+});
+
+test("revision history groups by opaque document identity rather than reused display numbers",()=>{
+  const {InquiryQuoteList}=loadTs("components/commerce/InquiryQuoteCard.tsx");
+  const first={id:"q1",document_id:"doc-a",inquiry_id:"a",source_quote_no:"Q-TEST",source_order_no:"O-TEST",source_revision:1,payload,published_at:"2026-10-22T00:00:00Z",withdrawn_at:null};
+  const second={...first,id:"q2",document_id:"doc-b",source_revision:2,payload:{...payload,source_revision:2}};
+  const render=quotes=>renderToStaticMarkup(React.createElement(InquiryQuoteList,{quotes,now:"2026-10-22T01:00:00Z"}));
+  assert.doesNotMatch(render([first,second]),/نسخهٔ پیشین/);
+  assert.equal((render([first,{...second,document_id:"doc-a"}]).match(/نسخهٔ پیشین/g)||[]).length,1);
+});

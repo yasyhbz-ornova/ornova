@@ -26,6 +26,7 @@ try {
   assert.equal(JSON.parse(sql(asStaff(publish(first)))).id,stored.id);
   assert.equal(sql(actor(a,"select count(*) from public.inquiry_quote_snapshots;")),"1");
   assert.equal(sql(actor(b,"select count(*) from public.inquiry_quote_snapshots;")),"0");
+  for(const column of ["created_by","source_id","owner_id"]) assert.throws(()=>sql(actor(a,`select ${column} from public.inquiry_quote_snapshots;`)),/permission denied/);
   assert.throws(()=>sql(actor(a,publish(valid({source_quote_no:"Q-FORGE"})))),/QUOTE_FORBIDDEN/);
   assert.throws(()=>sql(`set role anon;${publish(first)}`),/permission denied/);
   for(const table of ["inquiry_quote_snapshots","inquiry_quote_sources","inquiry_quote_withdrawals","inquiry_quote_withdrawal_reasons"]) assert.throws(()=>sql(asStaff(`delete from public.${table};`)),/permission denied/);
@@ -35,6 +36,9 @@ try {
   assert.throws(()=>sql(asStaff(publish({...first,total_rial:"10000000",discount_rial:"900000"}))),/QUOTE_CONFLICT/);
   assert.throws(()=>sql(asStaff(publish(first,other))),/QUOTE_CONFLICT/);
   const next=valid({source_revision:2}); assert.equal(JSON.parse(sql(asStaff(publish(next)))).created,true);
+  assert.equal(sql(actor(a,"select count(distinct document_id) from public.customer_inquiry_quotes;")),"1");
+  sql(asStaff(publish(valid()).replace("'fixture'","'fixture-second-source'")));
+  assert.equal(sql(actor(a,"select count(distinct document_id) from public.customer_inquiry_quotes;")),"2");
   assert.throws(()=>sql(asStaff(publish(valid({source_revision:1,source_order_no:"different"})))),/QUOTE_CONFLICT/);
   const withdrawal=`select public.withdraw_inquiry_quote('${inquiry}','${stored.id}','internal fixture reason');`;
   sql(asStaff(withdrawal));sql(asStaff(withdrawal));
