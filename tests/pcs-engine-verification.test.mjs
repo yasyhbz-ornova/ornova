@@ -3,6 +3,8 @@ import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const script = new URL("../scripts/pcs-engine-verification.mjs", import.meta.url);
 const gate = existsSync(script) ? await import(script.href) : {};
@@ -75,4 +77,12 @@ test("PCS compiler/test child receives the selected SDK, not application credent
   assert.equal(result.NUGET_AUTH_TOKEN, undefined);
   assert.equal(parent.DOTNET_HOST_PATH, "wrong");
   assert.equal(result.DOTNET_CLI_TELEMETRY_OPTOUT, "1");
+});
+
+test("PCS CLI refuses missing or unknown arguments instead of silently succeeding", () => {
+  for (const args of [[], ["--unknown", "value"], ["--dotnet", "missing"]]) {
+    const result = spawnSync(process.execPath, [fileURLToPath(script), ...args], { encoding: "utf8", timeout: 10000, windowsHide: true });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /usage|arguments/i);
+  }
 });

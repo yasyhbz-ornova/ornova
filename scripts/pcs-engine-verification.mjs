@@ -1,7 +1,10 @@
 // Opt-in local C# verification. Never imports operational data or modifies PCS source.
 import { createHash } from "node:crypto";
-import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const ENGINE_SHA256 = "48c17189fd76f18db89f290b1981e448d0faed7770ec4f7bdc870dab0220819a";
 const projects = ["src/Ornova.PCS.Domain", "src/Ornova.PCS.Application", "src/Ornova.PCS.Infrastructure", "src/Ornova.PCS.Reporting", "tests/Ornova.PCS.Tests"];
@@ -100,4 +103,65 @@ export function dotnetEnvironment(parent, sdk, workspace) {
     DOTNET_GENERATE_ASPNET_CERTIFICATE: "false",
     DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE: "1",
   };
+}
+
+function sourceFingerprint(root) {
+  const hash = createHash("sha256");
+  for (const name of sourceFiles(root).sort()) {
+    hash.update(name.split(sep).join("/"));
+    hash.update("\0");
+    hash.update(createHash("sha256").update(readFileSync(join(root, name))).digest());
+  }
+  return hash.digest("hex");
+}
+
+const usage = "Usage: node scripts/pcs-engine-verification.mjs --dotnet ABSOLUTE_SDK_HOST --source PCS_ROOT --packages LOCAL_NUGET_CACHE";
+
+function main(args) {
+  if (args.length === 1 && args[0] === "--help") { console.log(usage); return; }
+  const options = {};
+  for (let n = 0; n < args.length; n += 2) {
+    const key = args[n];
+    if (!["--dotnet", "--source", "--packages"].includes(key) || key in options || !args[n + 1] || args[n + 1].startsWith("--")) throw Error(`Invalid arguments. ${usage}`);
+    options[key] = args[n + 1];
+  }
+  if (Object.keys(options).length !== 3 || Object.values(options).some(path => !isAbsolute(path))) throw Error(`Explicit absolute arguments are required. ${usage}`);
+  const source = verifyPcsSource(options["--source"]);
+  const sdk = realpathSync(options["--dotnet"]), packages = realpathSync(options["--packages"]);
+  regularFile(sdk);
+  if (!lstatSync(packages).isDirectory()) throw Error("Local NuGet cache directory is required");
+  const fingerprint = sourceFingerprint(source.root);
+  const workspace = mkdtempSync(join(tmpdir(), "ornova-pcs-engine-"));
+  const fixture = copyPcsSources(source.root, join(workspace, "source"));
+  verifyPcsSource(fixture);
+  if (sourceFingerprint(fixture) !== fingerprint) throw Error("PCS source changed while preparing its fixture");
+  const environment = { ...dotnetEnvironment(process.env, sdk, workspace), NUGET_PACKAGES: packages };
+  function dotnet(command) {
+    const result = spawnSync(sdk, command, { cwd: fixture, env: environment, encoding: "utf8", windowsHide: true, shell: false, timeout: 180000, maxBuffer: 8 * 1024 * 1024 });
+    if (result.status !== 0 || result.error) {
+      throw Error(`PCS verification command failed (${command[0]}). Fixture retained: ${workspace}\n${result.error?.message ?? ""}\n${result.stdout ?? ""}\n${result.stderr ?? ""}`);
+    }
+    return result.stdout.trim();
+  }
+  const version = dotnet(["--version"]);
+  if (!/^10\.0\.\d+$/.test(version)) throw Error(`PCS requires a .NET10 SDK; fixture retained: ${workspace}`);
+  const project = "tests/Ornova.PCS.Tests/Ornova.PCS.Tests.csproj";
+  const artifacts = join(workspace, "artifacts"), results = join(workspace, "results");
+  console.log(`PCS isolated verification with SDK${version}; fixture: ${workspace}`);
+  let counters;
+  try {
+    console.log(dotnet(["restore", project, "--source", packages, "--artifacts-path", artifacts, "-p:NuGetAudit=false", "--disable-parallel"]));
+    console.log(dotnet(["test", project, "--no-restore", "--artifacts-path", artifacts, "--logger", "console;verbosity=minimal", "--logger", "trx;LogFileName=pcs.trx", "--results-directory", results]));
+    counters = readPassingCounters(readFileSync(join(results, "pcs.trx"), "utf8"));
+  } finally {
+    if (sourceFingerprint(source.root) !== fingerprint) throw Error("Original PCS source fingerprint changed during verification; do not accept this run");
+  }
+  const evidence = { sdk_version: version, source_root: source.root, engine_sha256: source.engine_sha256, source_fingerprint: fingerprint, counters, report: join(results, "pcs.trx"), note: "Source-only offline baseline; not an OS sandbox, dependency security audit, quick-method parity or live website connection." };
+  writeFileSync(join(workspace, "evidence.json"), `${JSON.stringify(evidence, null, 2)}\n`, { flag: "wx" });
+  console.log(JSON.stringify(evidence, null, 2));
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try { main(process.argv.slice(2)); }
+  catch (error) { console.error(error instanceof Error ? error.message : "PCS verification failed"); process.exitCode = 1; }
 }
