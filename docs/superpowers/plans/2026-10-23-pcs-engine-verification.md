@@ -6,7 +6,7 @@
 
 **Architecture:** An opt-in Node script validates the pinned common engine, copies only build source into a fresh temporary fixture, and runs the caller-specified verified .NET SDK with offline cached packages. A real TRX report, not console wording, determines success.
 
-**Tech Stack:** Node built-ins; the existing .NET10/xUnit PCS projects. No new npm dependency.
+**Tech Stack:** Node built-ins; the existing .NET10/xUnit PCS projects; dev-only `@xmldom/xmldom`0.9.12 for structural TRX parsing (final-review ruling).
 
 **Spec:** `docs/ORNOVA_PCS_INTEGRATION.md`, sections «ادامهٔ بررسی موتور» and «ازسرگیری اجرایی». This is the already requested prerequisite stage, not a new pricing strategy or live API.
 
@@ -45,7 +45,7 @@
 
 **Interfaces:** CLI requires --dotnet PATH --source ROOT --packages CACHE; creates a unique `ornova-pcs-engine-*` fixture, restores/tests its copied test project, reads `results/pcs.trx`, and prints source hash, real counters and report path. Nonzero process status, missing report or invalid counters fails the command.
 
-- [ ] Exercise missing/unknown arguments as a failing boundary; implement explicit argument handling without side effects on import.
-- [ ] Run against working source with the hash-verified temporary SDK10.0.402 and existing local NuGet cache. Expected:68 passed,0 failed/skipped, original source unchanged. Actual count is read from TRX, not hard-coded as success.
-- [ ] Run full Node suite, lint, build and scoped diff/status checks. Review once with a fresh reviewer when available, fix Important findings via RED→GREEN, document limitations.
-- [ ] Record SDK recovery, exact test evidence and next engine-contract step. No push/deploy or live API claim.
+- [x] Exercise missing/unknown arguments as a failing boundary; implement explicit argument handling without side effects on import.
+- [x] Run against working source with the hash-verified temporary SDK10.0.402 and existing local NuGet cache. Expected:68 passed,0 failed/skipped, original source unchanged. Actual count is read from TRX, not hard-coded as success.
+- [x] Run full Node suite, lint, build and scoped diff/status checks. Review once with a fresh reviewer when available, fix Important findings via RED→GREEN, document limitations.
+- [x] Record SDK recovery, exact test evidence and next engine-contract step. No push/deploy or live API claim.

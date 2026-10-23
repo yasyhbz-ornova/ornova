@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join, parse } from "node:path";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -21,7 +21,8 @@ function fixture() {
 }
 function counters(overrides = {}) {
   const values = { total: "68", executed: "68", passed: "68", failed: "0", error: "0", timeout: "0", aborted: "0", notExecuted: "0", warning: "0", ...overrides };
-  return `<TestRun><ResultSummary outcome="Completed"><Counters ${Object.entries(values).map(([k,v]) => `${k}="${v}"`).join(" ")} /></ResultSummary></TestRun>`;
+  const results = Array.from({ length: 68 }, (_, n) => `<UnitTestResult executionId="execution-${n}" testId="test-${n}" outcome="Passed" />`).join("");
+  return `<TestRun><Results>${results}</Results><ResultSummary outcome="Completed"><Counters ${Object.entries(values).map(([k,v]) => `${k}="${v}"`).join(" ")} /></ResultSummary></TestRun>`;
 }
 
 test("PCS fixture copies build source but never database, configuration, binaries or generated source", () => {
@@ -85,4 +86,36 @@ test("PCS CLI refuses missing or unknown arguments instead of silently succeedin
     assert.equal(result.status, 1);
     assert.match(result.stderr, /usage|arguments/i);
   }
+});
+
+test("PCS fixture refuses a src ancestor junction before copying external source", () => {
+  const outside = fixture(), source = mkdtempSync(join(tmpdir(), "ornova-pcs-gate-junction-")), parent = mkdtempSync(join(tmpdir(), "ornova-pcs-gate-destination-"));
+  for (const file of ["Directory.Build.props", "Directory.Packages.props", "global.json"]) writeFileSync(join(source, file), "{}");
+  mkdirSync(join(source, "tests/Ornova.PCS.Tests"), { recursive: true });
+  writeFileSync(join(source, "tests/Ornova.PCS.Tests/Ornova.PCS.Tests.csproj"), "<Project />");
+  symlinkSync(join(outside, "src"), join(source, "src"), process.platform === "win32" ? "junction" : "dir");
+  writeFileSync(join(outside, projects[0], "Customer.cs"), "// synthetic private source, not authorized for copying");
+  assert.throws(() => gate.copyPcsSources(source, join(parent, "copy")), /link|containment/i);
+  assert.equal(existsSync(join(parent, "copy")), false);
+});
+
+test("PCS refuses an existing root-level destination before inspecting incomplete source", { skip: dirname(tmpdir()) !== parse(tmpdir()).root }, () => {
+  // Incomplete source guarantees the regression probe can never create a root-level directory.
+  const source = mkdtempSync(join(tmpdir(), "ornova-pcs-gate-incomplete-"));
+  const existing = join(parse(tmpdir()).root, basename(tmpdir()));
+  assert.throws(() => gate.copyPcsSources(source, existing), /destination already exists/i);
+});
+
+for (const [name, report] of [
+  ["failed real result with green counters", counters().replace('outcome="Passed"', 'outcome="Failed"')],
+  ["truncated XML", counters().slice(0, -10)],
+  ["summary hidden in an XML comment", `<TestRun><!--${counters()}--></TestRun>`],
+  ["counters without actual results", counters().replace(/<Results>.*<\/Results>/, "<Results />")],
+  ["duplicated execution results", counters().replace('executionId="execution-1"', 'executionId="execution-0"')],
+  ["a DTD even when counters are green", `<!DOCTYPE TestRun []>${counters()}`],
+]) test(`PCS TRX rejects ${name}`, () => assert.throws(() => gate.readPassingCounters(report)));
+
+test("PCS TRX accepts the genuine VSTest UTF-8 BOM, XML declaration and namespace", () => {
+  const report = '\uFEFF<?xml version="1.0" encoding="utf-8"?>' + counters().replace("<TestRun>", '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">');
+  assert.deepEqual(gate.readPassingCounters(report), { total: 68, executed: 68, passed: 68 });
 });

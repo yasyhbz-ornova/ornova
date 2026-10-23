@@ -1,10 +1,11 @@
 // Opt-in local C# verification. Never imports operational data or modifies PCS source.
 import { createHash } from "node:crypto";
 import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
-import { delimiter, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, delimiter, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { DOMParser } from "@xmldom/xmldom";
 
 const ENGINE_SHA256 = "48c17189fd76f18db89f290b1981e448d0faed7770ec4f7bdc870dab0220819a";
 const projects = ["src/Ornova.PCS.Domain", "src/Ornova.PCS.Application", "src/Ornova.PCS.Infrastructure", "src/Ornova.PCS.Reporting", "tests/Ornova.PCS.Tests"];
@@ -16,10 +17,20 @@ function regularFile(path) {
   if (stat.isSymbolicLink() || !stat.isFile()) throw Error("PCS source marker must be a regular file");
 }
 
+function checkedSourcePath(root, relativePath) {
+  let path = root;
+  for (const segment of relativePath.split(/[\\/]/)) {
+    path = join(path, segment);
+    if (lstatSync(path).isSymbolicLink()) throw Error("PCS source ancestor links are not copied");
+    if (!contains(root, realpathSync(path))) throw Error("PCS source containment check failed");
+  }
+  return path;
+}
+
 function sourceFiles(root) {
   const files = [];
   for (const name of rootFiles) {
-    regularFile(join(root, name));
+    regularFile(checkedSourcePath(root, name));
     files.push(name);
   }
   function visit(directory) {
@@ -35,7 +46,7 @@ function sourceFiles(root) {
     }
   }
   for (const project of projects) {
-    const stat = lstatSync(join(root, project));
+    const stat = lstatSync(checkedSourcePath(root, project));
     if (stat.isSymbolicLink() || !stat.isDirectory()) throw Error("PCS project must be a source directory");
     regularFile(join(root, project, `${project.split("/").at(-1)}.csproj`));
     visit(project);
@@ -61,30 +72,47 @@ export function copyPcsSources(source, target) {
   const root = realpathSync(source);
   const requested = resolve(target);
   // Resolve a linked parent too: a fresh-looking target cannot point back into the source.
-  const destination = join(realpathSync(dirname(requested)), requested.slice(dirname(requested).length + 1));
-  if (contains(root, destination) || contains(destination, root)) throw Error("PCS fixture must not overlap source");
+  const destination = join(realpathSync(dirname(requested)), basename(requested));
   if (existsSync(destination)) throw Error("PCS fixture destination already exists; refusing overwrite");
+  if (contains(root, destination) || contains(destination, root)) throw Error("PCS fixture must not overlap source");
   const files = sourceFiles(root);
   mkdirSync(destination);
   for (const file of files) {
     const output = join(destination, file);
     mkdirSync(dirname(output), { recursive: true });
-    copyFileSync(join(root, file), output, constants.COPYFILE_EXCL);
+    copyFileSync(checkedSourcePath(root, file), output, constants.COPYFILE_EXCL);
   }
   return destination;
 }
 
 export function readPassingCounters(xml) {
-  if (typeof xml !== "string" || xml.length > 16 * 1024 * 1024 || !/<TestRun\b/.test(xml)) throw Error("Invalid PCS test report");
-  const summaries = [...xml.matchAll(/<ResultSummary\b[^>]*\boutcome="([^"]+)"/g)];
-  const matches = [...xml.matchAll(/<Counters\b([^>]*)\/>/g)];
-  if (summaries.length !== 1 || !["Completed", "Passed"].includes(summaries[0][1]) || matches.length !== 1) throw Error("Missing or ambiguous PCS result summary");
-  const attributes = [...matches[0][1].matchAll(/([A-Za-z][A-Za-z0-9]*)="(\d+)"/g)];
-  if (matches[0][1].replace(/([A-Za-z][A-Za-z0-9]*)="(\d+)"/g, "").trim()) throw Error("Invalid PCS test counters");
-  const values = Object.fromEntries(attributes.map(([, key, value]) => [key, Number(value)]));
+  // Fresh VSTest XML needs no DTD. Fail on every parser warning/error; never repair input.
+  if (typeof xml !== "string" || !xml.trim() || xml.length > 16 * 1024 * 1024 || /<!DOCTYPE/i.test(xml)) throw Error("Invalid PCS test report");
+  const document = new DOMParser({ onError() { throw Error("Malformed PCS test XML"); } }).parseFromString(xml.replace(/^\uFEFF/, ""), "application/xml");
+  const root = document.documentElement;
+  if (!root || root.localName !== "TestRun" || document.doctype) throw Error("Invalid PCS TestRun root");
+  const namespace = root.namespaceURI ?? "";
+  const elements = node => Array.from(node.childNodes).filter(child => child.nodeType === 1);
+  function onlyChild(parent, name) {
+    const found = elements(parent).filter(node => node.localName === name && (node.namespaceURI ?? "") === namespace);
+    if (found.length !== 1 || document.getElementsByTagNameNS(namespace || null, name).length !== 1) throw Error("Missing or ambiguous PCS result structure");
+    return found[0];
+  }
+  const summary = onlyChild(root, "ResultSummary"), resultList = onlyChild(root, "Results");
+  if (!["Completed", "Passed"].includes(summary.getAttribute("outcome"))) throw Error("Unsuccessful PCS result summary");
+  const attributes = Array.from(onlyChild(summary, "Counters").attributes);
+  if (attributes.some(attribute => !/^\d+$/.test(attribute.value))) throw Error("Invalid PCS test counters");
+  const values = Object.fromEntries(attributes.map(attribute => [attribute.name, Number(attribute.value)]));
   if (attributes.length !== Object.keys(values).length || Object.values(values).some(value => !Number.isSafeInteger(value))) throw Error("Invalid PCS counter values");
   for (const required of ["total", "executed", "passed", "failed", "error", "timeout", "aborted", "notExecuted"]) if (!(required in values)) throw Error("Incomplete PCS test counters");
   if (values.total < 1 || values.total !== values.executed || values.total !== values.passed || Object.entries(values).some(([key, value]) => !["total", "executed", "passed"].includes(key) && value !== 0)) throw Error("PCS test run was not entirely passing");
+  const results = elements(resultList), executions = new Set();
+  if (results.length !== values.total) throw Error("PCS result count disagrees with counters");
+  for (const result of results) {
+    const execution = result.getAttribute("executionId");
+    if (result.localName !== "UnitTestResult" || (result.namespaceURI ?? "") !== namespace || result.getAttribute("outcome") !== "Passed" || !execution || executions.has(execution)) throw Error("Failed or duplicated PCS test execution");
+    executions.add(execution);
+  }
   return { total: values.total, executed: values.executed, passed: values.passed };
 }
 
