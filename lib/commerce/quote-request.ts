@@ -23,7 +23,7 @@ export function quoteError(status: number) {
 }
 export function quoteRpcStatus(error: { message?: string }): number {
   const message = error.message ?? "";
-  if (/QUOTE_(CONFLICT|CLOSED)/.test(message)) return 409;
+  if (/QUOTE_(CONFLICT|CLOSED|ACCEPTED|EXPIRED)/.test(message)) return 409;
   if (message.includes("QUOTE_NOT_FOUND")) return 404;
   if (message.includes("QUOTE_FORBIDDEN")) return 403;
   if (message.includes("QUOTE_INVALID")) return 400;

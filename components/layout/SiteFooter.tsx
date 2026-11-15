@@ -15,8 +15,11 @@ export function SiteFooter() {
           <p className="text-sm text-sapphire">Ornova by Yas</p>
           <h2 className="mt-3 text-xl font-semibold text-graphite">ارتباط با Ornova</h2>
           <p className="mt-3 max-w-md text-sm leading-7 text-graphite/70">
-            برای سفارش طراحی اختصاصی، پرسش درباره محصولات یا هماهنگی ساخت، از صفحه تماس با ما پیام بفرستید.
+            برای درخواست قیمت، سفارش طراحی اختصاصی یا پرسش درباره‌ی یک قطعه، مسیر گفت‌وگو را از اینجا شروع کنید.
           </p>
+          <Link href="/contact" className="mt-4 inline-flex text-sm text-sapphire underline decoration-silver underline-offset-4 transition hover:decoration-sapphire">
+            رفتن به فرم درخواست ←
+          </Link>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-3 border-t border-silver/60 pt-6 text-sm text-graphite/70 md:justify-end md:border-t-0 md:pt-1">
           {footerLinks.map((link) => (

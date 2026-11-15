@@ -1,19 +1,15 @@
-import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
+import { redirect } from "next/navigation";
+import { getAuthCallbackErrorMessage, safeInternalPath } from "@/lib/auth/inputs";
 
 export const metadata = {
   title: "ورود به حساب Ornova | Ornova by Yas",
   robots: { index: false, follow: false },
 };
 
-export default function LoginPage() {
-  return (
-    <div className="mx-auto max-w-xl px-5 py-20">
-      <div className="rounded-[30px] border border-silver bg-ivory-soft p-7 md:p-10">
-        <p className="text-sm text-sapphire">حساب Ornova</p>
-        <h1 className="mt-3 text-4xl font-semibold leading-tight text-graphite">ورود به حساب Ornova</h1>
-        <p className="mt-5 text-base leading-8 text-graphite/70">با شماره موبایل یا حساب Google وارد شوید. اگر ترجیح می‌دهید، لینک یک‌بارمصرف ایمیل هم در دسترس است.</p>
-        <MagicLinkForm />
-      </div>
-    </div>
-  );
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const { error, next } = await searchParams;
+  const params = new URLSearchParams({ galleryPanel: "account" });
+  params.set("next", safeInternalPath(typeof next === "string" ? next : null, "/?galleryPanel=account"));
+  if (getAuthCallbackErrorMessage(typeof error === "string" ? error : null)) params.set("error", error!);
+  redirect(`/?${params.toString()}`);
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CustomerQuoteDTO } from "@/lib/account/inquiry-quotes";
 import { formatRialAsToman } from "@/lib/commerce/quote-money";
 
@@ -9,14 +10,14 @@ export function InquiryQuoteCard({ quote, isPreviousVersion, now }: { quote: Cus
       <div><p className="text-xs text-sapphire">پیشنهاد قیمت{isPreviousVersion ? " · نسخهٔ پیشین" : ""}</p><h3 className="mt-2 break-all text-lg"><bdi>{quote.source_quote_no}</bdi></h3><p className="mt-1 text-xs text-graphite/65">نسخهٔ {quote.source_revision.toLocaleString("fa-IR")} · سفارش <bdi>{quote.source_order_no}</bdi></p></div>
       <p className="text-xs leading-7 text-graphite/65">صدور: {date(quote.payload.issued_at)}<br />اعتبار تا: {date(quote.payload.valid_until)}<br />به وقت تهران</p>
     </header>
-    {quote.withdrawn_at ? <p className="mt-4 text-sm leading-7" role="status">این پیشنهاد پس گرفته شده؛ برای ادامه منتظر نسخهٔ تازه باشید.</p> : expired ? <p className="mt-4 text-sm leading-7" role="status">مهلت پیشنهاد گذشته است؛ برای قیمت تازه با Ornova هماهنگ کنید.</p> : null}
-    <ol className="mt-5 space-y-4" aria-label="ردیف‌های پیشنهاد قیمت">{quote.payload.lines.map((line, index) => <li key={index} className="flex flex-wrap justify-between gap-x-5 gap-y-1 text-sm leading-7"><div className="min-w-0 flex-1 break-words"><p>{line.description}</p><p className="text-xs text-graphite/60">تعداد {line.quantity.toLocaleString("fa-IR")} · مبلغ کل ردیف</p></div><span className="tabular-nums">{formatRialAsToman(line.amount_rial)}</span></li>)}</ol>
+    {quote.accepted_at ? <p className="mt-4 text-sm leading-7" role="status">پذیرش مالی همین نسخه در {date(quote.accepted_at)} ثبت شده است. این ثبت، پرداخت یا فاکتور نهایی نیست.</p> : quote.withdrawn_at ? <p className="mt-4 text-sm leading-7" role="status">این پیشنهاد پس گرفته شده؛ برای ادامه منتظر نسخهٔ تازه باشید.</p> : expired ? <p className="mt-4 text-sm leading-7" role="status">مهلت پیشنهاد گذشته است؛ برای قیمت تازه با Ornova هماهنگ کنید.</p> : null}
+    <ol className="mt-5 space-y-4" aria-label="ردیف‌های پیشنهاد قیمت">{quote.payload.lines.map((line, index) => <li key={index} className="flex flex-col flex-wrap justify-between gap-x-5 gap-y-1 text-sm leading-7 sm:flex-row"><div className="min-w-0 flex-1 break-words"><p>{line.description}</p><p className="text-xs text-graphite/60">تعداد {line.quantity.toLocaleString("fa-IR")} · مبلغ کل ردیف</p></div><span className="min-w-0 max-w-full break-words tabular-nums">{formatRialAsToman(line.amount_rial)}</span></li>)}</ol>
     <dl className="mt-5 space-y-2 border-t border-silver pt-4 text-sm"><div className="flex flex-wrap justify-between gap-2"><dt>تخفیف</dt><dd>{formatRialAsToman(quote.payload.discount_rial)}</dd></div><div className="flex flex-wrap justify-between gap-2"><dt>مالیات ثبت‌شده در پیشنهاد</dt><dd>{formatRialAsToman(quote.payload.tax_rial)}</dd></div><div className="flex flex-wrap justify-between gap-2 pt-3 font-medium"><dt>جمع نهایی</dt><dd>{formatRialAsToman(quote.payload.total_rial)}</dd></div></dl>
     <p className="mt-5 text-xs leading-6 text-graphite/60">این سند پیشنهاد قیمت است؛ فاکتور یا رسید پرداخت نیست. تغییر نرخ‌های بعدی، مبلغ این نسخه را عوض نمی‌کند.</p>
   </article>;
 }
 
-export function InquiryQuoteList({ quotes, now }: { quotes: CustomerQuoteDTO[]; now: string }) {
+export function InquiryQuoteList({ quotes, now, customerDocuments = false }: { quotes: CustomerQuoteDTO[]; now: string; customerDocuments?: boolean }) {
   if (!quotes.length) return <p className="py-4 text-sm leading-7 text-graphite/65">هنوز پیشنهاد قیمت مستقلی در این پرونده ثبت نشده است.</p>;
-  return <div className="space-y-5">{quotes.map(quote => <InquiryQuoteCard key={quote.id} quote={quote} now={now} isPreviousVersion={quotes.some(other => other.document_id === quote.document_id && other.source_revision > quote.source_revision)} />)}</div>;
+  return <div className="space-y-5">{quotes.map(quote => <div key={quote.id}><InquiryQuoteCard quote={quote} now={now} isPreviousVersion={quotes.some(other => other.document_id === quote.document_id && other.source_revision > quote.source_revision)} />{customerDocuments && <Link href={`/account/inquiries/${encodeURIComponent(quote.inquiry_id)}/quotes/${encodeURIComponent(quote.id)}`} prefetch={false} className="mt-2 inline-flex min-h-11 items-center text-sm text-sapphire underline underline-offset-4">دیدن و چاپ همین نسخه</Link>}</div>)}</div>;
 }

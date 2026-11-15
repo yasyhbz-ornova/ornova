@@ -1,61 +1,97 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { buildAuthCallbackUrl, normalizeIranianPhone, safeInternalPath, toLatinDigits } from "@/lib/auth/inputs";
 
-function normalizePhoneNumber(value: string) {
-  const latinDigits = value.replace(/[۰-۹٠-٩]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩".indexOf(digit) % 10));
-  const compact = latinDigits.replace(/[\s()-]/g, "");
-  if (compact.startsWith("09") && compact.length === 11) return `+98${compact.slice(1)}`;
-  if (compact.startsWith("9") && compact.length === 10) return `+98${compact}`;
-  return compact;
-}
+const PHONE_AUTH_ENABLED = process.env.NEXT_PUBLIC_AUTH_PHONE_ENABLED === "true";
+const GOOGLE_AUTH_ENABLED = process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED === "true";
+type AuthKind = "email" | "phone" | "verify" | "google";
 
-export function MagicLinkForm() {
+export function MagicLinkForm({
+  initialError,
+  phoneAuthEnabled = PHONE_AUTH_ENABLED,
+  googleAuthEnabled = GOOGLE_AUTH_ENABLED,
+  nextDestination,
+}: {
+  initialError?: string | null;
+  phoneAuthEnabled?: boolean;
+  googleAuthEnabled?: boolean;
+  nextDestination?: string;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneOtp, setPhoneOtp] = useState("");
   const [awaitingPhoneOtp, setAwaitingPhoneOtp] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+  const [pendingKind, setPendingKind] = useState<AuthKind | null>(null);
+  const loading = pendingKind !== null;
+  const active = useRef<object | null>(null), mounted = useRef(true);
+  const errorRef = useRef<HTMLParagraphElement>(null), otpRef = useRef<HTMLInputElement>(null), phoneRef = useRef<HTMLInputElement>(null), wasAwaitingOtp = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; active.current = null; }; }, []);
+  useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
+  useEffect(() => {
+    if (awaitingPhoneOtp) otpRef.current?.focus();
+    else if (wasAwaitingOtp.current) phoneRef.current?.focus();
+    wasAwaitingOtp.current = awaitingPhoneOtp;
+  }, [awaitingPhoneOtp]);
+  function begin(kind: AuthKind) {
+    if (!mounted.current || active.current) return null;
+    const operation = {}; active.current = operation;
+    setPendingKind(kind); setMessage(null); setError(null);
+    return operation;
+  }
+  function owns(operation: object) { return mounted.current && active.current === operation; }
+  function finish(operation: object) { if (owns(operation)) { active.current = null; setPendingKind(null); } }
+  function clearFeedback() { setMessage(null); setError(null); }
+  function changePhone() { if (active.current) return; setAwaitingPhoneOtp(false); setPhoneOtp(""); clearFeedback(); }
+
+  function nextPath() {
+    if (nextDestination) return safeInternalPath(nextDestination);
+    const requested = new URLSearchParams(window.location.search).get("next");
+    return safeInternalPath(requested);
+  }
 
   function callbackUrl() {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    return new URL("/auth/callback?next=/account", siteUrl).toString();
+    return buildAuthCallbackUrl(window.location.origin, process.env.NEXT_PUBLIC_SITE_URL, nextPath());
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    setError(null);
+    const operation = begin("email"); if (!operation) return;
+    const target = email.trim();
 
     try {
+      if (!target) { setError("ایمیل خود را وارد کنید."); return; }
       const supabase = createSupabaseBrowserClient();
       const { error: authError } = await supabase.auth.signInWithOtp({
-        email,
+        email: target,
         options: { emailRedirectTo: callbackUrl() },
       });
+      if (!owns(operation)) return;
       if (authError) throw authError;
-      setMessage("لینک ورود برای شما ارسال شد. صندوق ورودی و پوشه spam را بررسی کنید.");
+      setMessage("لینک ورود برای شما ارسال شد. صندوق ورودی و پوشه هرزنامه را بررسی کنید.");
     } catch {
-      setError("اتصال ورود هنوز در این محیط فعال نشده است. لطفاً بعداً دوباره امتحان کنید.");
+      if (owns(operation)) setError("ارسال لینک ورود تأیید نشد. اتصال را بررسی کنید و کمی بعد دوباره تلاش کنید؛ ممکن است لینک قبلی رسیده باشد.");
     } finally {
-      setLoading(false);
+      finish(operation);
     }
   }
 
   async function handlePhoneSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    setError(null);
+    if (active.current) return;
+    if (!phoneAuthEnabled) {
+      setError("ورود پیامکی هنوز در تنظیمات Ornova فعال نشده است. فعلاً از ورود با ایمیل استفاده کنید.");
+      return;
+    }
+    const operation = begin("phone"); if (!operation) return;
 
     try {
-      const normalizedPhone = normalizePhoneNumber(phone);
+      const normalizedPhone = normalizeIranianPhone(phone);
       if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
         setError("شماره را با پیش‌شماره کشور وارد کنید؛ برای ایران می‌توانید از +98 یا 09 شروع کنید.");
         return;
@@ -65,83 +101,95 @@ export function MagicLinkForm() {
         phone: normalizedPhone,
         options: { shouldCreateUser: true },
       });
+      if (!owns(operation)) return;
       if (authError) throw authError;
       setPhone(normalizedPhone);
       setAwaitingPhoneOtp(true);
       setMessage("کد یک‌بارمصرف پیامکی برای شما ارسال شد.");
     } catch {
-      setError("ورود پیامکی در حال حاضر در دسترس نیست. شماره را با پیش‌شماره کشور وارد کنید یا از ورود با ایمیل استفاده کنید.");
+      if (owns(operation)) setError("دریافت پاسخ پیامک تأیید نشد؛ پیش از درخواست دوباره، پیامک‌های رسیده را بررسی کنید یا از ورود با ایمیل استفاده کنید.");
     } finally {
-      setLoading(false);
+      finish(operation);
     }
   }
 
   async function handlePhoneOtpSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    setError(null);
+    if (active.current) return;
+    if (!phoneAuthEnabled || !awaitingPhoneOtp) { setError("ابتدا برای شمارهٔ خود یک کد ورود درخواست کنید."); return; }
+    const operation = begin("verify"); if (!operation) return;
+    const target = phone, token = toLatinDigits(phoneOtp).trim(), destination = nextPath();
 
     try {
+      if (!/^\d+$/.test(token)) { setError("کد پیامکیِ عددی را وارد کنید."); return; }
       const supabase = createSupabaseBrowserClient();
       const { error: authError } = await supabase.auth.verifyOtp({
-        phone,
-        token: phoneOtp,
+        phone: target,
+        token,
         type: "sms",
       });
+      if (!owns(operation)) return;
       if (authError) throw authError;
-      router.push("/account");
+      router.replace(destination);
+      router.refresh();
     } catch {
-      setError("کد واردشده معتبر نیست یا زمان آن گذشته است. دوباره بررسی کنید یا کد تازه بگیرید.");
+      if (owns(operation)) setError("ورود تأیید نشد؛ کد و اتصال را بررسی کنید. فقط پس از دریافت پاسخ، دوباره تلاش کنید.");
     } finally {
-      setLoading(false);
+      finish(operation);
     }
   }
 
   async function handleGoogleSignIn() {
-    setLoading(true);
-    setMessage(null);
-    setError(null);
+    if (active.current) return;
+    if (!googleAuthEnabled) {
+      setError("ورود با حساب گوگل هنوز در تنظیمات Ornova فعال نشده است. فعلاً از ورود با ایمیل استفاده کنید.");
+      return;
+    }
+    const operation = begin("google"); if (!operation) return;
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error: authError } = await supabase.auth.signInWithOAuth({
+      const { data, error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: callbackUrl() },
+        options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
       });
-      if (authError) throw authError;
+      if (!owns(operation)) return;
+      if (authError || !data?.url) throw authError ?? new Error("OAuth URL unavailable");
+      const configured = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || ""), authorization = new URL(data.url);
+      const local = configured.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(configured.hostname);
+      if ((configured.protocol !== "https:" && !local) || authorization.origin !== configured.origin || authorization.username || authorization.password || authorization.pathname !== `${configured.pathname.replace(/\/$/, "")}/auth/v1/authorize` || authorization.searchParams.get("provider") !== "google") throw new Error("OAuth URL invalid");
+      window.location.assign(authorization.href);
     } catch {
-      setError("ورود با حساب گوگل هنوز در تنظیمات Ornova فعال نشده است.");
-      setLoading(false);
+      if (owns(operation)) setError("شروع ورود با گوگل تأیید نشد؛ اتصال و تنظیمات ورود باید بررسی شوند.");
+    } finally {
+      finish(operation);
     }
   }
 
   return (
-    <div className="mt-8 grid gap-6">
-      {awaitingPhoneOtp ? <form onSubmit={handlePhoneOtpSubmit} className="grid gap-4">
+    <div className="mt-8 grid gap-6" aria-busy={loading}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <label className="grid gap-2 text-sm text-graphite"><span>ایمیل</span><input required type="email" autoComplete="email" dir="ltr" disabled={loading} value={email} onChange={(event) => { if (active.current) return; setEmail(event.target.value); clearFeedback(); }} className="border-b border-silver bg-transparent px-1 py-3 text-left outline-none focus:border-sapphire" placeholder="you@example.com" /></label>
+        <button type="submit" disabled={loading} className="w-fit rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{pendingKind === "email" ? "در حال ارسال…" : "ارسال لینک ورود"}</button>
+        <p className="text-xs leading-6 text-graphite/55">لینک یک‌بارمصرف به ایمیل شما فرستاده می‌شود؛ بعد از ورود، می‌توانید درخواستتان را ادامه دهید.</p>
+      </form>
+
+      {phoneAuthEnabled && awaitingPhoneOtp ? <form onSubmit={handlePhoneOtpSubmit} className="grid gap-4">
         <p className="text-sm leading-7 text-graphite/65">کد ارسال‌شده به شماره‌ی <bdi dir="ltr">{phone}</bdi> را وارد کنید.</p>
-        <label className="grid gap-2 text-sm text-graphite"><span>کد یک‌بارمصرف</span><input required type="text" inputMode="numeric" autoComplete="one-time-code" dir="ltr" value={phoneOtp} onChange={(event) => setPhoneOtp(event.target.value.replace(/\D/g, "").slice(0, 8))} className="border-b border-silver bg-transparent px-1 py-3 text-left tracking-[0.35em] outline-none focus:border-sapphire" /></label>
-        <button type="submit" disabled={loading} className="rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{loading ? "در حال بررسی…" : "تأیید و ورود"}</button>
-        <button type="button" onClick={() => { setAwaitingPhoneOtp(false); setPhoneOtp(""); setMessage(null); }} className="w-fit text-xs text-graphite/55 underline underline-offset-4">تغییر شماره موبایل</button>
-      </form> : <form onSubmit={handlePhoneSubmit} className="grid gap-4">
-        <label className="grid gap-2 text-sm text-graphite"><span>شماره موبایل</span><input required type="tel" inputMode="tel" autoComplete="tel" dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} className="border-b border-silver bg-transparent px-1 py-3 text-left outline-none focus:border-sapphire" placeholder="+98912…" /></label>
-        <button type="submit" disabled={loading} className="rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{loading ? "در حال آماده‌سازی…" : "دریافت کد پیامکی"}</button>
-      </form>}
+        <label className="grid gap-2 text-sm text-graphite"><span>کد یک‌بارمصرف</span><input ref={otpRef} required type="text" inputMode="numeric" autoComplete="one-time-code" dir="ltr" disabled={loading} value={phoneOtp} onChange={(event) => { if (active.current) return; setPhoneOtp(toLatinDigits(event.target.value).replace(/\D/g, "").slice(0, 8)); clearFeedback(); }} className="border-b border-silver bg-transparent px-1 py-3 text-left tracking-[0.35em] outline-none focus:border-sapphire" /></label>
+        <button type="submit" disabled={loading} className="rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{pendingKind === "verify" ? "در حال بررسی…" : "تأیید و ورود"}</button>
+        <button type="button" disabled={loading} onClick={changePhone} className="w-fit text-xs text-graphite/55 underline underline-offset-4 disabled:opacity-60">تغییر شماره موبایل</button>
+      </form> : phoneAuthEnabled ? <form onSubmit={handlePhoneSubmit} className="grid gap-4">
+        <label className="grid gap-2 text-sm text-graphite"><span>شماره موبایل</span><input ref={phoneRef} required type="tel" inputMode="tel" autoComplete="tel" dir="ltr" disabled={loading} value={phone} onChange={(event) => { if (active.current) return; setPhone(event.target.value); clearFeedback(); }} className="border-b border-silver bg-transparent px-1 py-3 text-left outline-none focus:border-sapphire" placeholder="+98912…" /></label>
+        <button type="submit" disabled={loading} className="rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{pendingKind === "phone" ? "در حال آماده‌سازی…" : "دریافت کد پیامکی"}</button>
+      </form> : <p className="border-r border-silver pr-4 text-sm leading-7 text-graphite/60">ورود با شماره موبایل پس از فعال‌شدن سرویس پیامک در دسترس قرار می‌گیرد.</p>}
 
-      <div className="flex items-center gap-4 text-xs text-graphite/40" aria-hidden="true"><span className="h-px flex-1 bg-silver" /><span>یا</span><span className="h-px flex-1 bg-silver" /></div>
+      {googleAuthEnabled && <div className="flex items-center gap-4 text-xs text-graphite/40" aria-hidden="true"><span className="h-px flex-1 bg-silver" /><span>یا</span><span className="h-px flex-1 bg-silver" /></div>}
 
-      <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="rounded-full border border-silver px-6 py-3 text-sm text-graphite transition-colors hover:border-sapphire hover:text-sapphire disabled:opacity-60">ادامه با حساب گوگل</button>
+      {googleAuthEnabled ? <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="rounded-full border border-silver px-6 py-3 text-sm text-graphite transition-colors hover:border-sapphire hover:text-sapphire disabled:opacity-60">{pendingKind === "google" ? "در حال انتقال…" : "ادامه با حساب گوگل"}</button> : <p className="border-r border-silver pr-4 text-sm leading-7 text-graphite/60">ورود با حساب گوگل پس از تکمیل تنظیمات امن ورود در دسترس قرار می‌گیرد.</p>}
 
-      <details className="border-t border-silver pt-4">
-        <summary className="cursor-pointer text-sm text-graphite/65">ورود با ایمیل</summary>
-        <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
-          <label className="grid gap-2 text-sm text-graphite"><span>ایمیل</span><input required type="email" dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} className="border-b border-silver bg-transparent px-1 py-3 text-left outline-none focus:border-sapphire" placeholder="you@example.com" /></label>
-          <button type="submit" disabled={loading} className="w-fit text-sm text-sapphire underline underline-offset-4 disabled:opacity-60">ارسال لینک یک‌بارمصرف</button>
-        </form>
-      </details>
-
-      {message && <p role="status" className="text-sm leading-7 text-sapphire">{message}</p>}
-      {error && <p role="alert" className="text-sm leading-7 text-graphite/70">{error}</p>}
+      {message && <p role="status" aria-live="polite" className="text-sm leading-7 text-sapphire">{message}</p>}
+      {error && <p ref={errorRef} tabIndex={-1} role="alert" className="text-sm leading-7 text-graphite/70">{error}</p>}
     </div>
   );
 }

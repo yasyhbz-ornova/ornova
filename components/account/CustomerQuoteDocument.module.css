@@ -1,0 +1,33 @@
+.document { max-width: 900px; margin-inline: auto; padding: 32px 20px 64px; }
+.embedded { max-width: 100%; padding: 0; }
+.tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; font-size: 0.875rem; color: var(--color-sapphire, #172b54); }
+.tools a, .tools button { display: inline-flex; align-items: center; min-height: 44px; color: inherit; text-decoration: underline; text-underline-offset: 4px; }
+.sheet { min-width: 0; padding: clamp(16px, 4vw, 40px); border: 1px solid var(--color-silver, #cecac2); background: var(--color-ivory, #f7f4ee); }
+.heading { padding-bottom: 24px; }
+.heading p:first-child { width: fit-content; font-size: 1.1rem; letter-spacing: 0.07em; }
+.heading h1 { margin-top: 24px; font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 500; }
+.heading p:last-child { margin-top: 8px; font-size: 0.8rem; opacity: 0.7; line-height: 1.8; }
+.record { display: grid; gap: 8px; margin-top: 24px; font-size: 0.75rem; line-height: 2; overflow-wrap: anywhere; }
+.acceptance { margin-top: 20px; }
+.signature { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-silver, #cecac2); padding-top: 16px; margin-top: 28px; font-size: 0.7rem; line-height: 2; }
+.screenNote { margin-top: 20px; font-size: 0.75rem; line-height: 2; opacity: 0.7; }
+
+@media print {
+  @page ornova-quote { size: A4; margin: 20mm 14mm; }
+  :global(body):has(.document) { background: white; color: #33322f; }
+  :global(body):has(.document) > :global(div) { display: block; min-height: 0; }
+  :global(body):has(.document) :global(.site-header),
+  :global(body):has(.document) > :global(div) > :global(footer),
+  .tools, .screenNote, .acceptance { display: none !important; }
+  .document { page: ornova-quote; max-width: none; margin: 0; padding: 0; }
+  .embedded { position: absolute; inset: 0 auto auto 0; width: 100%; }
+  :global(body):has(.document) :global(.virtualGallery) * { visibility: hidden !important; }
+  :global(body):has(.document) .document, :global(body):has(.document) .document * { visibility: visible !important; }
+  .sheet { border: 0; padding: 0; background: white; }
+  .sheet :global(article) { border: 0; padding: 0; background: white; }
+  .heading, .sheet :global(article > header), .record, .signature,
+  .sheet :global(ol > li), .sheet :global(dl) { break-inside: avoid; }
+  .sheet :global(ol > li) { display: flex; flex-direction: row; flex-wrap: nowrap; }
+  .sheet :global(ol > li > span) { flex-shrink: 0; }
+  .sheet :global(p) { orphans: 3; widows: 3; }
+}

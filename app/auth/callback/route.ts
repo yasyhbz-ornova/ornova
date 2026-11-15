@@ -1,24 +1,26 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { buildAuthErrorRedirectPath, safeInternalPath, type AuthCallbackErrorCode } from "@/lib/auth/inputs";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next");
-  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : "/account";
+  const safeNext = safeInternalPath(url.searchParams.get("next"));
+  const redirectToLoginWithError = (error: AuthCallbackErrorCode) =>
+    NextResponse.redirect(new URL(buildAuthErrorRedirectPath(error, url.searchParams.get("next")), url.origin));
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login?error=missing_code", url.origin));
+    return redirectToLoginWithError("missing_code");
   }
 
   try {
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      return NextResponse.redirect(new URL("/login?error=auth_callback", url.origin));
+      return redirectToLoginWithError("auth_callback");
     }
     return NextResponse.redirect(new URL(safeNext, url.origin));
   } catch {
-    return NextResponse.redirect(new URL("/login?error=auth_unavailable", url.origin));
+    return redirectToLoginWithError("auth_unavailable");
   }
 }

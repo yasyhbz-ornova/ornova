@@ -1,0 +1,44 @@
+.workspace { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 3rem; align-items: start; margin-top: 2.5rem; }
+.form { display: grid; gap: 1.5rem; min-width: 0; }
+.form fieldset { min-width: 0; margin-top: .5rem; }
+.form legend { margin-bottom: 1rem; font-size: 1rem; font-weight: 500; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+.field { min-width: 0; }
+.field label { display: block; font-size: .875rem; line-height: 1.9; margin-bottom: .4rem; }
+.field label span { color: var(--color-graphite); font-size: .75rem; }
+.field :is(input, select, textarea) { width: 100%; min-width: 0; min-height: 46px; border: 1px solid var(--color-silver); background: var(--color-ivory-soft); color: var(--color-graphite); border-radius: 3px; padding: .65rem .75rem; font: inherit; font-size: 1rem; }
+.field textarea { min-height: 100px; resize: vertical; }
+.field input { font-variant-numeric: tabular-nums; }
+.field [aria-invalid=true] { border-color: var(--color-graphite); border-style: dashed; }
+.hint, .footnote { font-size: .75rem; line-height: 1.9; margin-top: .4rem; color: var(--color-graphite); }
+.fieldError { font-size: .75rem; line-height: 1.9; margin-top: .4rem; font-weight: 500; }
+.result { position: sticky; top: 7rem; min-width: 0; padding: 1.75rem; background: var(--color-ivory-muted); overflow-wrap: anywhere; }
+.kicker { font-size: .75rem; color: var(--color-sapphire); margin-bottom: 1rem; }
+.result h2 { font-size: 1.3rem; line-height: 1.8; font-weight: 500; }
+.empty { margin-top: 1.1rem; font-size: .875rem; line-height: 2; max-width: 44ch; }
+.total { display: block; font-size: 1.7rem; line-height: 1.8; font-weight: 500; font-variant-numeric: tabular-nums; margin-block: 1.25rem; }
+.breakdown { margin-block: 1.25rem; font-size: .8rem; }
+.breakdown > div { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .3rem 1rem; margin-top: .8rem; }
+.breakdown dd { font-variant-numeric: tabular-nums; font-weight: 500; }
+.notice, .error { background: var(--color-ivory-muted); padding: .9rem 1rem; font-size: .8rem; line-height: 1.9; }
+.result .notice { padding-inline: 0; margin-top: 1rem; font-weight: 500; }
+.error { border: 1px solid var(--color-graphite); }
+.details { padding-block: .9rem; border-block: 1px solid var(--color-silver); font-size: .8rem; }
+.details summary { cursor: pointer; padding-block: .3rem; }
+.override { display: grid; gap: 1rem; margin-top: 1rem; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.actions button { min-height: 46px; padding: .7rem 1.2rem; font-size: .875rem; border: 1px solid var(--color-silver); border-radius: 3px; cursor: pointer; }
+.actions button[type=submit] { background: var(--color-sapphire); color: var(--color-ivory); border-color: var(--color-sapphire); }
+.actions button:hover:not(:disabled) { text-decoration: underline; text-underline-offset: .25rem; }
+.actions button:disabled { cursor: not-allowed; opacity: .55; }
+.workspace :is(button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--color-sapphire); outline-offset: 3px; }
+.footnote { margin-top: 1.5rem; }
+.status { margin-top: 1rem; font-size: .8rem; line-height: 1.9; }
+@media (max-width: 800px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .result { position: static; padding: 1.25rem; }
+}
+@media (max-width: 430px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .total { font-size: 1.4rem; }
+}

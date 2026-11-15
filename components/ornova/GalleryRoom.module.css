@@ -1,0 +1,45 @@
+.room { position: relative; isolation: isolate; height: 100svh; min-height: 420px; overflow: hidden; background: #e8d6bd; }
+.room::before { position: absolute; inset: -5%; content: ""; background: url('/images/ornova/gallery/review/entry-six-empty-niches-v1.png') center / cover; filter: blur(25px); opacity: .55; }
+.canvas { position: absolute; top: 50%; left: 50%; width: max(100vw, 155svh); aspect-ratio: 1672 / 941; container-type: inline-size; transform: translate(-50%, -50%); transform-origin: var(--focus-x) var(--focus-y); transition: transform 850ms cubic-bezier(.22,.7,.18,1); }
+.architecture { position: absolute; inset: 0; width: 100%; height: 100%; }
+.room[data-view='left'] .canvas, .room[data-view='right'] .canvas { transform: translate(calc(0% - var(--focus-x)), -50%) scale(1.5); }
+.room[data-focused='true'] .canvas { transform: translate(calc(0% - var(--focus-x)), calc(0% - var(--focus-y))) scale(4.3); }
+.display { position: absolute; z-index: 3; transform: translateX(-50%); }
+.productSurface { position: absolute; inset: 0; pointer-events: none; mask-repeat: no-repeat; filter: brightness(.92) saturate(.85); }
+.productLayer { position: absolute; max-width: none; animation: productAppear 900ms ease both; }
+@keyframes productAppear { from { opacity: 0; } to { opacity: 1; } }
+.stand:hover .productSurface { filter: brightness(1.02) saturate(.9); }
+.room[data-focused='true'] .canvas { left: var(--focus-screen-x); }
+.room[data-focused='true'] .label, .room[data-focused='true'] .workshop span { opacity: 0; }
+.room[data-focused='true'] .productSurface { filter: none; }
+.stand { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 23% 23% 10% 10%; }
+.standAsset { position: absolute; width: var(--asset-width); height: var(--asset-height); max-width: none; left: var(--asset-left); top: var(--asset-top); pointer-events: none; filter: brightness(.92) saturate(.85) drop-shadow(0 2px 2px rgb(45 32 21 / 22%)); transition: filter 220ms ease, transform 220ms ease; transform-origin: center 93%; }
+.stand:hover .standAsset, .stand:focus-visible .standAsset { filter: brightness(1.06) saturate(.9) drop-shadow(0 2px 4px rgb(45 32 21 / 25%)); transform: scale(1.018); }
+.stand:focus-visible { outline: 2px solid #f2e6cd; outline-offset: 5px; }
+.label { position: absolute; top: calc(100% + 1.5cqw); left: 50%; transform: translateX(-50%); width: max-content; min-width: 5.9cqw; padding: .28cqw .4cqw; border: 1px solid #8a6547; border-radius: 2px; color: #f7ebdc; background: linear-gradient(155deg, #806044, #604631); box-shadow: inset 0 0 0 2px #96785b, 0 2px 3px #624b3426; font-family: var(--font-display), serif; font-size: .85cqw; line-height: 1.6; cursor: pointer; white-space: nowrap; }
+.label:focus-visible, .views button:focus-visible, .object:focus-visible, .workshop:focus-visible { outline: 2px solid #35567b; outline-offset: 4px; }
+.wallMark { position: absolute; top: 15.8%; left: 50%; transform: translateX(-50%); width: 16%; height: 6.2%; display: grid; place-items: center; color: #86745e; }
+.brand { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; column-gap: .35cqw; align-items: center; direction: ltr; text-align: left; text-shadow: 0 -1px 0 #fff8e6, 0 1px 1px #52422a80; }
+.brand :global(.ornova-symbol) { width: 2.7cqw; height: 3cqw; grid-row: 1 / 3; filter: drop-shadow(0 1px 1px #52422a60); }
+.brand :global(.ornova-script-wordmark) { font-family: Georgia, serif; font-style: italic; font-size: 2.4cqw; line-height: 1; }
+.brand :global(.ornova-english-motto) { font-family: Georgia, serif; font-style: italic; font-size: .58cqw; white-space: nowrap; }
+.object { position: absolute; z-index: 5; border: 0; padding: 0; background: transparent; cursor: pointer; transform: translate(-50%, -50%); transition: backdrop-filter 180ms ease; }
+.object:hover { backdrop-filter: brightness(1.16); }
+.magazine { left: 42.5%; top: 72.6%; width: 7%; height: 4.7%; clip-path: polygon(0 48%, 67% 2%, 100% 32%, 100% 65%, 29% 100%, 0 77%); }
+.telephone { left: 49.7%; top: 70.6%; width: 5.2%; height: 7.2%; clip-path: polygon(0 25%, 12% 7%, 72% 0, 91% 14%, 98% 36%, 84% 37%, 94% 92%, 11% 100%, 10% 38%, 0 43%); }
+.cashier { left: 55.8%; top: 70.3%; width: 6.1%; height: 8.8%; clip-path: polygon(14% 0, 60% 2%, 67% 16%, 91% 25%, 100% 45%, 85% 47%, 85% 96%, 2% 100%, 0 47%, 7% 24%); }
+.workshop { position: absolute; z-index: 2; left: 40%; top: 26.5%; width: 20%; height: 39%; display: flex; justify-content: center; align-items: flex-start; padding: 1cqw; border: 0; border-radius: 48% 48% 0 0 / 30% 30% 0 0; background: none; cursor: pointer; }
+.workshop span { padding: .2cqw .9cqw; border-radius: 2px; color: #53493b; background: #bba585; border: 1px solid #a68b68; box-shadow: inset 0 1px 0 #e3d2b3, 0 2px 3px #493d302b; text-shadow: 0 1px 0 #e0cba5; font-family: var(--font-display), serif; font-size: 1.08cqw; }
+.views { position: absolute; z-index: 6; bottom: max(1rem, env(safe-area-inset-bottom)); inset-inline: 1.2rem; display: flex; justify-content: space-between; gap: 1rem; pointer-events: none; }
+.views button { pointer-events: auto; padding: .4rem .65rem; min-height: 44px; border: 0; border-bottom: 1px solid #89755d66; border-radius: 0; background: #eee2d1dc; color: #493f34; font: inherit; font-size: .8rem; cursor: pointer; }
+.views button[aria-pressed='true'] { border-bottom-color: #35567b; color: #294563; }
+@media (max-width: 800px) and (orientation: portrait) {
+  .canvas { width: max(230vw, 142svh); }
+  .room[data-view='entry']:not([data-focused]) .canvas { transform: translate(-50%, -50%); }
+  .room[data-view='left'] .canvas, .room[data-view='right'] .canvas { transform: translate(calc(0% - var(--focus-x)), -50%) scale(1.05); }
+  .room[data-focused='true'] .canvas { left: 50%; top: 24%; transform: translate(calc(0% - var(--focus-x)), calc(0% - var(--focus-y))) scale(3.5); }
+  .label { min-width: 5.9cqw; font-size: 1.05cqw; }
+  .views { gap: .35rem; inset-inline: .5rem; }
+  .views button { font-size: .74rem; padding-inline: .45rem; }
+}
+@media (prefers-reduced-motion: reduce) { .canvas, .standAsset, .object, .productLayer { transition: none; animation: none; } }

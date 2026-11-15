@@ -1,26 +1,119 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { clearRequestItems, removeRequestItem, type RequestItem } from "./RequestBasketButton";
+import Image from "next/image";
+import { useState, useSyncExternalStore } from "react";
+import { clearRequestItems, removeRequestItem, updateRequestItemNote, updateRequestItemQuantity } from "./RequestBasketButton";
+import { getRequestItemKey, MAX_REQUEST_ITEM_NOTE_LENGTH, parseRequestBasketReview, readRequestBasketSnapshot } from "@/lib/commerce/request-basket";
+import { ProductPreferencesSummary } from "./ProductPreferencesSummary";
+import { productPreferenceRows } from "@/lib/commerce/product-preferences";
+import type { Product } from "@/lib/constants/products";
+import styles from "./RequestFlow.module.css";
 
-const STORAGE_KEY = "ornova-request-basket";
+const number = new Intl.NumberFormat("fa-IR");
+function subscribe(onChange: () => void) {
+  window.addEventListener("ornova-basket-updated", onChange);
+  window.addEventListener("storage", onChange);
+  return () => { window.removeEventListener("ornova-basket-updated", onChange); window.removeEventListener("storage", onChange); };
+}
+function snapshot() { try { return readRequestBasketSnapshot(window.localStorage); } catch { return "null"; } }
+const serverSnapshot = () => null;
 
-export function RequestBasketView() {
-  const [items, setItems] = useState<RequestItem[]>([]);
+function BasketProductVisual({ product, onSelect }: { product: Product; onSelect?: () => void }) {
+  const images = product.packagingGallery ?? [];
+  const [slide, setSlide] = useState(0);
+  const current = images[slide % Math.max(images.length, 1)];
+  const move = (step: number) => setSlide((index) => (index + step + images.length) % images.length);
 
-  useEffect(() => {
-    const sync = () => {
-      try { setItems(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]")); } catch { setItems([]); }
-    };
-    sync();
-    window.addEventListener("ornova-basket-updated", sync);
-    return () => window.removeEventListener("ornova-basket-updated", sync);
-  }, []);
+  return <div className={`${styles.itemImage} ${styles.packageCarousel}`} role="group" aria-label={`تصاویر بسته‌بندی ${product.name}`}>
+    {current ? <Image key={current.src} src={current.src} alt={current.alt} fill sizes="(max-width: 760px) 82px, 120px" className="object-cover" /> : <span className={styles.packageUnavailable}>تصویر بسته‌بندی این اثر هنوز آماده نیست</span>}
+    <button type="button" className={styles.packageImageAction} onClick={onSelect} aria-label={`بازکردن شناسنامهٔ ${product.name} در گالری`} />
+    {current?.label && <span className={styles.packageLabel}>{current.label}</span>}
+    {images.length > 1 && <>
+      <button type="button" className={styles.packagePrevious} onClick={() => move(-1)} aria-label={`تصویر بسته‌بندی قبلی ${product.name}`}>‹</button>
+      <span className={styles.packageCount} aria-live="polite" aria-atomic="true">{number.format(slide + 1)} / {number.format(images.length)}</span>
+      <button type="button" className={styles.packageNext} onClick={() => move(1)} aria-label={`تصویر بسته‌بندی بعدی ${product.name}`}>›</button>
+    </>}
+  </div>;
+}
 
-  if (items.length === 0) {
-    return <div className="mx-auto max-w-3xl px-5 py-20 text-center"><p className="text-sm text-sapphire">سبد درخواست</p><h1 className="mt-4 text-4xl font-semibold text-graphite">هنوز قطعه‌ای انتخاب نشده است.</h1><p className="mx-auto mt-5 max-w-xl text-base leading-8 text-graphite/70">قطعات موردنظر را از فروشگاه به سبد درخواست اضافه کنید تا برای بررسی Ornova آماده شوند.</p><Link href="/shop" className="mt-8 inline-flex rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory">رفتن به فروشگاه</Link></div>;
+export function RequestBasketView({ galleryMode = false, products = [], onBrowseCatalog, onContinueRequest, continuePending = false, continueError = "", onSelectProduct }: { galleryMode?: boolean; products?: Product[]; onBrowseCatalog?: () => void; onContinueRequest?: () => void; continuePending?: boolean; continueError?: string; onSelectProduct?: (slug: string) => void }) {
+  const serialized = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
+  const review = serialized === null ? null : parseRequestBasketReview(serialized);
+  const items = review?.items ?? [];
+  const pieceCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const [operationError, setOperationError] = useState("");
+  const basketLabel = galleryMode ? "صندوق درخواست" : "سبد درخواست";
+  function changed(success: boolean, message = galleryMode ? "تغییر انتخاب در صندوق ذخیره نشد؛ انتخاب‌های فعلی را دوباره بررسی کن." : "تغییر در سبد ذخیره نشد؛ انتخاب‌های فعلی را دوباره بررسی کن.") { setOperationError(success ? "" : message); }
+
+  const cashierReceipt = <section className={styles.registerReceipt} aria-label="رسید موقت صندوق اُرنوا">
+    <div className={styles.registerHead}><span>صندوق گالری</span><span>ORNOVA</span></div>
+    <div className={styles.receiptTitle}><h2>رسید انتخاب‌ها</h2><span>{items.length ? "پیش‌نویس درخواست" : "آمادهٔ ثبت انتخاب"}</span></div>
+    {items.length > 0 && <ol className={styles.receiptItems} aria-label="ریز انتخاب‌های رسید">
+      {items.map((item) => {
+        const preferences = productPreferenceRows(item.preferences);
+        return <li key={getRequestItemKey(item)}>
+          <div className={styles.receiptItemInfo}>
+            <span className={styles.receiptItemCategory}>{item.category}</span>
+            <strong>{item.name}</strong>
+            {preferences.length > 0 && <dl>{preferences.map((row) => <div key={row.label}><dt>{row.label}</dt><dd><bdi dir="auto">{row.value}</bdi></dd></div>)}</dl>}
+          </div>
+          <span className={styles.receiptItemQuantity} aria-label={`تعداد ${number.format(item.quantity)}`}>× {number.format(item.quantity)}</span>
+        </li>;
+      })}
+    </ol>}
+    <dl className={styles.receiptLines}>
+      <div><dt>مدل‌های انتخاب‌شده</dt><dd>{number.format(items.length)}</dd></div>
+      <div><dt>تعداد قطعه‌ها</dt><dd>{number.format(pieceCount)}</dd></div>
+      <div><dt>مبلغ</dt><dd>پس از بررسی</dd></div>
+    </dl>
+    <p className={styles.receiptFoot}>این رسید، فهرست درخواست است؛ ثبت نهایی و برآورد هزینه پس از بررسی اُرنوا انجام می‌شود.</p>
+  </section>;
+
+  if (!review || !review.valid || items.length === 0) {
+    return <div className={`${styles.surface} ${styles.empty}`} data-register={galleryMode ? "true" : undefined} aria-busy={!review}>
+      {galleryMode && cashierReceipt}
+      <p className={styles.label}>{basketLabel}</p>
+      <h1>{!review ? (galleryMode ? "رسید در حال آماده‌شدن" : "انتخاب‌های تو") : !review.valid ? `${galleryMode ? "اطلاعات صندوق" : "سبد"} کامل خوانده نشد.` : `${basketLabel} خالی است.`}</h1>
+      <p role={!review ? "status" : !review.valid ? "alert" : undefined}>{!review ? "در حال خواندن انتخاب‌های همین مرورگر…" : !review.valid ? `${galleryMode ? "اطلاعات صندوق" : "دادهٔ سبد"} در این مرورگر کامل خوانده نشد. برای ادامه، دسترسی به ذخیره‌سازی مرورگر را بررسی و صفحه را دوباره باز کن.` : "از میان قطعات بگرد؛ هر انتخاب با سایز و جزئیات دلخواهت اینجا می‌ماند."}</p>
+      {operationError && <p role="alert">{operationError}</p>}
+      {galleryMode && onBrowseCatalog ? <button type="button" onClick={onBrowseCatalog} className={styles.primary}>دیدن آثار در مجله <span aria-hidden="true">←</span></button> : <Link href="/shop" className={styles.primary}>دیدن قطعات <span aria-hidden="true">←</span></Link>}
+      {review && !review.valid && (galleryMode ? <button type="button" onClick={onContinueRequest} className={styles.textLink}>ارتباط با Ornova</button> : <Link href="/contact" className={styles.textLink}>ارتباط با Ornova</Link>)}
+      <noscript><p>برای خواندن انتخاب‌های ذخیره‌شده در این مرورگر، جاوااسکریپت باید فعال باشد.</p></noscript>
+    </div>;
   }
 
-  return <div className="mx-auto max-w-5xl px-5 py-16"><div className="max-w-2xl"><p className="text-sm text-sapphire">سبد درخواست</p><h1 className="mt-3 text-4xl font-semibold text-graphite">انتخاب‌های شما برای بررسی Ornova</h1><p className="mt-5 text-base leading-8 text-graphite/70">این سبد هنوز سفارش یا پرداخت نیست؛ فقط قطعاتی را که می‌خواهید درباره‌شان گفت‌وگو کنیم، کنار هم نگه می‌دارد.</p></div><div className="mt-10 space-y-4">{items.map((item) => <div key={item.slug} className="flex flex-col gap-4 border-b border-silver py-6 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs text-sapphire">{item.category}</p><h2 className="mt-2 text-xl font-semibold text-graphite">{item.name}</h2><p className="mt-2 text-sm text-graphite/60">تعداد: {item.quantity}</p></div><button type="button" onClick={() => removeRequestItem(item.slug)} className="w-fit text-sm text-graphite/60 underline decoration-silver underline-offset-4 hover:text-sapphire">حذف از سبد</button></div>)}</div><div className="mt-10 flex flex-wrap gap-3"><button type="button" onClick={clearRequestItems} className="rounded-full border border-silver px-5 py-3 text-sm text-graphite">پاک‌کردن سبد</button><Link href="/contact" className="rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory">ادامه برای ارسال درخواست</Link></div></div>;
+  return (
+    <div className={styles.surface} data-register={galleryMode ? "true" : undefined}>
+      {galleryMode && cashierReceipt}
+      <div className={styles.heading}>
+        <div><p className={styles.label}>{basketLabel} / Ornova by Yas</p><h1>انتخاب‌های تو.</h1></div>
+        <p>قطعه‌ها و جزئیات را مرور کن.<br />قیمت و ادامهٔ سفارش، پس از بررسی درخواست هماهنگ می‌شوند.</p>
+      </div>
+      {operationError && <p role="alert" className={styles.error}>{operationError}</p>}
+      <div className={styles.basketLayout}><section aria-label={`انتخاب‌های ${galleryMode ? "صندوق" : "سبد"}`}>
+        {items.map((item, index) => {
+          const product = products.find((entry) => entry.slug === item.slug);
+          const editHref = product ? `/shop/${product.slug}?selection=${encodeURIComponent(getRequestItemKey(item))}#product-request` : null;
+          return <article key={getRequestItemKey(item)} aria-label={`انتخاب ${number.format(index + 1)}، ${item.name}`} className={styles.item}>
+            <div className={styles.itemTop}>
+              {product && (galleryMode ? <BasketProductVisual product={product} onSelect={() => onSelectProduct?.(product.slug)} /> : <Link href={`/shop/${product.slug}`} className={styles.itemImage}><Image src={product.image} alt={product.name} fill sizes="(max-width: 760px) 82px, 120px" className="object-cover" /></Link>)}
+              <div className={styles.itemIdentity}><p className={styles.label}>{item.category} · انتخاب {number.format(index + 1)}</p><h2>{item.name}</h2>
+                <ProductPreferencesSummary value={item.preferences} />
+                {editHref && product && (galleryMode
+                  ? <button type="button" onClick={() => onSelectProduct?.(product.slug)} className={`${styles.textLink} ${styles.textLinkButton}`}>دیدن شناسنامه در گالری <span aria-hidden="true">↖</span></button>
+                  : <a href={editHref} className={styles.textLink}>ویرایش همین انتخاب <span aria-hidden="true">↖</span></a>)}
+                {!product && <p className={styles.label}>این مدل در فهرست فعلی فروشگاه نیست؛ نام ذخیره‌شده در همین مرورگر نمایش داده می‌شود.</p>}
+              </div>
+            </div>
+            <div className={styles.itemControls}><div className={styles.quantity}><span>تعداد</span><button type="button" aria-label={`کم‌کردن تعداد انتخاب ${number.format(index + 1)}`} disabled={item.quantity <= 1} onClick={() => changed(updateRequestItemQuantity(getRequestItemKey(item), item.quantity - 1))}>−</button><span aria-live="polite" aria-atomic="true">{number.format(item.quantity)}</span><button type="button" aria-label={`زیادکردن تعداد انتخاب ${number.format(index + 1)}`} disabled={item.quantity >= 20} onClick={() => changed(updateRequestItemQuantity(getRequestItemKey(item), item.quantity + 1))}>＋</button></div><button type="button" className={styles.remove} onClick={() => changed(removeRequestItem(getRequestItemKey(item)))}>حذف این انتخاب</button></div>
+            <details className={styles.note}><summary>یادداشت این انتخاب <small>{item.note?.trim() ? "یادداشت دارد" : "اختیاری"} <span aria-hidden="true">＋</span></small></summary><label><span className="sr-only">یادداشت این انتخاب</span><textarea value={item.note ?? ""} maxLength={MAX_REQUEST_ITEM_NOTE_LENGTH} rows={2} aria-describedby={`basket-note-count-${index}`} onChange={(event) => changed(updateRequestItemNote(getRequestItemKey(item), event.target.value))} placeholder="نکته‌ای که می‌خواهی همراه همین انتخاب بررسی شود." /></label><small id={`basket-note-count-${index}`}>{number.format((item.note ?? "").length)} از {number.format(MAX_REQUEST_ITEM_NOTE_LENGTH)} نویسه</small></details>
+          </article>;
+        })}
+        <div className={styles.listFooter}>{galleryMode && onBrowseCatalog ? <button type="button" onClick={onBrowseCatalog} className={styles.textLink}>ادامهٔ دیدن آثار <span aria-hidden="true">←</span></button> : <Link href="/shop" className={styles.textLink}>ادامهٔ دیدن قطعات <span aria-hidden="true">←</span></Link>}<button type="button" className={styles.remove} onClick={() => changed(clearRequestItems(), galleryMode ? "پاک‌سازی انتخاب‌های صندوق کامل تأیید نشد؛ ممکن است یادآور قدیمی در مرورگر مانده باشد." : "پاک‌سازی سبد کامل تأیید نشد؛ ممکن است یادآور قدیمی در مرورگر مانده باشد.")}>{galleryMode ? "پاک‌کردن انتخاب‌ها" : "پاک‌کردن سبد"}</button></div>
+      </section>
+        <aside className={styles.summary} aria-label={`خلاصهٔ ${galleryMode ? "صندوق" : "سبد"}`}><p className={styles.label}>قدم بعد</p><h2>برای بررسی آماده‌اش کن.</h2><dl><div><dt>انتخاب‌های مستقل</dt><dd>{number.format(items.length)}</dd></div><div><dt>مجموع تعداد</dt><dd>{number.format(items.reduce((sum, item) => sum + item.quantity, 0))}</dd></div></dl><p>{galleryMode ? "ادامه، ورود و کامل‌بودن نشانی را بررسی می‌کند؛ سپس همین انتخاب‌ها را برای ثبت درخواست به تلفن گالری می‌برد. پرداخت در این مرحله انجام نمی‌شود." : "در فرم بعد، توضیح و راه ارتباطی‌ات را می‌نویسی. ارسال درخواست پس از ورود انجام می‌شود."}</p>{galleryMode && onContinueRequest ? <button type="button" onClick={onContinueRequest} disabled={continuePending} aria-busy={continuePending} className={styles.primary}>{continuePending ? "در حال بررسی حساب و نشانی…" : "ادامه برای ثبت درخواست"} <span aria-hidden="true">←</span></button> : <Link href="/contact?from=request-basket" className={styles.primary}>ادامه به فرم درخواست <span aria-hidden="true">←</span></Link>}{continueError && <p className={styles.checkoutError} role="alert">{continueError}</p>}<p className={styles.hint}>انتخاب‌ها فعلاً در همین مرورگر نگه داشته می‌شوند.</p></aside>
+      </div>
+    </div>
+  );
 }

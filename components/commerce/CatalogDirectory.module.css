@@ -1,0 +1,16 @@
+.directory { display: grid; grid-template-columns: 1.5fr 1.2fr .65fr; gap: clamp(1.5rem, 4vw, 4rem); }
+.family { min-width: 0; }
+.label { margin-bottom: 1rem; color: color-mix(in srgb, var(--color-graphite) 65%, transparent); font-size: .72rem; }
+.links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; list-style: none; padding: 0; margin: 0; }
+.family:last-child .links { grid-template-columns: 1fr; }
+.links a { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 44px; border-bottom: 1px solid var(--color-silver-muted); font-size: .86rem; }
+.links a span { opacity: 0; transform: translate(4px, 4px); transition: opacity 180ms, transform 180ms; }
+.links a:hover, .links a:focus-visible { color: var(--color-sapphire); }
+.links a:hover span, .links a:focus-visible span { opacity: 1; transform: none; }
+.links a:focus-visible { outline: 2px solid var(--color-sapphire); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .directory { grid-template-columns: 1fr; gap: 1.8rem; }
+  .label { margin-bottom: .5rem; }
+  .family:last-child .links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .links a span { transition: none; transform: none; } }

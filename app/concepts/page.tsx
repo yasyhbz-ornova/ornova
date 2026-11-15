@@ -1,10 +1,11 @@
-import { ConceptIndex } from "@/components/ornova/ConceptRoute";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "مسیرهای طراحی | Ornova by Yas",
-  description: "سه مسیر مفهومی برای صحنه اول تجربه دیجیتال Ornova.",
+  description: "چهار جهت مستقل برای مقایسه‌ی تجربه‌ی خانه‌ی Ornova؛ بدون تغییر صفحه‌ی اصلی.",
+  robots: { index: false, follow: false },
 };
 
 export default function ConceptsPage() {
-  return <ConceptIndex />;
+  redirect("/");
 }

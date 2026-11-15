@@ -1,0 +1,33 @@
+.desk { grid-column: 1 / -1; min-width: 0; border-top: 1px solid var(--color-silver); padding-top: 2rem; font-size: .875rem; line-height: 1.9; overflow-wrap: anywhere; }
+.desk h2 { font-size: 1.25rem; font-weight: 500; margin-bottom: .5rem; }
+.desk h3 { font-size: 1rem; font-weight: 500; }
+.desk header { margin-bottom: 1.5rem; }
+.desk p { max-width: 75ch; }
+.hint { font-size: .75rem; margin-block: .75rem; }
+.notice, .recovery { background: var(--color-ivory-muted); padding: 1rem; margin-block: 1rem; }
+.recovery { border: 1px solid var(--color-graphite); }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem 1rem; margin-block: 1rem; }
+.actions > span { font-size: .75rem; max-width: 60ch; }
+.desk button { min-height: 44px; padding: .65rem 1rem; border: 1px solid var(--color-silver); border-radius: 3px; cursor: pointer; font: inherit; font-size: .8rem; }
+.actions > button:first-child { background: var(--color-sapphire); border-color: var(--color-sapphire); color: var(--color-ivory); }
+.desk button:disabled { cursor: not-allowed; opacity: .55; }
+.desk :is(button, a):hover:not(:disabled) { text-decoration: underline; text-underline-offset: .25rem; }
+.desk :is(button, a, summary, [tabindex]):focus-visible { outline: 2px solid var(--color-sapphire); outline-offset: 3px; }
+.desk a { color: var(--color-sapphire); text-decoration: underline; text-underline-offset: .25rem; }
+.receipt { padding-block: 1rem 1.5rem; }
+.amount { font-size: 1.35rem; font-weight: 500; margin-block: .5rem; font-variant-numeric: tabular-nums; }
+.warning { font-weight: 500; margin-block: 1rem; }
+.desk summary { cursor: pointer; padding-block: .8rem; }
+.history { margin-top: 2rem; }
+.historyHeading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
+.list { margin-block: 1.5rem; list-style: none; padding: 0; }
+.list > li { border-bottom: 1px solid var(--color-silver); }
+.list summary > :is(span, strong, time) { display: inline-block; margin-inline: 0 1rem; }
+.list strong { font-weight: 500; font-variant-numeric: tabular-nums; }
+.list time { font-size: .75rem; }
+.snapshot { padding-block: .5rem 1rem; }
+.inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem 2rem; margin-block: 1.25rem; }
+.inputs > div { min-width: 0; }
+.inputs dt { font-size: .75rem; }
+.inputs dd { font-weight: 500; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) { .inputs { grid-template-columns: minmax(0, 1fr); } .list summary > :is(span, strong, time) { display: block; margin-inline: 0; } }

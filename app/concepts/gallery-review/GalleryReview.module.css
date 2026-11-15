@@ -1,0 +1,290 @@
+.page {
+  --review-ink: var(--ornova-color-graphite);
+  --review-paper: var(--ornova-color-ivory);
+  --review-line: var(--ornova-color-silver-muted);
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  min-height: 100svh;
+  overflow-x: clip;
+  padding: clamp(1.25rem, 3vw, 2.75rem) clamp(1rem, 3vw, 3rem) 4rem;
+  color: var(--review-ink);
+  background: var(--review-paper);
+}
+
+.heading {
+  display: grid;
+  justify-items: start;
+  max-width: 1500px;
+  margin: 0 auto clamp(1.25rem, 2vw, 2rem);
+}
+
+.returnLink {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  margin-bottom: 1rem;
+  color: var(--ornova-color-sapphire);
+  font-size: .78rem;
+  text-decoration: none;
+}
+.reviewAnchor {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  margin: 0 0 .75rem;
+  color: var(--review-ink);
+  font-size: .76rem;
+  text-decoration-color: color-mix(in srgb, var(--review-ink) 35%, transparent);
+  text-underline-offset: .25em;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 2.4vw, 2.2rem);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.heading > p {
+  margin: .35rem 0 0;
+  color: color-mix(in srgb, var(--review-ink) 72%, transparent);
+  font-size: .88rem;
+  line-height: 1.8;
+}
+
+.comparison {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.8rem);
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.cameraViews {
+  max-width: 1800px;
+  margin: clamp(3rem, 6vw, 5rem) auto;
+}
+.cameraHeading { max-width: 68ch; margin-bottom: 1.25rem; }
+.cameraHeading h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.75rem); font-weight: 500; line-height: 1.5; }
+.cameraHeading > p:last-child { margin: .35rem 0 0; color: color-mix(in srgb, var(--review-ink) 72%, transparent); font-size: .82rem; line-height: 1.9; }
+.cameraGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1rem, 2vw, 1.75rem); align-items: start; }
+.cameraFigure { min-width: 0; margin: 0; }
+.cameraWideFrame { aspect-ratio: 1672 / 941; }
+.cameraPortraitFrame { width: min(100%, 430px); margin-inline: auto; aspect-ratio: 941 / 1672; }
+.cameraFigure figcaption { padding-top: .55rem; }
+.cameraFigure h3 { margin: 0; font-size: .95rem; font-weight: 500; }
+.cameraFigure figcaption p { margin: .2rem 0 0; color: color-mix(in srgb, var(--review-ink) 72%, transparent); font-size: .76rem; line-height: 1.8; }
+.cameraBrand { top: 13%; width: 19%; height: 10%; }
+.cameraBrandMobile { top: 34%; width: 34%; height: 5%; }
+
+.figure {
+  min-width: 0;
+  margin: 0;
+}
+
+.featuredFigure {
+  grid-column: 1 / -1;
+}
+
+.productPlacements { position: absolute; z-index: 2; inset: 0; pointer-events: none; }
+.ringPlacement, .broochPlacement, .halfSetPlacement, .pendantPlacement { position: absolute; display: block; }
+.ringPlacement { top: 47%; left: 14.5%; width: 4.5%; height: 6.5%; }
+.broochPlacement { top: 43.1%; left: 26.5%; width: 8%; height: 12%; }
+.halfSetPlacement { top: 45.3%; left: 65.5%; width: 8%; height: 7%; }
+.pendantPlacement { top: 43%; left: 79.3%; width: 8%; height: 9%; }
+.productPlacements img { object-fit: contain; }
+
+.imageFrame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1672 / 941;
+  background: var(--ornova-color-silver-muted);
+}
+
+.imageFrame img {
+  object-fit: cover;
+}
+
+.wallBrand {
+  position: absolute;
+  z-index: 1;
+  top: 13%;
+  left: 50%;
+  display: grid;
+  width: 29%;
+  height: 12%;
+  place-items: center;
+  color: color-mix(in srgb, var(--ornova-color-graphite) 66%, var(--ornova-color-silver));
+  opacity: .88;
+  mix-blend-mode: multiply;
+  filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--ornova-color-ivory) 60%, transparent));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.imageFrame.cameraWideFrame { aspect-ratio: 1672 / 941; }
+.imageFrame.cameraPortraitFrame { aspect-ratio: 941 / 1672; }
+.wallBrand.cameraBrand { top: 13%; width: 19%; height: 10%; }
+.wallBrand.cameraBrandMobile { top: 34%; width: 34%; height: 5%; }
+
+.brandMark {
+  display: grid;
+  width: max-content;
+  max-width: 100%;
+  height: 100%;
+  grid-template-columns: auto max-content;
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-items: start;
+  column-gap: .35rem;
+  direction: ltr;
+  text-align: left;
+}
+
+.brandMark :global(.ornova-symbol) {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: clamp(22px, 3.1vw, 46px);
+  height: 92%;
+}
+
+.brandMark :global(.ornova-script-wordmark) {
+  grid-column: 2;
+  grid-row: 1;
+  color: currentColor;
+  font-family: cursive;
+  font-size: clamp(1.05rem, 2vw, 2rem);
+  font-style: italic;
+  line-height: 1;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--ornova-color-ivory) 65%, transparent), 0 -1px 1px color-mix(in srgb, var(--ornova-color-graphite) 18%, transparent);
+}
+
+.brandMark :global(.ornova-english-motto) {
+  grid-column: 2;
+  grid-row: 2;
+  color: currentColor;
+  font-family: Georgia, serif;
+  font-size: clamp(.36rem, .68vw, .7rem);
+  font-style: italic;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.labels {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+}
+
+.labels span {
+  position: absolute;
+  top: 60%;
+  color: color-mix(in srgb, var(--ornova-color-graphite) 86%, var(--ornova-color-stone-champagne));
+  font-family: Georgia, serif;
+  font-size: clamp(.32rem, .65vw, .67rem);
+  font-weight: 600;
+  letter-spacing: .055em;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--ornova-color-stone-champagne) 60%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+.labels span:nth-child(1) { left: 17%; }
+.labels span:nth-child(2) { left: 30.5%; }
+.labels span:nth-child(3) { left: 69.5%; }
+.labels span:nth-child(4) { left: 83.5%; }
+
+.figure figcaption {
+  padding-top: .8rem;
+}
+
+.figure h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.figure p {
+  max-width: 62ch;
+  margin: .25rem 0 0;
+  color: color-mix(in srgb, var(--review-ink) 72%, transparent);
+  font-size: .78rem;
+  line-height: 1.8;
+}
+
+.figure .notice {
+  margin-top: .55rem;
+  padding-top: .55rem;
+  border-top: 1px solid var(--review-line);
+  color: color-mix(in srgb, var(--review-ink) 82%, transparent);
+}
+
+.standStudy {
+  display: grid;
+  grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 5rem);
+  max-width: 1300px;
+  margin: clamp(2.5rem, 6vw, 5rem) auto 0;
+  padding-top: clamp(1.5rem, 3vw, 2.5rem);
+  border-top: 1px solid var(--review-line);
+}
+
+.studyCopy { min-width: 0; }
+.studyKicker { margin: 0 0 .35rem; color: var(--ornova-color-sapphire); font-size: .68rem; letter-spacing: .04em; }
+.studyCopy h2 { margin: 0; font-size: clamp(1.15rem, 2vw, 1.65rem); font-weight: 500; line-height: 1.6; }
+.studyCopy > p:not(.studyKicker) { margin: .5rem 0 0; color: color-mix(in srgb, var(--review-ink) 74%, transparent); font-size: .78rem; line-height: 1.9; }
+.studyCopy .notice { margin-top: .75rem !important; padding-top: .65rem; border-top: 1px solid var(--review-line); }
+.studyFigure { min-width: 0; margin: 0; }
+.studyImage { position: relative; overflow: hidden; aspect-ratio: 6 / 5; border: 1px solid var(--review-line); background: #eee8dd; }
+.studyImage img { object-fit: cover; }
+.studyFigure figcaption { padding-top: .45rem; color: color-mix(in srgb, var(--review-ink) 68%, transparent); font-size: .68rem; }
+
+.standFormReview {
+  max-width: 1500px;
+  margin: clamp(3rem, 7vw, 6rem) auto 0;
+  padding-top: clamp(1.5rem, 3vw, 2.5rem);
+  border-top: 1px solid var(--review-line);
+}
+.standFormHeading { max-width: 62ch; margin-bottom: clamp(1rem, 2.5vw, 2rem); }
+.standFormHeading h2 { margin: 0; font-size: clamp(1.25rem, 2.2vw, 1.8rem); font-weight: 500; line-height: 1.6; }
+.standFormHeading > p:last-child { margin: .4rem 0 0; color: color-mix(in srgb, var(--review-ink) 74%, transparent); font-size: .8rem; line-height: 1.9; }
+.standFormGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1rem, 2.5vw, 2.25rem); }
+.standFormFigure { min-width: 0; margin: 0; }
+.standFormImage { position: relative; overflow: hidden; aspect-ratio: 1200 / 1300; border: 1px solid var(--review-line); background: #eee8dd; }
+.standFormImage img { object-fit: contain; }
+.standFormFigure figcaption { padding-top: .65rem; }
+.standFormFigure h3 { margin: 0; font-size: .98rem; font-weight: 500; }
+.standFormFigure figcaption p { margin: .2rem 0 0; color: color-mix(in srgb, var(--review-ink) 72%, transparent); font-size: .75rem; line-height: 1.8; }
+.standFormNotice { max-width: 85ch; margin: 1.25rem 0 0; padding: .8rem 1rem; border-inline-start: 2px solid var(--ornova-color-sapphire); color: color-mix(in srgb, var(--review-ink) 82%, transparent); background: color-mix(in srgb, var(--ornova-color-silver-muted) 28%, var(--review-paper)); font-size: .74rem; line-height: 1.9; }
+
+:global(body):has(.page) { overflow-x: clip; }
+:global(body):has(.page) :global(header.site-header),
+:global(body):has(.page) :global(footer) { display: none; }
+@media (max-width: 1100px) {
+  .comparison { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .page { padding-inline: 1rem; }
+  .comparison { grid-template-columns: 1fr; gap: 1.5rem; }
+  .cameraGrid { grid-template-columns: 1fr; gap: 1.35rem; }
+  .imageFrame.cameraWideFrame { aspect-ratio: 1672 / 1100; }
+  .cameraPortraitFrame { width: min(100%, 390px); }
+  .wallBrand.cameraBrand { width: 22%; height: 10%; }
+  .wallBrand.cameraBrandMobile { top: 34%; width: 34%; height: 5%; }
+  .ringPlacement { top: 47%; left: 14.5%; width: 4.5%; height: 6.5%; }
+  .broochPlacement { top: 43.1%; left: 26.5%; width: 8%; height: 12%; }
+  .halfSetPlacement { top: 45.3%; left: 65.5%; width: 8%; height: 7%; }
+  .pendantPlacement { top: 43%; left: 79.3%; width: 8%; height: 9%; }
+  .standStudy { grid-template-columns: 1fr; gap: 1rem; }
+  .standFormGrid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .studyFigure { grid-row: 1; }
+  .studyImage { aspect-ratio: 6 / 5; }
+  .heading > p { font-size: .8rem; }
+  .wallBrand { top: 13%; width: 31%; height: 13%; }
+  .brandMark :global(.ornova-symbol) { width: 24px; }
+  .brandMark :global(.ornova-script-wordmark) { font-size: clamp(1rem, 4vw, 1.35rem); }
+  .brandMark :global(.ornova-english-motto) { font-size: clamp(.36rem, 1.5vw, .48rem); }
+  .labels { inset: 0; }
+  .labels span { top: 60%; font-size: clamp(.34rem, 1.55vw, .48rem); }
+}

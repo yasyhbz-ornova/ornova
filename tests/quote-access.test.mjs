@@ -6,7 +6,7 @@ const payload={version:1,source_quote_no:"Q-TEST",source_order_no:"O-TEST",sourc
 function client(data,error=null) {return{from:(name)=>{assert.equal(name,"customer_inquiry_quotes");return{select:()=>({in:(_,ids)=>{assert.deepEqual(ids,["inquiry-a"]);return{order:async()=>({data,error})};}})};}};}
 test("quote read emits an allowlisted DTO even if DB adapter returns additional internal fields",async()=>{
   assert.equal(typeof readInquiryQuotes,"function");
-  const r=await readInquiryQuotes(client([{id:"quote-a",document_id:"doc-a",inquiry_id:"inquiry-a",payload,published_at:"2026-10-22T01:00:00Z",withdrawn_at:null,reason:"private",source_key:"private",created_by:"private"}]),["inquiry-a"]);
+  const r=await readInquiryQuotes(client([{id:"quote-a",document_id:"doc-a",inquiry_id:"inquiry-a",payload,published_at:"2026-10-22T01:00:00Z",withdrawn_at:null,accepted_at:null,reason:"private",source_key:"private",created_by:"private"}]),["inquiry-a"]);
   assert.equal(r.error,false);assert.equal(r.data[0].payload.total_rial,"15");
   assert.equal(r.data[0].document_id,"doc-a");
   for(const key of ["reason","source_key","created_by"]) assert.equal(Object.hasOwn(r.data[0],key),false);

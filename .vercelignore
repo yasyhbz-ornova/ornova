@@ -1,0 +1,11 @@
+# Local build caches created for isolated validation; Next rebuilds these remotely.
+.next-*/
+
+# Internal project material is not needed by the production build.
+docs/
+tests/
+scripts/
+
+# Vercel supplies Git metadata and dependencies in its build environment.
+.git/
+node_modules/

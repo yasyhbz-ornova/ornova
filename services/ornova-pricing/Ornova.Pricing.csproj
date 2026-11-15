@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <!-- Compile unchanged PCS source, not a TypeScript rewrite or infrastructure/DB host. -->
+  <ItemGroup>
+    <Compile Include="$(PcsSourceRoot)/src/Ornova.PCS.Infrastructure/Quotes/StandardPricingEngine.cs" Link="PCS/StandardPricingEngine.cs" />
+    <Compile Include="$(PcsSourceRoot)/src/Ornova.PCS.Application/Quotes/QuoteContracts.cs" Link="PCS/QuoteContracts.cs" />
+    <Compile Include="$(PcsSourceRoot)/src/Ornova.PCS.Application/Common/Result.cs" Link="PCS/Result.cs" />
+    <Compile Include="$(PcsSourceRoot)/src/Ornova.PCS.Application/Common/Error.cs" Link="PCS/Error.cs" />
+    <Compile Include="$(PcsSourceRoot)/src/Ornova.PCS.Application/Common/ErrorCodes.cs" Link="PCS/ErrorCodes.cs" />
+    <Compile Include="$(PcsSourceRoot)/src/Ornova.PCS.Domain/Enums/*.cs" Link="PCS/Enums/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Target Name="VerifyPcsProvenance" BeforeTargets="CoreCompile">
+    <Error Condition="'$(PcsSourceRoot)' == ''" Text="Explicit source-only PcsSourceRoot required." />
+    <GetFileHash Files="$(PcsSourceRoot)/src/Ornova.PCS.Infrastructure/Quotes/StandardPricingEngine.cs" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="EngineHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(PcsSourceRoot)/src/Ornova.PCS.Application/Quotes/QuoteContracts.cs" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="ContractsHash" />
+    </GetFileHash>
+    <Error Condition="'$(EngineHash)' != '48C17189FD76F18DB89F290B1981E448D0FAED7770EC4F7BDC870DAB0220819A'" Text="PCS engine differs from reviewed source." />
+    <Error Condition="'$(ContractsHash)' != '1F9336F21758F7BE098201A1E4A787D49C29C9C461D131B0D1C7520B4223BCB5'" Text="PCS contracts differ from reviewed source." />
+  </Target>
+</Project>
