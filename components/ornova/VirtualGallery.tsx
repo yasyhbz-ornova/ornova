@@ -413,6 +413,13 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   const roomSampleIndex = category ? (standIndices[category.id] ?? 0) % (roomSamples?.length || 1) : 0;
   const roomSample = roomSamples?.[roomSampleIndex];
   const linkedRoomProduct = roomSample ? findGalleryProduct(products, roomSample) : null;
+  const linkedMaterial = linkedRoomProduct?.details.find((detail) => detail.label === "جنس")?.value;
+  const linkedStone = linkedRoomProduct?.details.find((detail) => detail.label === "سنگ")?.value;
+  const sampleCertificateFields: [string, string | undefined][] = [
+    ["Design Name", linkedRoomProduct?.name ?? roomSample?.title],
+    ["Material", linkedMaterial && !/پس از|نامشخص|در انتظار/u.test(linkedMaterial) ? linkedMaterial : undefined],
+    ["Stone", linkedStone === "بدون سنگ" || linkedStone === "ندارد" ? "None" : linkedStone && !/پس از|نامشخص|در انتظار/u.test(linkedStone) ? linkedStone : undefined],
+  ];
   const roomSampleOpen = drawer?.kind === "category" && Boolean(roomSample) && !categoryFromMagazine && !selectedProduct;
   function moveRoomSample(step: number) {
     if (!category || !roomSamples?.length) return;
@@ -430,12 +437,15 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
           <button type="button" onClick={closeDrawer} className={styles.closeButton} aria-label="بستن پنل">×</button>
         </div>
         {roomSampleOpen && roomSample && category && roomSamples && <section className={styles.roomSampleSheet}>
-          <OrnovaBrandMark className={styles.sampleBrand} />
-          <p className={styles.eyebrow}>ویترین گالری <span>·</span> {category.label}</p>
-          <h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{linkedRoomProduct?.name ?? roomSample.title}</h1>
-          <dl className={styles.sampleFacts}><div><dt>نوع اثر</dt><dd>{category.label}</dd></div><div><dt>تصویر</dt><dd>نمای نهایی اثر روی استند اختصاصی</dd></div><div><dt>شناسهٔ تصویر</dt><dd>{roomSample.productSlug ? "کاتالوگ" : number.format(Number(roomSample.number))}</dd></div>{linkedRoomProduct?.details.slice(0, 3).map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>
-          <div className={styles.sampleControls}><button type="button" onClick={() => moveRoomSample(-1)}>اثر قبلی</button><span>{number.format(roomSampleIndex + 1)} / {number.format(roomSamples.length)}</span><button type="button" onClick={() => moveRoomSample(1)}>اثر بعدی</button></div>
-          {linkedRoomProduct ? <button type="button" className={styles.primaryLink} onClick={() => setSelectedProduct(linkedRoomProduct)}>دیدن شناسنامهٔ اثر <span aria-hidden="true">←</span></button> : <p className={styles.sampleNote}>مشخصات وزن، اندازه و قیمت این اثر هنوز ثبت نشده است.</p>}
+          <div className={styles.sampleCertificate} dir="ltr" aria-label="نمای کارت شناسنامهٔ اُرنوا">
+            <OrnovaBrandMark className={styles.sampleBrand} />
+            <h2>Jewelry Dossier</h2>
+            <dl>{sampleCertificateFields.filter(([, value]) => Boolean(value)).map(([label, value]) => <div key={label}><dt>{label}:</dt><dd dir="auto">{label === "Design Name" ? <h1 id="gallery-drawer-title" tabIndex={-1} className={styles.sampleTitle}>{value}</h1> : value}</dd></div>)}</dl>
+            {!linkedRoomProduct && <p className={styles.samplePending} dir="rtl">شناسنامهٔ تأییدشدهٔ این اثر هنوز ثبت نشده است.</p>}
+            <p className={styles.sampleMotto}>A small object for a slower life.</p>
+            <div className={styles.sampleControls} dir="rtl"><button type="button" onClick={() => moveRoomSample(-1)}>اثر قبلی</button><span>{number.format(roomSampleIndex + 1)} / {number.format(roomSamples.length)}</span><button type="button" onClick={() => moveRoomSample(1)}>اثر بعدی</button></div>
+            {linkedRoomProduct && <button type="button" className={styles.primaryLink} onClick={() => setSelectedProduct(linkedRoomProduct)}>دیدن مشخصات و ثبت درخواست خرید <span aria-hidden="true">←</span></button>}
+          </div>
         </section>}
         {!roomSampleOpen && drawer.kind === "category" && category && (selectedProduct
           ? <OrnovaProductDossier product={selectedProduct} onPrevious={() => adjacentProduct(-1)} onNext={() => adjacentProduct(1)} productPosition={productIndex + 1} totalProducts={categoryProducts.length} onAddToBasket={() => openDrawer({ kind: "basket" })} />

@@ -34,9 +34,10 @@ for (const [name,pattern] of [['تلفن؛ پشتیبانی و ارتباط با
 }
 await page.mouse.move(20,20);await page.waitForTimeout(1000);await page.screenshot({path:join(output,'ornova-room-pilot.png')});
 assert.equal(await page.locator('[data-gallery-product-number]').evaluateAll(images=>images.every(image=>image instanceof HTMLImageElement && image.complete && image.naturalWidth>0)),true,'all six final images load');
-for (const [id,label] of [['ring-display','انگشتر'],['brooch-display','سنجاق‌سینه'],['ear-display','گوشواره'],['set-display','نیم‌ست'],['pendant-display','آویز گردنبند'],['bracelet-display','دستبند']]) {
+for (const [id,category] of [['ring-display','rings'],['brooch-display','brooches-pins'],['ear-display','earrings'],['set-display','jewelry-sets'],['pendant-display','pendants'],['bracelet-display','bracelets']]) {
  await page.locator(`[data-stand-id="${id}"]`).click();await page.waitForTimeout(1050);
- assert.match(await page.getByRole('dialog').innerText(),new RegExp(label),'each stand opens its matching dossier');
+ assert.equal(await page.getByRole('dialog').getAttribute('data-focused-display'),category,'each stand opens its matching dossier');
+ assert.ok((await page.getByRole('dialog').getByRole('heading',{level:1}).innerText()).trim(),'the physical card shows the work name');
  await page.screenshot({path:join(output,`ornova-room-${id}-detail.png`)});
  await page.keyboard.press('Escape');await page.waitForTimeout(1450);
 }

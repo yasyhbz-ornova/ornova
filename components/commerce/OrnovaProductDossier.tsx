@@ -37,13 +37,16 @@ export function OrnovaProductDossier({
   const stone = product.details.find((detail) => detail.label === "سنگ")?.value;
   const knownStone = stone && !unknownStoneValues.has(stone) && isConfirmedValue(stone) ? stone : undefined;
   const material = product.details.find((detail) => detail.label === "جنس")?.value;
-  const dossierFields: [string, string][] = [["Design Name", product.name]];
-  if (isConfirmedValue(material)) dossierFields.push(["Material", material!]);
-  if (stone === "بدون سنگ" || stone === "ندارد") dossierFields.push(["Stone", "None"]);
-  else if (knownStone) dossierFields.push(["Stone", knownStone]);
+  const dossierFields: [string, string | undefined][] = [
+    ["Design Name", product.name],
+    ["Material", isConfirmedValue(material) ? material : undefined],
+    ["Stone", stone === "بدون سنگ" || stone === "ندارد" ? "None" : knownStone],
+  ];
   const additionalDetails = product.details.filter((detail) =>
     detail.label !== "جنس" &&
     detail.label !== "سنگ" &&
+    detail.label !== "وضعیت سفارش" &&
+    detail.label !== "سایز" &&
     isConfirmedValue(detail.value) &&
     !(detail.label === "رنگ سنگ" && (stone === "بدون سنگ" || stone === "ندارد")),
   );
@@ -52,49 +55,31 @@ export function OrnovaProductDossier({
     <article className={styles.dossier} data-dossier-content>
       <div className={styles.visual}>
         <ProductGallery key={product.slug} images={product.turntableVideo ? product.gallery : []} name={product.name} allowOriginalImageOpen={false} standImage={product.standImage} turntableVideo={product.turntableVideo} displayKind={product.categoryId} galleryScene />
-        <aside className={styles.mediaNote} aria-label="وضعیت نمای محصول">
-          {product.turntableVideo
-            ? <p><span aria-hidden="true">۳۶۰°</span> چرخش پیوستهٔ همین مدل در دسترس است.</p>
-            : <p><span aria-hidden="true">۳۶۰°</span> نمای چرخشِ این اثر هنوز آماده نیست؛ برای نمایش دقیق، مدل یا رندرهای چندزاویه‌ایِ همین محصول لازم است.</p>}
-          {product.gallery[0]?.notice && <p>{product.gallery[0].label}: {product.gallery[0].notice}</p>}
-        </aside>
       </div>
       <div className={styles.copy}>
-        <p className={styles.eyebrow}>ویترین <span aria-hidden="true">·</span> {product.category}</p>
-        <h1 id="product-dossier-title" tabIndex={-1} className={styles.title}>{product.name}</h1>
-        <p className={styles.description}>{product.description}</p>
-        <div className={styles.card} dir="ltr">
+        <div className={styles.card} dir="ltr" aria-label={`شناسنامهٔ طرح ${product.name}`}>
           <OrnovaBrandMark className={styles.brand} />
-          <h2><small>Jewelry Dossier</small></h2>
+          <h2>Jewelry Dossier</h2>
           <dl>
             {dossierFields.map(([label, value]) => (
-              <div key={label}><dt>{label}:</dt><dd>{value}<i /></dd></div>
+              <div key={label}><dt>{label}:</dt><dd dir="auto" aria-label={value ? undefined : "ثبت نشده"}>{label === "Design Name" ? <h1 id="product-dossier-title" tabIndex={-1} className={styles.title}>{value}</h1> : <span>{value}</span>}</dd></div>
             ))}
           </dl>
-          <p className={styles.motto}>A small object for a slower life.</p>
-        </div>
-        {additionalDetails.length > 0 && <section className={styles.specifications} aria-labelledby="product-specifications-title">
-          <div className={styles.specificationHeading}>
-            <span aria-hidden="true">✳</span>
-            <h2 id="product-specifications-title">جزئیات ثبت‌شدهٔ اثر</h2>
-            <p>بر پایهٔ اطلاعات موجود برای همین محصول</p>
-          </div>
-          <dl>
+          <p className={styles.description} dir="rtl">{product.description}</p>
+          {additionalDetails.length > 0 && <dl className={styles.specifications} dir="rtl" aria-label="جزئیات ثبت‌شدهٔ اثر">
             {additionalDetails.map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}
-          </dl>
-        </section>}
-        {product.packagingGallery?.length
-          ? <p className={styles.packageNote}>عکس‌های بسته‌بندیِ همین اثر پس از افزودن به صندوق، به‌صورت اسلایدی نمایش داده می‌شوند.</p>
-          : <p className={styles.packageNote}>عکسِ همین اثر در بسته‌بندی اُرنوا هنوز آماده نشده است؛ تصویر عمومی بسته‌بندی را به‌جای آن نشان نمی‌دهیم.</p>}
-        {totalProducts > 1 && (
-          <div className={styles.navigation}>
-            <button type="button" onClick={onPrevious}>اثر پیشین <span aria-hidden="true">←</span></button>
-            <span>{number.format(Math.max(1, productPosition))} / {number.format(totalProducts)}</span>
-            <button type="button" onClick={onNext}>اثر بعدی <span aria-hidden="true">→</span></button>
+          </dl>}
+          <p className={styles.motto}>A small object for a slower life.</p>
+          {totalProducts > 1 && (
+            <div className={styles.navigation} dir="rtl">
+              <button type="button" onClick={onPrevious}>اثر پیشین <span aria-hidden="true">←</span></button>
+              <span>{number.format(Math.max(1, productPosition))} / {number.format(totalProducts)}</span>
+              <button type="button" onClick={onNext}>اثر بعدی <span aria-hidden="true">→</span></button>
+            </div>
+          )}
+          <div className={styles.actions} dir="rtl">
+            <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} label="افزودن به صندوق درخواست خرید" onAdded={onAddToBasket} />
           </div>
-        )}
-        <div className={styles.actions}>
-          <RequestBasketButton item={{ slug: product.slug, name: product.name, category: product.category }} label="افزودن به صندوق گالری" onAdded={onAddToBasket} />
         </div>
       </div>
     </article>

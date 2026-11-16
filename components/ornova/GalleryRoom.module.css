@@ -6,6 +6,8 @@
 .room[data-focused='true'] .canvas { transform: translate(calc(0% - var(--focus-x)), calc(0% - var(--focus-y))) scale(4.3); }
 .display { position: absolute; z-index: 3; transform: translateX(-50%); }
 .productSurface { position: absolute; inset: 0; pointer-events: none; mask-repeat: no-repeat; filter: brightness(.92) saturate(.85); }
+.ringPhotoSurface { overflow: visible; mask-image: none; }
+.ringPhotoSurface .productLayer { mask-image: radial-gradient(ellipse 34% 30% at 50% 25%, #000 72%, transparent 100%); }
 .productLayer { position: absolute; max-width: none; animation: productAppear 900ms ease both; }
 @keyframes productAppear { from { opacity: 0; } to { opacity: 1; } }
 .stand:hover .productSurface { filter: brightness(1.02) saturate(.9); }

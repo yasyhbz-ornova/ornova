@@ -324,7 +324,7 @@
   .overlay[data-focused-display] .drawer { width: 100%; height: 48svh; max-height: 520px; padding: .8rem 1.2rem max(1.5rem, env(safe-area-inset-bottom)); border-radius: 1rem 1rem 0 0; background: rgb(245 241 234 / 98%); box-shadow: 0 -14px 36px rgb(35 29 24 / 16%); }
   .overlay[data-focused-display] .drawerTop { margin: -.8rem -1.2rem 1rem; padding-inline: 1.2rem; }
   .overlay[data-focused-display][data-product-open="true"] { align-items: stretch; background: rgb(39 34 28 / 35%); }
-  .overlay[data-focused-display][data-product-open="true"] .drawer { width: 100%; height: 100svh; max-height: 100svh; border-radius: 0; padding: 4rem 1rem max(1.2rem, env(safe-area-inset-bottom)); background: rgb(245 241 234 / 98%); box-shadow: none; }
+  .overlay[data-focused-display][data-product-open="true"] .drawer { width: 100%; height: 100svh; max-height: 100svh; border-radius: 0; padding: 0 1rem max(1.2rem, env(safe-area-inset-bottom)); background: transparent; box-shadow: none; }
   .overlay[data-focused-display][data-product-open="true"] .drawerTop { margin: 0; padding-inline: 1rem; }
   .sceneImage { object-fit: cover; }
   .wallMark { top: 32.5%; left: 50%; right: auto; width: min(76vw, 360px); height: 74px; padding: .1rem .3rem; transform: translateX(-50%); transform-origin: top center; }
@@ -404,25 +404,30 @@
 @media (prefers-reduced-motion: reduce) { .overlay, .drawer, .productImage img, .featuredImage img, .displayTarget, .targetLabel, .sceneCanvas, .scene :global(.ornova-magazine-mark), .scene :global(.ornova-phone-mark), .scene :global(.ornova-studio-entry), .standProduct { animation: none; transition: none; } }
 
 .overlay[data-focused-display][data-room-sample='true'] { background: transparent; backdrop-filter: none; justify-content: flex-start; }
-.overlay[data-focused-display][data-room-sample='true'] .drawer { width: min(480px, 40vw); height: auto; max-height: 85svh; align-self: center; margin: 2.5vw; padding: 1.6rem; background: #f5eee1; box-shadow: 0 12px 40px #4c3c2526; border: 1px solid #e2d4be; border-radius: 2px; }
-.roomSampleSheet { padding: .5rem .25rem; }
-.roomSampleSheet .title { font-size: clamp(1.25rem, 2.1vw, 1.9rem); line-height: 1.8; }
-.sampleBrand { direction: ltr; display: grid; grid-template-columns: 42px 1fr; column-gap: .5rem; align-items: center; margin-bottom: 2rem; color: #6b6358; }
-.sampleBrand :global(.ornova-symbol) { width: 42px; height: 48px; grid-row: 1 / 3; }
-.sampleBrand :global(.ornova-script-wordmark) { font: italic 2rem Georgia, serif; }
-.sampleBrand :global(.ornova-english-motto) { font: italic .68rem Georgia, serif; }
-.sampleFacts { margin-block: 1.6rem; font-size: .85rem; }
-.sampleFacts div { display: flex; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-bottom: 1px solid #b9ad963b; }
-.sampleFacts dt { color: #84776a; }
-.sampleFacts dd { margin: 0; }
-.sampleControls { display: flex; align-items: center; justify-content: space-between; gap: .8rem; font-size: .8rem; }
-.sampleControls button { min-height: 44px; padding: .4rem .8rem; background: transparent; border: 1px solid #9a8c7755; color: #385a77; cursor: pointer; }
-.sampleNote { margin-top: 1.4rem; font-size: .75rem; line-height: 1.9; color: #786b5e; }
-.roomSampleSheet .primaryLink { margin-top: 1rem; padding: .55rem .85rem; border: 1px solid #9a8c7755; background: transparent; font-family: inherit; text-align: start; cursor: pointer; }
+.overlay[data-focused-display][data-room-sample='true'] .drawer { width: min(430px, 36vw); min-width: 0; height: auto; max-height: 85svh; align-self: center; margin: 2.5vw; padding: 1.25rem 1.5rem 1.6rem; overflow-x: hidden; border: 1px solid #ab9a7f; border-radius: 2px; color: #302c27; background: repeating-linear-gradient(17deg, rgb(255 255 255 / 3%) 0 2px, transparent 2px 7px), linear-gradient(135deg, #d3c5a9, #c5b596 65%, #c9ba9e); box-shadow: 0 15px 40px rgb(32 27 22 / 23%); }
+.overlay[data-room-sample='true'] .drawerTop { position: relative; margin: -1.25rem -1.5rem .8rem; padding-inline: 1.5rem; border-bottom-color: #a39478; background: transparent; backdrop-filter: none; }
+.overlay[data-room-sample='true'] .backButton, .overlay[data-room-sample='true'] .closeButton { color: #3f392f; }
+.roomSampleSheet { padding: 0; }
+.sampleCertificate { display: flex; min-width: 0; min-height: 380px; flex-direction: column; color: #302c27; }
+.sampleTitle { margin: 0; color: #302c27; font-family: var(--font-display); font-size: .9rem; font-weight: 500; line-height: 1.4rem; text-align: right; }
+.sampleTitle:focus { outline: none; }
+.sampleBrand { direction: ltr; display: grid; justify-items: start; max-width: 100%; color: #292723; }
+.sampleBrand :global(.ornova-symbol), .sampleBrand :global(.ornova-english-motto) { display: none; }
+.sampleBrand :global(.ornova-script-wordmark) { font: italic 1.8rem "Segoe Script", "Bradley Hand", cursive; }
+.sampleCertificate h2 { margin: 0 0 1rem; font: italic .82rem "Segoe Script", "Bradley Hand", cursive; }
+.sampleCertificate dl { display: grid; gap: .7rem; margin: .2rem 0 1rem; }
+.sampleCertificate dl div { display: grid; grid-template-columns: minmax(6.4rem, auto) minmax(0, 1fr); align-items: end; gap: .4rem; min-height: 1.85rem; }
+.sampleCertificate dt { font: italic .77rem "Segoe Script", "Bradley Hand", cursive; white-space: nowrap; }
+.sampleCertificate dd { min-width: 0; min-height: 1.4rem; margin: 0; border-bottom: 2px solid #39352e; font-size: .76rem; line-height: 1.4rem; text-align: right; overflow-wrap: anywhere; }
+.sampleMotto { max-width: 22ch; margin: auto auto .7rem; padding-top: .7rem; border-top: 1px solid #a39478; font: italic .88rem/1.5 "Segoe Script", "Bradley Hand", cursive; text-align: center; }
+.samplePending { margin: .7rem 0; color: #50483b; font-size: .76rem; line-height: 1.9; }
+.sampleControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; min-width: 0; margin-top: .5rem; font-size: .78rem; }
+.sampleControls button { min-height: 42px; padding: .35rem .65rem; background: transparent; border: 1px solid #9e8f76; color: #385a77; cursor: pointer; }
+.roomSampleSheet .primaryLink { margin-top: 1rem; padding: .6rem .9rem; border: 1px solid #385a77; border-radius: 2px; color: #f7f3e9; background: #385a77; font-family: inherit; text-align: start; cursor: pointer; }
 .roomSampleSheet .primaryLink:focus-visible { outline: 2px solid var(--sapphire); outline-offset: 4px; }
 @media (max-width: 800px) and (orientation: portrait) {
-  .overlay[data-focused-display][data-room-sample='true'] .drawer { align-self: flex-end; width: 100%; max-height: 54svh; margin: 0; padding: 1rem 1.3rem; }
-  .sampleBrand { margin-bottom: .8rem; }
-  .sampleFacts { margin-block: .7rem; }
-  .sampleFacts div { padding: .5rem 0; }
+  .overlay[data-focused-display][data-room-sample='true'] .drawer { align-self: flex-end; width: 100%; max-height: 78svh; margin: 0; padding: 1rem 1.3rem 1.4rem; }
+  .overlay[data-room-sample='true'] .drawerTop { margin: -1rem -1.3rem .8rem; padding-inline: 1.3rem; }
+  .sampleCertificate { min-height: 360px; }
+  .sampleCertificate dl { gap: .4rem; }
 }

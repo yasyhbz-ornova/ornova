@@ -75,7 +75,7 @@ export function ProductGallery({ images, name, allowOriginalImageOpen = true, st
       <div className={styles.caption}>
         {turntableVideo && <div className="flex flex-wrap gap-2" role="group" aria-label="انتخاب نمای محصول"><button type="button" aria-pressed={displayTurntable} disabled={turntableUnavailable} onClick={() => setShowTurntable(true)} className="min-h-11 border-b border-silver px-2 text-sapphire disabled:cursor-not-allowed disabled:opacity-60">{turntableUnavailable ? "چرخش ۳۶۰ درجه آماده نیست" : "چرخش ۳۶۰ درجه"}</button>{standImage ? <button type="button" aria-pressed={!displayTurntable} onClick={() => setShowTurntable(false)} className="min-h-11 border-b border-silver px-2">نمای روی استند</button> : activeImage && <button type="button" aria-pressed={!displayTurntable} onClick={() => setShowTurntable(false)} className="min-h-11 border-b border-silver px-2">تصاویر محصول</button>}</div>}
         {turntableUnavailable && <span className={styles.mediaStatus} role="status">فایل چرخش در دسترس نیست؛ نمای ثابت همین اثر نمایش داده شده است.</span>}
-        {!displayTurntable && standImage && <span>نمای اثر روی استند اُرنوا</span>}
+        {!displayTurntable && standImage && !galleryScene && <span>نمای اثر روی استند اُرنوا</span>}
         {!displayTurntable && !standImage && activeImage && <><span aria-live="polite" aria-atomic="true">تصویر {number.format(activeIndex + 1)} از {number.format(images.length)}</span>{allowOriginalImageOpen && <a href={activeImage.src} target="_blank" rel="noopener noreferrer">دیدن تصویر کامل <span aria-hidden="true">↗</span><span className="sr-only"> در زبانهٔ جدید</span></a>}</>}
       </div>
       {!displayTurntable && !standImage && images.length > 1 && (

@@ -30,12 +30,15 @@ const measuredBounds: Record<string, readonly [number, number, number, number]> 
 };
 
 const firstWork: Partial<Record<CatalogCategoryId, string>> = {
-  rings: "04", "brooches-pins": "01", earrings: "03",
+  rings: "05", "brooches-pins": "01", earrings: "03",
   "jewelry-sets": "40", pendants: "08", bracelets: "45",
 };
 
 export const galleryRoomSamples = galleryRenders
-  .filter((render) => render.status === "ready" && render.categoryId && measuredBounds[render.number])
+  // The owner's original 04 and 19 ring photos end inside the jewelry itself.
+  // Keep their files intact, but do not rotate cropped pieces into the room display.
+  .filter((render) => render.status === "ready" && render.categoryId && measuredBounds[render.number]
+    && !(render.categoryId === "rings" && (render.number === "04" || render.number === "19")))
   .map((render) => ({
     number: render.number,
     title: render.title,

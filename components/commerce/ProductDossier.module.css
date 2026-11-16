@@ -1,58 +1,56 @@
 .dossier {
+  position: relative;
   display: grid;
   width: 100%;
-  max-width: 1500px;
-  min-height: min(88svh, 940px);
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
-  align-items: center;
-  gap: clamp(1.5rem, 5vw, 5rem);
-  margin-inline: auto;
+  max-width: 1080px;
+  min-height: min(77svh, 800px);
+  grid-template-columns: minmax(0, 1fr) minmax(330px, .82fr);
+  align-items: stretch;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  margin: 4.8rem auto 2rem;
+  padding: clamp(1.3rem, 2.8vw, 2.5rem);
+  border: 1px solid #ab9a7f;
+  color: #302c27;
+  background: repeating-linear-gradient(17deg, rgb(255 255 255 / 3%) 0 2px, transparent 2px 7px), linear-gradient(135deg, #d3c5a9, #c5b596 65%, #c9ba9e);
+  box-shadow: 0 18px 55px rgb(32 27 22 / 23%);
   direction: ltr;
 }
+.dossier::before { position: absolute; top: 1.1rem; right: 1.2rem; width: .65rem; height: .65rem; border: 1px solid #8f8069; border-radius: 50%; background: #eee4d1; box-shadow: inset 0 1px 2px #8f806988; content: ""; }
 
-.visual { min-width: 0; }
-.visual :global([data-gallery-frame]) { height: min(70svh, 740px); border-color: rgb(200 196 187 / 84%); background: radial-gradient(ellipse at 50% 38%, #f7f4ed 0, #e9e6df 58%, #d9d8d2 100%); box-shadow: 0 22px 58px rgb(34 31 27 / 12%), inset 0 0 0 5px rgb(255 255 255 / 28%); }
-.mediaNote { display: grid; gap: .25rem; max-width: 62ch; margin-top: .65rem; color: #625f58; font-size: .68rem; line-height: 1.8; }
-.mediaNote p { margin: 0; }
-.mediaNote p:first-child span { display: inline-grid; width: 1.8rem; height: 1.8rem; place-items: center; margin-inline-end: .35rem; border: 1px solid #c8c4bb; border-radius: 50%; color: #385a77; font-size: .58rem; }
-.copy { justify-self: start; width: min(100%, 520px); min-width: 0; padding: clamp(1rem, 2.5vw, 2rem); border: 1px solid rgb(200 196 187 / 74%); color: #393832; background: linear-gradient(135deg, rgb(255 255 255 / 62%), transparent 50%), rgb(247 243 235 / 97%); box-shadow: inset 0 0 0 4px rgb(255 255 255 / 35%), 0 16px 48px rgb(20 17 13 / 10%); direction: rtl; }
-.eyebrow { margin: 0; color: #536d85; font-size: .7rem; }
-.title { margin: .4rem 0 .55rem; font-size: clamp(1.4rem, 2.2vw, 2rem); font-weight: 500; line-height: 1.65; }
-.description { margin: 0 0 1rem; color: #5c5a54; font-size: .76rem; line-height: 2; }
-.card { position: relative; display: flex; width: min(100%, 420px); min-height: clamp(390px, 52svh, 500px); flex-direction: column; justify-content: space-between; padding: 1.5rem 1.6rem 1.2rem; border: 1px solid var(--color-silver); color: var(--color-graphite); background: radial-gradient(ellipse at 50% 0, rgb(255 255 255 / 68%), transparent 54%), var(--color-ivory-soft); box-shadow: 0 8px 24px rgb(59 56 50 / 8%), inset 0 0 0 5px rgb(255 255 255 / 55%); }
-.brand { display: grid; justify-items: start; gap: .2rem; color: var(--color-graphite); }
-.brand :global(.ornova-symbol) { width: 30px; height: 34px; }
-.brand :global(.ornova-script-wordmark) { font-size: 1.1rem; }
-.brand :global(.ornova-english-motto) { font-size: .55rem; }
-.card h2 { margin: .4rem 0 .7rem; color: var(--color-sapphire); font-family: Georgia, serif; font-size: .85rem; font-style: italic; font-weight: 500; line-height: 1.2; text-align: left; }
-.card h2 small { display: block; font-size: .78rem; }
-.card dl { display: grid; gap: .32rem; margin: .45rem 0; direction: ltr; }
-.card dl div { display: grid; min-height: 32px; grid-template-columns: minmax(6.2rem, .45fr) minmax(0, 1fr); align-items: end; gap: .4rem; direction: ltr; }
-.card dt { font-family: cursive; font-size: .72rem; font-style: italic; text-align: left; white-space: nowrap; }
-.card dd { position: relative; min-width: 0; min-height: 20px; margin: 0; color: var(--color-graphite); font-family: Georgia, serif; font-size: .68rem; text-align: right; }
-.card dd i { position: absolute; right: 0; bottom: 2px; left: 0; border-bottom: 1px solid var(--color-silver); }
-.motto { margin: .75rem 0 0; color: var(--color-sapphire); font-family: Georgia, serif; font-size: .7rem; font-style: italic; line-height: 1.45; text-align: center; }
-.specifications { width: min(100%, 420px); margin-top: .75rem; padding: .9rem 1rem; border: 1px solid #d4cec2; color: #393832; background: linear-gradient(145deg, rgb(255 255 255 / 54%), transparent 60%), #f1ede5; box-shadow: inset 0 0 0 3px rgb(255 255 255 / 35%); }
-.specificationHeading { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .15rem .55rem; padding-bottom: .55rem; border-bottom: 1px solid #d8d1c5; }
-.specificationHeading > span { grid-row: 1 / 3; color: #536d85; font-size: 1rem; }
-.specificationHeading h2 { margin: 0; color: #394a58; font-size: .76rem; font-weight: 500; }
-.specificationHeading p { margin: 0; color: #777168; font-size: .58rem; }
-.specifications dl { display: grid; gap: .35rem; margin: .65rem 0 0; }
-.specifications dl > div { display: grid; grid-template-columns: minmax(5rem, .42fr) minmax(0, 1fr); gap: .7rem; align-items: start; font-size: .65rem; line-height: 1.8; }
-.specifications dt { color: #777168; }
+.visual { display: grid; min-width: 0; align-items: center; }
+.visual :global([data-gallery-frame]) { height: min(64svh, 670px); border-color: #a3957c; background: #d8ccb3; box-shadow: 0 6px 20px rgb(34 31 27 / 13%); }
+.copy { justify-self: stretch; min-width: 0; color: #302c27; direction: rtl; }
+.title { margin: 0; font-size: clamp(.83rem, 1.1vw, 1rem); font-weight: 500; line-height: 1.6rem; text-align: right; }
+.title:focus { outline: none; }
+.description { margin: 1rem 0; color: #49433a; font-size: .82rem; line-height: 2; }
+.card { display: flex; width: 100%; min-height: 100%; flex-direction: column; padding: .4rem .2rem; color: #302c27; }
+.brand { display: grid; justify-items: start; gap: 0; width: max-content; max-width: 100%; color: #292723; }
+.brand :global(.ornova-symbol), .brand :global(.ornova-english-motto) { display: none; }
+.brand :global(.ornova-script-wordmark) { font-family: "Segoe Script", "Bradley Hand", cursive; font-size: clamp(1.65rem, 2vw, 2.2rem); font-style: italic; line-height: 1.25; }
+.card h2 { margin: 0 0 1.6rem; color: #302c27; font-family: "Segoe Script", "Bradley Hand", cursive; font-size: .88rem; font-style: italic; font-weight: 500; line-height: 1.25; text-align: left; }
+.card h2 small { display: block; font-size: inherit; }
+.card dl { display: grid; gap: .8rem; margin: .2rem 0 .8rem; direction: ltr; }
+.card dl div { display: grid; grid-template-columns: minmax(6.4rem, auto) minmax(0, 1fr); align-items: end; gap: .45rem; min-height: 2.1rem; direction: ltr; }
+.card dt { font-family: "Segoe Script", "Bradley Hand", cursive; font-size: .82rem; font-style: italic; text-align: left; white-space: nowrap; }
+.card dd { min-width: 0; min-height: 1.6rem; margin: 0; border-bottom: 2px solid #39352e; color: #302c27; font-family: var(--font-body), sans-serif; font-size: .78rem; line-height: 1.6rem; text-align: right; overflow-wrap: anywhere; }
+.card dd span { display: block; }
+.motto { max-width: 22ch; margin: 1rem auto 0; padding-top: .7rem; border-top: 1px solid #a39478; color: #302c27; font-family: "Segoe Script", "Bradley Hand", cursive; font-size: .9rem; font-style: italic; line-height: 1.6; text-align: center; }
+.specifications { width: 100%; margin-top: .35rem !important; padding: .8rem 0 0; border-top: 1px solid #a39478; color: #302c27; }
+.specifications > div { display: grid; grid-template-columns: minmax(5rem, .42fr) minmax(0, 1fr); gap: .7rem; align-items: start; font-size: .73rem; line-height: 1.8; direction: rtl; }
+.specifications dt { color: #5f5749; }
 .specifications dd { margin: 0; color: #393832; overflow-wrap: anywhere; }
-.packageNote { max-width: 44ch; margin: .7rem 0; color: #736d64; font-size: .64rem; line-height: 1.8; }
-.navigation { display: flex; align-items: center; gap: .55rem; margin: .6rem 0; color: #6b6257; font-size: .65rem; }
-.navigation button { min-height: 40px; padding: .3rem .52rem; border: 1px solid #c8c4bb; color: #4d6278; background: transparent; font: inherit; cursor: pointer; }
-.navigation button:hover { background: #eee8dd; }
-.actions { display: grid; justify-items: start; gap: .5rem; margin-top: .85rem; }
+.navigation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .55rem; margin: 1rem 0 .4rem; color: #5f5749; font-size: .72rem; }
+.navigation button { min-height: 40px; padding: .3rem .52rem; border: 1px solid #9e8f76; color: #385a77; background: transparent; font: inherit; cursor: pointer; }
+.navigation button:hover { background: #d8c9ab; }
+.actions { display: grid; justify-items: start; gap: .5rem; margin-top: auto; padding-top: 1rem; }
+.actions :global(button) { min-height: 44px; border: 1px solid #385a77; border-radius: 2px; color: #f7f3e9; background: #385a77; }
+.actions :global(button:hover) { background: #2d4962; }
 .dossier button:focus-visible { outline: 2px solid #385a77; outline-offset: 3px; }
 
 @media (max-width: 760px) {
-  .dossier { min-height: auto; grid-template-columns: 1fr; align-items: start; gap: 1rem; }
+  .dossier { min-height: auto; grid-template-columns: 1fr; align-items: start; gap: 1.2rem; margin: 4.5rem .3rem 1rem; padding: 1.15rem; }
   .visual { width: 100%; grid-column: 1 / -1; }
-  .visual :global([data-gallery-frame]) { width: 100%; height: min(36svh, 300px); }
-  .copy { width: 100%; padding: .9rem; }
-  .card { width: min(100%, 290px); }
-  .specifications { width: 100%; }
+  .visual :global([data-gallery-frame]) { width: 100%; height: min(38svh, 330px); }
+  .copy { width: 100%; }
+  .card { min-height: 0; }
 }
