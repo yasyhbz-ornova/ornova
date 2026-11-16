@@ -47,6 +47,8 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     let active = true;
     async function loadSession() {
       setState("checking");
+      setHistory(null);
+      setHistoryError(false);
       try {
         const supabase = createSupabaseBrowserClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -67,9 +69,10 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
         });
         setProfileUnavailable(Boolean(error));
         setProfile(error ? null : data as AccountProfile | null);
+        setState(completionMode ? "ready" : "signed-in");
         if (!completionMode) {
           try {
-            const response = await fetch("/api/account/inquiries", { cache: "no-store" });
+            const response = await fetch("/api/account/inquiries", { cache: "no-store", signal: AbortSignal.timeout(15000) });
             const result = await response.json() as InquiryHistory & { error?: string };
             if (!response.ok) throw new Error(result.error ?? "history unavailable");
             if (active) { setHistory(result); setHistoryError(false); }
@@ -77,7 +80,6 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
             if (active) setHistoryError(true);
           }
         }
-        setState(completionMode ? "ready" : "signed-in");
       } catch {
         if (active) setState("unavailable");
       }
