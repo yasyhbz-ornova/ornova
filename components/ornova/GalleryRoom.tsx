@@ -28,7 +28,7 @@ export function GalleryRoom({ activeCategory, panelOpen, standIndices, samplesBy
 
   return <section className={styles.room} data-view={view} data-focused-category={activeCategory} data-focused={stand ? "true" : undefined} aria-label="گالری اُرنوا؛ شش ویترین و کارگاه طراحی" style={cameraStyle}>
     <div className={styles.canvas} inert={panelOpen}>
-      <Image className={styles.architecture} src="/images/ornova/gallery/review/entry-six-empty-niches-v1.png" alt="سالن اُرنوا با طاقچه‌های نامتقارن، نور گرم، کارگاه طراحی و فرش گرد ایرانی" width={1672} height={941} sizes="(max-width: 800px) 220vw, 180vw" priority />
+      <Image className={styles.architecture} src="/images/ornova/gallery/review/entry-six-empty-niches-v1.webp" alt="سالن اُرنوا با طاقچه‌های نامتقارن، نور گرم، کارگاه طراحی و فرش گرد ایرانی" width={1672} height={941} sizes="(max-width: 800px) 220vw, 180vw" priority />
       <div className={styles.wallMark}><OrnovaBrandMark className={styles.brand} /></div>
       {galleryRoomStands.map((item) => {
         const [bx, by, bw, bh] = item.bounds;

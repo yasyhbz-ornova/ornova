@@ -1,5 +1,5 @@
 .room { position: relative; isolation: isolate; height: 100svh; min-height: 420px; overflow: hidden; background: #e8d6bd; }
-.room::before { position: absolute; inset: -5%; content: ""; background: url('/images/ornova/gallery/review/entry-six-empty-niches-v1.png') center / cover; filter: blur(25px); opacity: .55; }
+.room::before { position: absolute; inset: -5%; content: ""; background: url('/images/ornova/gallery/review/entry-six-empty-niches-v1.webp') center / cover; filter: blur(25px); opacity: .55; }
 .canvas { position: absolute; top: 50%; left: 50%; width: max(100vw, 155svh); aspect-ratio: 1672 / 941; container-type: inline-size; transform: translate(-50%, -50%); transform-origin: var(--focus-x) var(--focus-y); transition: transform 850ms cubic-bezier(.22,.7,.18,1); }
 .architecture { position: absolute; inset: 0; width: 100%; height: 100%; }
 .room[data-view='left'] .canvas, .room[data-view='right'] .canvas { transform: translate(calc(0% - var(--focus-x)), -50%) scale(1.5); }
