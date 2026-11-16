@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { galleryRoomSamples } from "@/lib/constants/gallery-room-samples";
 import { catalogCategories, resolveCatalogSelection } from "@/lib/constants/catalog";
@@ -23,6 +23,7 @@ export function CatalogEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const operationInProgress = useRef(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
@@ -40,6 +41,7 @@ export function CatalogEditor() {
   const formMatchesSaved = savedRow ? JSON.stringify(form) === JSON.stringify(toCatalogForm(savedRow)) : false;
   const update = <K extends keyof CatalogProductInput>(key: K, value: CatalogProductInput[K]) => setForm((current) => ({ ...current, [key]: value }));
   const select = (slug: string) => {
+    if (operationInProgress.current) return;
     const row = rows.find((item) => item.slug === slug);
     setSelected(slug);
     setForm(row ? toCatalogForm(row) : blank());
@@ -51,7 +53,9 @@ export function CatalogEditor() {
   const removeMedia = (key: "gallery" | "packaging_gallery", index: number) => setForm((current) => ({ ...current, [key]: current[key].filter((_, position) => position !== index) }));
   const updateDetail = (index: number, field: keyof Detail, value: string) => update("details", form.details.map((item, position) => position === index ? { ...item, [field]: value } : item));
   const uploadImage = async (file: File | undefined, target: "image_path" | "stand_image_path" | "gallery" | "packaging_gallery") => {
-    if (!file || uploading) return;
+    if (!file || operationInProgress.current) return;
+    if (file.size > 4 * 1024 * 1024) { setError("حجم تصویر باید کمتر از ۴ مگابایت باشد."); return; }
+    operationInProgress.current = true;
     setError(""); setNotice(""); setUploading(true);
     try {
       const data = new FormData(); data.set("file", file);
@@ -64,10 +68,13 @@ export function CatalogEditor() {
         : { ...current, [target]: [...current[target], { src: path, alt: current.name || "تصویر اثر" }] });
       setNotice("تصویر بارگذاری شد. برای ثبت آن در شناسنامه، اثر را ذخیره کنید.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "بارگذاری تصویر انجام نشد."); }
-    finally { setUploading(false); }
+    finally { operationInProgress.current = false; setUploading(false); }
   };
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setError(""); setNotice(""); setSaving(true);
+    event.preventDefault();
+    if (operationInProgress.current) return;
+    operationInProgress.current = true;
+    setError(""); setNotice(""); setSaving(true);
     try {
       const response = await fetch("/api/admin/catalog", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, subtype_id: form.subtype_id || null, image_path: form.image_path || null, stand_image_path: form.stand_image_path || null, turntable_video_path: form.turntable_video_path || null }) });
       const body = await response.json() as { product?: CatalogRow; error?: string };
@@ -76,8 +83,9 @@ export function CatalogEditor() {
       setSelected(body.product.slug); setForm(toCatalogForm(body.product));
       setNotice(body.product.status === "published" ? "اثر منتشر شد و در کاتالوگ عمومی قرار گرفت." : "تغییرات اثر ذخیره شد.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "ذخیرهٔ اثر تأیید نشد."); }
-    finally { setSaving(false); }
+    finally { operationInProgress.current = false; setSaving(false); }
   };
+  const busy = saving || uploading;
   const mediaEditor = (key: "gallery" | "packaging_gallery", title: string) => <fieldset className="rounded-lg border border-silver p-4">
     <legend className="px-2 text-sm text-graphite">{title}</legend>
     {form[key].map((item: Media, index) => <div key={`${key}-${index}`} className="mb-3 grid gap-2 rounded-md bg-ivory-muted p-3 md:grid-cols-[1fr_1fr_auto]">
@@ -90,10 +98,11 @@ export function CatalogEditor() {
   </fieldset>;
   return <div className="mt-8 grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
     <aside className="rounded-xl border border-silver bg-ivory-muted p-4" aria-label="فهرست آثار مدیر">
-      <button type="button" onClick={() => select("")} className="mb-4 w-full rounded-md border border-sapphire px-3 py-2 text-sm text-sapphire">اثر تازه</button>
-      {loading ? <p role="status">در حال خواندن کاتالوگ…</p> : rows.length === 0 ? <p className="text-sm">هنوز اثری ثبت نشده است.</p> : <ul className="space-y-2">{rows.map((row) => <li key={row.slug}><button type="button" onClick={() => select(row.slug)} aria-current={selected === row.slug ? "true" : undefined} className="w-full rounded-md border border-silver bg-ivory p-3 text-right text-sm hover:border-sapphire/50 aria-current:border-sapphire"><strong className="block font-medium">{row.name}</strong><span className="mt-1 block text-xs text-graphite/65">{row.status === "published" ? "منتشرشده" : row.status === "archived" ? "بایگانی" : "در بازبینی"} · نسخهٔ {new Intl.NumberFormat("fa-IR").format(row.revision)}</span></button></li>)}</ul>}
+      <button type="button" disabled={busy} onClick={() => select("")} className="mb-4 w-full rounded-md border border-sapphire px-3 py-2 text-sm text-sapphire disabled:opacity-50">اثر تازه</button>
+      {loading ? <p role="status">در حال خواندن کاتالوگ…</p> : rows.length === 0 ? <p className="text-sm">هنوز اثری ثبت نشده است.</p> : <ul className="space-y-2">{rows.map((row) => <li key={row.slug}><button type="button" disabled={busy} onClick={() => select(row.slug)} aria-current={selected === row.slug ? "true" : undefined} className="w-full rounded-md border border-silver bg-ivory p-3 text-right text-sm hover:border-sapphire/50 aria-current:border-sapphire disabled:opacity-50"><strong className="block font-medium">{row.name}</strong><span className="mt-1 block text-xs text-graphite/65">{row.status === "published" ? "منتشرشده" : row.status === "archived" ? "بایگانی" : "در بازبینی"} · نسخهٔ {new Intl.NumberFormat("fa-IR").format(row.revision)}</span></button></li>)}</ul>}
     </aside>
-    <form onSubmit={save} className="space-y-5 rounded-xl border border-silver bg-ivory p-5 md:p-7">
+    <form onSubmit={save} aria-busy={busy} className="space-y-5 rounded-xl border border-silver bg-ivory p-5 md:p-7">
+      <fieldset disabled={busy} className="min-w-0 space-y-5 border-0 p-0">
       <h2 className="text-xl text-graphite">{selected ? "ویرایش اثر" : "ثبت اثر تازه"}</h2>
       <div className="grid gap-4 md:grid-cols-2">
         <label className={labelClass}>نام اثر<input required maxLength={120} className={fieldClass} value={form.name} onChange={(event) => update("name", event.target.value)} /></label>
@@ -129,12 +138,13 @@ export function CatalogEditor() {
       <label className={labelClass}>ویدیوی چرخش، در صورت آماده‌بودن<input className={fieldClass} dir="ltr" value={form.turntable_video_path ?? ""} onChange={(event) => update("turntable_video_path", event.target.value || null)} placeholder="مسیر کامل فایل ویدیو" /></label>
       <label className="flex items-start gap-3 text-sm leading-7"><input type="checkbox" checked={form.gallery_placement_verified} onChange={(event) => update("gallery_placement_verified", event.target.checked)} className="mt-2" />جای‌گذاری اثر روی استند و نسبت تصویر بررسی شده است.</label>
       <label className={labelClass}>وضعیت<select className={fieldClass} value={form.status} onChange={(event) => update("status", event.target.value as CatalogProductInput["status"])}><option value="review">در بازبینی</option><option value="published">انتشار عمومی</option><option value="archived">بایگانی</option></select></label>
+      </fieldset>
       <p className="text-xs leading-6 text-graphite/65">فایل‌های PNG، JPEG و WebP تا ۴ مگابایت پذیرفته می‌شوند. تصویر استند را پس از بارگذاری بازبینی و جای‌گذاری را جداگانه تأیید کنید.</p>
       {uploading && <p role="status" className="text-sm text-graphite">در حال بارگذاری تصویر…</p>}
       {error && <p role="alert" className="text-sm text-sapphire">{error}</p>}{notice && <p role="status" className="text-sm text-graphite">{notice}</p>}
       <button type="submit" disabled={saving || loading || uploading} className="rounded-md bg-sapphire px-5 py-3 text-sm text-ivory disabled:opacity-50">{saving ? "در حال ذخیره…" : "ذخیرهٔ اثر"}</button>
     </form>
-    {savedRow && <div className="lg:col-start-2"><RoomPlacementEditor key={`${savedRow.slug}:${savedRow.revision}`} product={savedRow} disabled={!formMatchesSaved} onSaved={(row) => {
+    {savedRow && <div className="lg:col-start-2"><RoomPlacementEditor key={`${savedRow.slug}:${savedRow.revision}`} product={savedRow} disabled={busy || !formMatchesSaved} onSaved={(row) => {
       setRows((current) => [row, ...current.filter((item) => item.slug !== row.slug)]);
       setForm(toCatalogForm(row));
       setNotice(row.room_placement ? (row.status === "published" ? "عکس تأییدشده به چرخش ویترین اضافه شد." : "جای‌گذاری ثبت شد؛ عکس پس از انتشار اثر در ویترین دیده می‌شود.") : "عکس از چرخش ویترین برداشته شد.");
