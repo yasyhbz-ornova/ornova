@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { galleryRoomSamples } from "@/lib/constants/gallery-room-samples";
+import { galleryRenders } from "@/lib/constants/gallery-renders";
 import { catalogCategories, resolveCatalogSelection } from "@/lib/constants/catalog";
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
+import { draftCatalogFormFromPhoto } from "@/lib/catalog/photo-draft";
 import type { RoomPlacement } from "@/lib/catalog/room-placement";
 import { RoomPlacementEditor } from "./RoomPlacementEditor";
 
@@ -38,10 +39,13 @@ export function CatalogEditor() {
   }, []);
   const category = resolveCatalogSelection(form.category_id, form.subtype_id).category;
   const savedRow = rows.find((item) => item.slug === selected);
+  const unlinkedPhotos = galleryRenders.filter((photo) => photo.categoryId && !rows.some((row) => row.gallery.some((item) => item.src === photo.src)));
   const formMatchesSaved = savedRow ? JSON.stringify(form) === JSON.stringify(toCatalogForm(savedRow)) : false;
+  const hasUnsavedChanges = savedRow ? !formMatchesSaved : JSON.stringify(form) !== JSON.stringify(blank());
+  const canLeaveForm = () => !hasUnsavedChanges || window.confirm("تغییرات این شناسنامه ذخیره نشده است. از آن خارج می‌شوید؟");
   const update = <K extends keyof CatalogProductInput>(key: K, value: CatalogProductInput[K]) => setForm((current) => ({ ...current, [key]: value }));
   const select = (slug: string) => {
-    if (operationInProgress.current) return;
+    if (operationInProgress.current || !canLeaveForm()) return;
     const row = rows.find((item) => item.slug === slug);
     setSelected(slug);
     setForm(row ? toCatalogForm(row) : blank());
@@ -100,6 +104,21 @@ export function CatalogEditor() {
     <aside className="rounded-xl border border-silver bg-ivory-muted p-4" aria-label="فهرست آثار مدیر">
       <button type="button" disabled={busy} onClick={() => select("")} className="mb-4 w-full rounded-md border border-sapphire px-3 py-2 text-sm text-sapphire disabled:opacity-50">اثر تازه</button>
       {loading ? <p role="status">در حال خواندن کاتالوگ…</p> : rows.length === 0 ? <p className="text-sm">هنوز اثری ثبت نشده است.</p> : <ul className="space-y-2">{rows.map((row) => <li key={row.slug}><button type="button" disabled={busy} onClick={() => select(row.slug)} aria-current={selected === row.slug ? "true" : undefined} className="w-full rounded-md border border-silver bg-ivory p-3 text-right text-sm hover:border-sapphire/50 aria-current:border-sapphire disabled:opacity-50"><strong className="block font-medium">{row.name}</strong><span className="mt-1 block text-xs text-graphite/65">{row.status === "published" ? "منتشرشده" : row.status === "archived" ? "بایگانی" : "در بازبینی"} · نسخهٔ {new Intl.NumberFormat("fa-IR").format(row.revision)}</span></button></li>)}</ul>}
+      {!loading && unlinkedPhotos.length > 0 && <details className="mt-6 border-t border-silver pt-4">
+        <summary className="cursor-pointer text-sm text-graphite">عکس‌های نهاییِ بدون شناسنامه · {new Intl.NumberFormat("fa-IR").format(unlinkedPhotos.length)}</summary>
+        <p className="mt-2 text-xs leading-6 text-graphite/70">برای هر طرح پیش‌نویس بسازید؛ نماهای دیگر همان طرح را به گالری همان شناسنامه اضافه کنید. عنوان و مشخصات را از روی اثر تأیید کنید.</p>
+        <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto">
+          {unlinkedPhotos.map((photo) => <li key={photo.number}><button type="button" disabled={busy} onClick={() => {
+            if (operationInProgress.current || !canLeaveForm()) return;
+            const draft = draftCatalogFormFromPhoto(photo);
+            if (!draft) return;
+            setSelected(""); setForm(draft); setNotice(""); setError("");
+          }} className="flex w-full items-center gap-3 rounded-md border border-silver bg-ivory p-2 text-right text-xs text-graphite hover:border-sapphire/50 disabled:opacity-50">
+            <Image src={photo.src} alt="" width={40} height={48} className="h-12 w-10 shrink-0 object-contain" />
+            <span>شمارهٔ {new Intl.NumberFormat("fa-IR").format(Number(photo.number))} · {photo.title}{photo.status === "duplicate" ? " · نمای تکراری" : ""}</span>
+          </button></li>)}
+        </ul>
+      </details>}
     </aside>
     <form onSubmit={save} aria-busy={busy} className="space-y-5 rounded-xl border border-silver bg-ivory p-5 md:p-7">
       <fieldset disabled={busy} className="min-w-0 space-y-5 border-0 p-0">
@@ -116,21 +135,21 @@ export function CatalogEditor() {
         <div><label className={labelClass}>تصویر اثر روی استند<input className={fieldClass} dir="ltr" value={form.stand_image_path ?? ""} onChange={(event) => { update("stand_image_path", event.target.value || null); update("gallery_placement_verified", false); }} placeholder="مسیر کامل فایل تصویر" /></label><label className="mt-2 inline-block cursor-pointer text-sm text-sapphire underline underline-offset-4">بارگذاری تصویر استند<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading || saving} className="sr-only" onChange={(event) => { void uploadImage(event.target.files?.[0], "stand_image_path"); event.target.value = ""; }} /></label></div>
       </div>
       {form.stand_image_path?.startsWith("/images/ornova/") && <div className="relative h-56 w-48 overflow-hidden rounded-md border border-silver bg-ivory-muted"><Image src={form.stand_image_path} alt="پیش‌نمایش اثر روی استند" fill sizes="192px" className="object-contain" unoptimized /></div>}
-      {galleryRoomSamples.some((sample) => sample.categoryId === form.category_id) && <fieldset className="rounded-lg border border-silver p-4">
+      {galleryRenders.some((sample) => sample.categoryId === form.category_id) && <fieldset className="rounded-lg border border-silver p-4">
         <legend className="px-2 text-sm text-graphite">پیوند به عکس نهایی ویترین</legend>
         <p className="mb-3 text-xs leading-6 text-graphite/70">عکس تأییدشدهٔ همین اثر را انتخاب کنید تا شناسنامهٔ آن از روی استند گالری باز شود. عکس‌های اصلی گالری تغییر نمی‌کنند.</p>
         <label className={labelClass}>عکس نهایی
           <select className={fieldClass} value="" onChange={(event) => {
-            const sample = galleryRoomSamples.find((item) => item.src === event.target.value && item.categoryId === form.category_id);
+            const sample = galleryRenders.find((item) => item.src === event.target.value && item.categoryId === form.category_id);
             if (sample && !form.gallery.some((item) => item.src === sample.src) && form.gallery.length < 12) {
               update("gallery", [...form.gallery, { src: sample.src, alt: `${form.name || sample.title} روی استند گالری` }]);
             }
           }}>
             <option value="">انتخاب عکس از همین دسته</option>
-            {galleryRoomSamples.filter((sample) => sample.categoryId === form.category_id && !form.gallery.some((item) => item.src === sample.src)).map((sample) => <option key={sample.number} value={sample.src}>شمارهٔ {new Intl.NumberFormat("fa-IR").format(Number(sample.number))} · {sample.title}</option>)}
+            {galleryRenders.filter((sample) => sample.categoryId === form.category_id && !form.gallery.some((item) => item.src === sample.src)).map((sample) => <option key={sample.number} value={sample.src}>شمارهٔ {new Intl.NumberFormat("fa-IR").format(Number(sample.number))} · {sample.title}{sample.status === "duplicate" ? " · نمای تکراری" : ""}</option>)}
           </select>
         </label>
-        {galleryRoomSamples.filter((sample) => form.gallery.some((item) => item.src === sample.src) && sample.categoryId === form.category_id).map((sample) => <div key={sample.number} className="mt-3 flex items-center gap-3 rounded-md bg-ivory-muted p-2 text-xs"><Image src={sample.src} alt={sample.title} width={44} height={60} className="h-14 w-11 object-contain" /><span>عکس شمارهٔ {new Intl.NumberFormat("fa-IR").format(Number(sample.number))} به شناسنامه پیوند دارد.</span></div>)}
+        {galleryRenders.filter((sample) => form.gallery.some((item) => item.src === sample.src) && sample.categoryId === form.category_id).map((sample) => <div key={sample.number} className="mt-3 flex items-center gap-3 rounded-md bg-ivory-muted p-2 text-xs"><Image src={sample.src} alt={sample.title} width={44} height={60} className="h-14 w-11 object-contain" /><span>عکس شمارهٔ {new Intl.NumberFormat("fa-IR").format(Number(sample.number))} به شناسنامه پیوند دارد.</span></div>)}
       </fieldset>}
       {mediaEditor("gallery", "تصاویر شناسنامه")}
       {mediaEditor("packaging_gallery", "تصاویر بسته‌بندی")}
