@@ -23,6 +23,21 @@ export default function GalleryReviewPage() {
         <figure className={`${styles.figure} ${styles.featuredFigure}`}>
           <div className={styles.imageFrame}>
             <Image
+              src="/images/ornova/gallery/review/entry-lacquer-red-room-concept-v1.webp"
+              alt="پیش‌نمایش مفهومی سالن خلوت‌تر با شش طاقچهٔ خالی، فرش لاکی، پیشخوان تلفن و صندوق، ویترین شیشه‌ای و درِ اتاق طراحی با شیشه‌های نارنجی و فیروزه‌ای"
+              fill
+              sizes="(max-width: 760px) 100vw, 94vw"
+            />
+          </div>
+          <figcaption>
+            <h2>پیشنهاد تازهٔ سالن · پیشخوان جدا و فرش لاکی</h2>
+            <p>شش طاقچه برای استندهای ثابت حفظ شده‌اند. میز شلوغِ وسط کنار رفته، تلفن و صندوق روی پیشخوان قرار گرفته‌اند و یک ویترین شیشه‌ای برای آثار ماه در سمت دیگر سالن دیده می‌شود. پشت درِ چوب گردو، اتاق طراحی با شیشه‌های نارنجی و فیروزه‌ای پیداست.</p>
+            <p className={styles.notice}>این تصویر، طرح مفهومیِ فضاست و هنوز به گالری تعاملی وصل نشده است. جای دقیق استندها و ناحیه‌های لمس، نمای میزِ تک‌محصولی و دفتر حساب کاربر باید روی همین قاب آزموده شوند.</p>
+          </figcaption>
+        </figure>
+        <figure className={`${styles.figure} ${styles.featuredFigure}`}>
+          <div className={styles.imageFrame}>
+            <Image
               src="/images/ornova/gallery/review/entry-gallery-soft-ivory-distinct-stands-v6.png"
               alt="قاب مفهومی ورودی ثابت گالری با چهار استند آبیِ خالی و متفاوت، نور عاجی گرم، فرش گرد ایرانی، اتاق طراحی و میز کوچک"
               fill
