@@ -61,7 +61,8 @@ function page({ user = { id: "staff", app_metadata: { ornova_role: "staff" } }, 
   const calls = [];
   const Link = ({ children, href }) => React.createElement("a", { href }, children);
   const loaded = loadTs("app/admin/finance/page.tsx", {
-    "next/navigation": { notFound() { throw Error("not-found"); } }, "next/link": { default: Link },
+    "next/navigation": { notFound() { throw Error("not-found"); }, redirect(url) { throw Error(`redirect:${url}`); } }, "next/link": { default: Link },
+    "@/components/admin/AdminAccessDenied": { AdminAccessDenied: ({ returnTo }) => React.createElement("p", null, `denied:${returnTo}`) },
     "@/lib/auth/authorization": { isOrnovaStaff: value => value?.app_metadata?.ornova_role === "staff" },
     "@/lib/supabase/server": { createSupabaseServerClient: async () => ({ auth: { getUser: async () => ({ data: { user }, error: authError }) } }) },
     "@/lib/admin/finance-register": { FINANCE_PAGE_SIZE: 20, readFinanceRegister: async (_client, number) => { calls.push(number); return result; } },
@@ -70,11 +71,14 @@ function page({ user = { id: "staff", app_metadata: { ornova_role: "staff" } }, 
 }
 
 test("finance page authenticates trusted staff before any financial read", async () => {
-  for (const options of [{ user: null }, { user: { id: "customer", user_metadata: { ornova_role: "staff" } } }, { authError: { message: "private" } }]) {
+  for (const options of [{ user: null }, { authError: { message: "private" } }]) {
     const fixture = page(options);
-    await assert.rejects(fixture.render(), /not-found/);
+    await assert.rejects(fixture.render(), /redirect:\/\?galleryPanel=account&next=%2Fadmin%2Ffinance/);
     assert.equal(fixture.calls.length, 0);
   }
+  const customer = page({ user: { id: "customer", user_metadata: { ornova_role: "staff" } } });
+  assert.match(await customer.render(), /denied:\/admin\/finance/);
+  assert.equal(customer.calls.length, 0);
   const fixture = page();
   const html = await fixture.render();
   assert.deepEqual(fixture.calls, [1]);

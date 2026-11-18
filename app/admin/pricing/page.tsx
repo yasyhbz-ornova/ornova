@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { PricingCalculator } from "@/components/admin/PricingCalculator";
+import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 import type { PricingInquiryContext } from "@/components/admin/PricingCalculationRecords";
 import { isOrnovaStaff } from "@/lib/auth/authorization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -14,7 +15,8 @@ export const metadata = { title: "محاسبهٔ قیمت | Ornova by Yas", robo
 export default async function PricingPage({ searchParams }: { searchParams?: Promise<{ inquiry?: string | string[] }> }) {
   const client = await createSupabaseServerClient();
   const { data: { user }, error } = await client.auth.getUser();
-  if (error || !user || !isOrnovaStaff(user)) notFound();
+  if (error || !user) redirect("/?galleryPanel=account&next=%2Fadmin%2Fpricing");
+  if (!isOrnovaStaff(user)) return <AdminAccessDenied returnTo="/admin/pricing" />;
   const query = await searchParams;
   let inquiry: PricingInquiryContext | undefined;
   if (query?.inquiry !== undefined) {

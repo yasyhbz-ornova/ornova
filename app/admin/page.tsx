@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { z } from "zod";
 import { InquiryDesk } from "@/components/admin/InquiryDesk";
+import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 import { isOrnovaStaff } from "@/lib/auth/authorization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readInquiryItems } from "@/lib/account/inquiry-items";
@@ -35,7 +36,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   }
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || !isOrnovaStaff(user)) notFound();
+  if (authError || !user) redirect("/?galleryPanel=account&next=%2Fadmin");
+  if (!isOrnovaStaff(user)) return <AdminAccessDenied returnTo="/admin" />;
   const query = await searchParams;
   let initialInquiryId: string | undefined;
   if (query?.inquiry !== undefined) {

@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { CalculatedQuoteEditor } from "@/components/admin/CalculatedQuoteEditor";
+import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 import { isOrnovaStaff } from "@/lib/auth/authorization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { calculationColumns, parseCalculationRecord } from "@/lib/pricing/records";
@@ -13,7 +14,8 @@ export const metadata = { title: "بازبینی پیشنهاد قیمت | Ornov
 export default async function CalculatedQuotePage({ searchParams }: { searchParams?: Promise<{ inquiry?: string | string[]; calculation?: string | string[] }> }) {
   const client = await createSupabaseServerClient();
   const { data: { user }, error } = await client.auth.getUser();
-  if (error || !user || !isOrnovaStaff(user)) notFound();
+  if (error || !user) redirect("/?galleryPanel=account&next=%2Fadmin%2Fpricing");
+  if (!isOrnovaStaff(user)) return <AdminAccessDenied returnTo="/admin/pricing" />;
   const query = await searchParams;
   const inquiryId = z.string().uuid().safeParse(query?.inquiry), calculationId = z.string().uuid().safeParse(query?.calculation);
   if (!inquiryId.success || !calculationId.success) notFound();

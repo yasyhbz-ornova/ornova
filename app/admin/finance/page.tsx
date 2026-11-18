@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { isOrnovaStaff } from "@/lib/auth/authorization";
+import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { FINANCE_PAGE_SIZE, readFinanceRegister } from "@/lib/admin/finance-register";
 
@@ -15,7 +16,8 @@ export default async function FinancePage({ searchParams }: { searchParams?: Pro
   try { client = await createSupabaseServerClient(); }
   catch { return <main dir="rtl" className="account-space mx-auto max-w-6xl px-5 py-16"><p role="alert">اتصال امن دفتر مالی برقرار نشد.</p></main>; }
   const { data: { user }, error: authError } = await client.auth.getUser();
-  if (authError || !user || !isOrnovaStaff(user)) notFound();
+  if (authError || !user) redirect("/?galleryPanel=account&next=%2Fadmin%2Ffinance");
+  if (!isOrnovaStaff(user)) return <AdminAccessDenied returnTo="/admin/finance" />;
   const query = await searchParams;
   const parsed = z.strictObject({ page: z.string().regex(/^[1-9][0-9]{0,3}$/).optional() }).safeParse(query ?? {});
   if (!parsed.success) notFound();

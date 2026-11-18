@@ -5,7 +5,7 @@ const id="a1111111-abcd-4111-8111-a11111111111",other="b2222222-abcd-4222-8222-b
 const nodes=n=>!n||typeof n!=="object"?[]:[n,...[n.props?.children].flat(Infinity).flatMap(nodes)];
 test("admin desk rejects an authentication error before reading any customer records", async () => {
   const loaded = loadTs("app/admin/page.tsx", {
-    "next/navigation": { notFound() { throw Error("not-found"); } },
+    "next/navigation": { notFound() { throw Error("not-found"); }, redirect(url) { throw Error(`redirect:${url}`); } },
     "next/link": { default: "a" },
     "@/components/admin/InquiryDesk": { InquiryDesk: marker },
     "@/lib/supabase/server": { createSupabaseServerClient: async () => ({
@@ -13,7 +13,7 @@ test("admin desk rejects an authentication error before reading any customer rec
       from() { assert.fail("must not read customer records when authentication fails"); },
     }) },
   });
-  await assert.rejects(() => loaded.default({}), /not-found/);
+  await assert.rejects(() => loaded.default({}), /redirect:\/\?galleryPanel=account&next=%2Fadmin/);
 });
 function page(){return loadTs("app/admin/page.tsx",{
   "next/navigation":{notFound(){throw Error("not-found");}},"next/link":{default:"a"},"@/components/admin/InquiryDesk":{InquiryDesk:marker},

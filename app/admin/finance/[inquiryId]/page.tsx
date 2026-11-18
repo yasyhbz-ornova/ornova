@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isOrnovaStaff } from "@/lib/auth/authorization";
+import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 import { readFinanceAccount } from "@/lib/admin/finance-account";
 import ManualPaymentEditor from "@/components/admin/ManualPaymentEditor";
 
@@ -15,7 +16,8 @@ export default async function FinanceAccountPage({ params }: { params: Promise<{
   let client;
   try { client = await createSupabaseServerClient(); } catch { notFound(); }
   const { data: { user }, error } = await client.auth.getUser();
-  if (error || !user || !isOrnovaStaff(user)) notFound();
+  if (error || !user) redirect("/?galleryPanel=account&next=%2Fadmin%2Ffinance");
+  if (!isOrnovaStaff(user)) return <AdminAccessDenied returnTo="/admin/finance" />;
   const { inquiryId } = await params;
   if (!z.string().uuid().safeParse(inquiryId).success) notFound();
   const account = await readFinanceAccount(client, inquiryId);

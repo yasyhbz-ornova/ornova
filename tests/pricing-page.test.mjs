@@ -4,8 +4,9 @@ import { loadTs } from "./helpers/load-ts.mjs";
 const marker = () => null;
 function page(user, error = null, inquiryResult = { data: null, error: null }) {
   return loadTs("app/admin/pricing/page.tsx", {
-    "next/navigation": { notFound() { throw Error("not-found"); } },
+    "next/navigation": { notFound() { throw Error("not-found"); }, redirect(url) { throw Error(`redirect:${url}`); } },
     "next/link": { default: "a" },
+    "@/components/admin/AdminAccessDenied": { AdminAccessDenied: "denied" },
     "@/components/admin/PricingCalculator": { PricingCalculator: marker },
     "@/lib/supabase/server": { createSupabaseServerClient: async () => ({ auth: { getUser: async () => ({ data: { user }, error }) },from(name){assert.equal(name,"inquiries");return{select:()=>({eq:()=>({maybeSingle:async()=>inquiryResult})})};} }) },
     "@/lib/pricing/client": { pricingConfig: () => null },
@@ -13,10 +14,12 @@ function page(user, error = null, inquiryResult = { data: null, error: null }) {
   });
 }
 test("staff calculator page denies anonymous, forged claims and failed session", async () => {
-  for (const user of [null, { app_metadata: {} }, { user_metadata: { ornova_role: "staff" } }]) {
-    const loaded = page(user); assert.equal(typeof loaded.default, "function"); await assert.rejects(() => loaded.default({}), /not-found/);
+  await assert.rejects(() => page(null).default({}), /redirect:\/\?galleryPanel=account&next=%2Fadmin%2Fpricing/);
+  for (const user of [{ app_metadata: {} }, { user_metadata: { ornova_role: "staff" } }]) {
+    const tree = await page(user).default({});
+    assert.equal(tree.type, "denied");
   }
-  await assert.rejects(() => page({ app_metadata: { ornova_role: "staff" } }, { message: "invalid token" }).default({}), /not-found/);
+  await assert.rejects(() => page({ app_metadata: { ornova_role: "staff" } }, { message: "invalid token" }).default({}), /redirect:\/\?galleryPanel=account&next=%2Fadmin%2Fpricing/);
 });
 test("staff calculator page sends only disabled availability and is not indexable", async () => {
   const loaded = page({ app_metadata: { ornova_role: "staff" } });

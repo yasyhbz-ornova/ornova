@@ -33,13 +33,14 @@ test("account refuses truncated or inconsistent financial rows", async () => {
 test("finance detail authenticates staff before reading account", async () => {
   const calls = [];
   const loaded = loadTs("app/admin/finance/[inquiryId]/page.tsx", {
-    "next/navigation": { notFound() { throw Error("not-found"); } },
+    "next/navigation": { notFound() { throw Error("not-found"); }, redirect(url) { throw Error(`redirect:${url}`); } },
+    "@/components/admin/AdminAccessDenied": { AdminAccessDenied: ({ returnTo }) => React.createElement("p", null, `denied:${returnTo}`) },
     "next/link": { default: ({ children, href }) => React.createElement("a", { href }, children) },
     "@/lib/supabase/server": { createSupabaseServerClient: async () => ({ auth: { getUser: async () => ({ data: { user: { id: "customer", user_metadata: { ornova_role: "staff" } } }, error: null }) } }) },
     "@/lib/auth/authorization": { isOrnovaStaff: () => false },
     "@/lib/admin/finance-account": { readFinanceAccount: async () => { calls.push("read"); return null; } },
     "@/components/admin/ManualPaymentEditor": { default: () => null },
   });
-  await assert.rejects(() => loaded.default({ params: Promise.resolve({ inquiryId }) }).then(renderToStaticMarkup), /not-found/);
+  assert.match(renderToStaticMarkup(await loaded.default({ params: Promise.resolve({ inquiryId }) })), /denied:\/admin\/finance/);
   assert.deepEqual(calls, []);
 });
