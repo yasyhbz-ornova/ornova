@@ -11,9 +11,9 @@ import { GalleryGuidePanel, type GuideChapter } from "@/components/ornova/Galler
 import { GalleryLibraryPanel } from "@/components/ornova/GalleryLibraryPanel";
 import { DesignStudio } from "@/components/studio/DesignStudio";
 import { GalleryRoom } from "./GalleryRoom";
+import { galleryRoomStands } from "@/lib/constants/gallery-room";
 import { OrnovaBrandMark } from "./OrnovaBrandMark";
 import { roomSamplesWithCatalog } from "@/lib/constants/gallery-room-samples";
-import { galleryRoomStands } from "@/lib/constants/gallery-room";
 import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { catalogCategories, catalogFamilies } from "@/lib/constants/catalog";
 import { galleryCollections } from "@/lib/constants/collections";
@@ -108,12 +108,10 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   const products = galleryProducts ?? legacyProducts;
   const roomSamplesByCategory = useMemo(() => roomSamplesWithCatalog(products), [products]);
   const drawerRef = useRef<HTMLElement | null>(null);
-  const carouselRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const standHoverTimerRef = useRef<number | null>(null);
   const hoverCooldownRef = useRef(false);
   const cooldownTimerRef = useRef<number | null>(null);
-  const standIntentRef = useRef(false);
   const categorySourceRef = useRef<"scene" | "magazine" | "ring-builder" | "basket">("scene");
   const [sizeGuideFromBuilder, setSizeGuideFromBuilder] = useState(false);
   const returnPanel = useSyncExternalStore(subscribeToGalleryPanel, getGalleryPanelSnapshot, () => null);
@@ -167,7 +165,6 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   const productIndex = selectedProduct ? categoryProducts.findIndex((item) => item.slug === selectedProduct.slug) : -1;
 
   function cancelScheduledStandOpen() {
-    standIntentRef.current = false;
     if (standHoverTimerRef.current !== null) {
       window.clearTimeout(standHoverTimerRef.current);
       standHoverTimerRef.current = null;
@@ -176,7 +173,6 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   function scheduleStandOpen(niche: (typeof niches)[number]) {
     if (drawer || hoverCooldownRef.current) return;
     cancelScheduledStandOpen();
-    standIntentRef.current = true;
     standHoverTimerRef.current = window.setTimeout(() => {
       standHoverTimerRef.current = null;
       openStand(niche);
@@ -218,7 +214,6 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
     hoverCooldownRef.current = true;
     if (cooldownTimerRef.current !== null) window.clearTimeout(cooldownTimerRef.current);
     cooldownTimerRef.current = window.setTimeout(() => { hoverCooldownRef.current = false; }, 1400);
-    standIntentRef.current = false;
     clearGalleryReturnState();
     setDrawer(null); setSelectedProduct(null); setSubtypeId(null);
     setAccountReturnDestination(undefined);
@@ -268,28 +263,6 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   useEffect(() => {
     if (selectedProduct && drawerRef.current) drawerRef.current.scrollTop = 0;
   }, [selectedProduct]);
-
-  useEffect(() => {
-    if (drawer?.kind !== "category" || selectedProduct || categoryProducts.length < 2) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const interval = window.setInterval(() => {
-      if (document.hidden || carouselRef.current?.matches(":hover, :focus-within")) return;
-      setFeaturedProductIndex((current) => (current + 1) % categoryProducts.length);
-    }, 8000);
-    return () => window.clearInterval(interval);
-  }, [categoryProducts, drawer?.kind, selectedProduct]);
-
-  useEffect(() => {
-    if (drawer || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const interval = window.setInterval(() => {
-      if (document.hidden || standIntentRef.current) return;
-      setStandIndices((current) => Object.fromEntries(galleryRoomStands.map((stand) => {
-        const count = roomSamplesByCategory[stand.categoryId]?.length ?? 0;
-        return [stand.categoryId, count > 1 ? ((current[stand.categoryId] ?? 0) + 1) % count : 0];
-      })));
-    }, 7000);
-    return () => window.clearInterval(interval);
-  }, [drawer, roomSamplesByCategory]);
 
   function openDrawer(next: Drawer) {
     const activeElement = document.activeElement;
@@ -428,7 +401,7 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   const displayFocused = drawer?.kind === "category";
 
   return <div className={`${styles.root} virtualGallery`} dir="rtl" data-focused-display={displayFocused ? drawer.id : undefined} data-product-open={productOpen ? "true" : undefined}>
-  <GalleryRoom standIndices={standIndices} samplesByCategory={roomSamplesByCategory} activeCategory={displayFocused ? drawer.id : undefined} panelOpen={Boolean(drawer)} onSelectStand={openStand} onStandIntent={scheduleStandOpen} onCancelIntent={cancelScheduledStandOpen} onSelectObject={(kind) => { cancelScheduledStandOpen(); openDrawer({ kind }); }} />
+  <GalleryRoom samplesByCategory={roomSamplesByCategory} activeCategory={displayFocused ? drawer.id : undefined} panelOpen={Boolean(drawer)} onSelectStand={openStand} onStandIntent={scheduleStandOpen} onCancelIntent={cancelScheduledStandOpen} onSelectObject={(kind) => { cancelScheduledStandOpen(); openDrawer({ kind }); }} />
 
     {drawer && <div className={styles.overlay} data-room-sample={roomSampleOpen || undefined} data-product-open={selectedProduct ? "true" : "false"} data-studio-open={drawer.kind === "studio" ? "true" : "false"} data-basket-open={drawer.kind === "basket" ? "true" : undefined} data-focused-display={category?.id} data-focus-side={focusedNiche ? (focusedNiche.x > 50 ? "left" : "right") : undefined} role="dialog" aria-modal="true" aria-labelledby={selectedProduct ? "product-dossier-title" : "gallery-drawer-title"} onMouseDown={(event) => { const target = event.target; if (target === event.currentTarget || (selectedProduct && target instanceof Element && !target.closest("[data-dossier-content], [data-dossier-top]"))) closeDrawer(); }}>
       <aside className={styles.drawer} ref={drawerRef}>
@@ -457,7 +430,7 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
               <button type="button" aria-pressed={!subtypeId} className={!subtypeId ? styles.selectedSubtype : ""} onClick={() => { setSubtypeId(null); setFeaturedProductIndex(0); }}>همهٔ گونه‌ها</button>
               {category.types.map((type) => <button type="button" key={type.id} aria-pressed={subtypeId === type.id} className={subtypeId === type.id ? styles.selectedSubtype : ""} onClick={() => { setSubtypeId(type.id); setFeaturedProductIndex(0); }}>{type.label}</button>)}
             </div>}
-            {featuredProduct ? <div ref={carouselRef} className={styles.featuredProduct} role="group" aria-label={`نمایش محصولات ${category.label}`}>
+            {featuredProduct ? <div className={styles.featuredProduct} role="group" aria-label={`نمایش محصولات ${category.label}`}>
               <button type="button" className={styles.featuredProductButton} onClick={() => setSelectedProduct(featuredProduct)} aria-label={`بازکردن شناسنامهٔ ${featuredProduct.name}`}>
                 <span className={styles.featuredImage} data-display-kind={featuredProduct.categoryId}>
                   {featuredProduct.standImage ? <>

@@ -22,11 +22,13 @@ const set=page.getByRole('button',{name:'بازکردن ویترین نیم‌س
 await set.hover();await page.waitForTimeout(250);await page.mouse.move(20,20);await page.waitForTimeout(1000);
 assert.equal(await page.getByRole('dialog').count(),0,'brief crossing opens nothing');
 const visibleImage=()=>set.locator('[data-gallery-product-number]').getAttribute('src');
-const imageBefore=await visibleImage();await page.waitForTimeout(7300);assert.notEqual(await visibleImage(),imageBefore,'rotation changes image');
+const imageBefore=await visibleImage();await page.waitForTimeout(7300);assert.equal(await visibleImage(),imageBefore,'wall display stays fixed');
 await set.hover();await page.waitForTimeout(1150);assert.equal(await page.getByRole('dialog').count(),1);
 assert.equal(page.url(),base);
 const frozen=await visibleImage();await page.waitForTimeout(7300);assert.equal(await visibleImage(),frozen,'open display pauses timer');
-await page.getByRole('button',{name:'اثر بعدی',exact:true}).click();assert.notEqual(await visibleImage(),frozen,'next changes exact scene image');
+const titleBefore=await page.getByRole('dialog').getByRole('heading',{level:1}).innerText();
+await page.getByRole('button',{name:'اثر بعدی',exact:true}).click();assert.equal(await visibleImage(),frozen,'next does not change the wall display');
+assert.notEqual(await page.getByRole('dialog').getByRole('heading',{level:1}).innerText(),titleBefore,'next changes the selected work');
 await page.waitForTimeout(1000);await page.screenshot({path:join(output,'ornova-room-pilot-detail.png')});
 await page.keyboard.press('Escape');await page.waitForTimeout(1750);assert.equal(await page.getByRole('dialog').count(),0,'no reopening after closing');
 for (const [name,pattern] of [['تلفن؛ پشتیبانی و ارتباط با اُرنوا',/ارتباط|پشتیبانی/],['صندوق گالری؛ انتخاب‌ها و سفارش',/صندوق|انتخاب|درخواست/],['مجله؛ دسته‌ها و کالکشن‌ها',/فهرست گالری/]]) {
@@ -42,11 +44,12 @@ for (const [id,category] of [['ring-display','rings'],['brooch-display','brooche
  await page.keyboard.press('Escape');await page.waitForTimeout(1450);
 }
 await page.setViewportSize({width:390,height:844});await page.waitForTimeout(1000);await page.screenshot({path:join(output,'ornova-room-mobile.png')});
-await page.getByRole('button',{name:/ویترین‌های راست/}).click();await page.waitForTimeout(1000);await page.screenshot({path:join(output,'ornova-room-mobile-right.png')});
+assert.equal(await page.getByRole('button',{name:/ویترین‌های راست|ویترین‌های چپ/}).count(),0,'no left/right navigation labels');
+const rightZone=await page.getByRole('button',{name:'دیدن بخش راست گالری'}).boundingBox();assert.ok(rightZone);await page.mouse.click(rightZone.x+rightZone.width/2,rightZone.y+rightZone.height*.23);await page.waitForTimeout(1000);assert.equal(await page.locator('[aria-label^="گالری اُرنوا"]').getAttribute('data-view'),'right');await page.screenshot({path:join(output,'ornova-room-mobile-right.png')});
 await set.click();await page.waitForTimeout(1200);assert.equal(await page.getByRole('dialog').count(),1);await page.screenshot({path:join(output,'ornova-room-mobile-detail.png')});
 await page.keyboard.press('Tab');assert.equal(await page.getByRole('dialog').evaluate(el=>el.contains(document.activeElement)),true,'focus stays inside modal');await page.keyboard.press('Escape');
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'no horizontal document overflow');
 await page.emulateMedia({reducedMotion:'reduce'});await page.reload();await page.waitForTimeout(1200);const still=await visibleImage();await page.waitForTimeout(7300);assert.equal(await visibleImage(),still,'reduced motion stays still');
 assert.deepEqual(errors,[]);
-console.log(JSON.stringify({passed:['six stands','brief hover cancelled','timed rotation','intent hover opens in place','pause in detail','next updates scene','Escape and cooldown','telephone','cashier','magazine','mobile right view and detail','keyboard containment','no document overflow','reduced motion'],url:page.url(),errors},null,2));await browser.close();
+console.log(JSON.stringify({passed:['six stands','brief hover cancelled','fixed wall displays','intent hover opens in place','fixed wall while detail is open','next updates selected work','Escape and cooldown','telephone','cashier','magazine','mobile side tap and detail','keyboard containment','no document overflow','reduced motion'],url:page.url(),errors},null,2));await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
