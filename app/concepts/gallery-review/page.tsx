@@ -21,18 +21,22 @@ export default function GalleryReviewPage() {
 
       <div className={styles.comparison}>
         <figure className={`${styles.figure} ${styles.featuredFigure}`}>
-          <div className={styles.imageFrame}>
+          <div className={`${styles.imageFrame} ${styles.conceptImageFrame}`}>
             <Image
-              src="/images/ornova/gallery/review/entry-lacquer-red-hexagon-room-concept-v2.png"
-              alt="پیش‌نمایش مفهومی سالن با شش طاقچهٔ خالی، میز مرکزی، فرش لاکی، پیشخوان تلفن و صندوق، ویترین شیشه‌ای عمودی و درِ اتاق طراحی با شیشه‌های شش‌ضلعی نارنجی و فیروزه‌ای"
+              src="/images/ornova/gallery/review/entry-ornova-blue-benches-v15.webp"
+              alt="پیش‌نمایش سالن با حروف کاهگلی ORNOVA، درِ قوسی شش‌ضلعی، میز شیشه‌ای در وسط فرش لاکی با دو نیمکت پارچه‌ای آبی افغانی در دو طرف، و ویترین چوبی شش‌طبقه"
               fill
               sizes="(max-width: 760px) 100vw, 94vw"
+              priority
             />
+            <div className={styles.conceptPlaque}><OrnovaBrandMark className={styles.brandMark} /></div>
+            <Link href="/?galleryPanel=account" className={styles.conceptDoor} aria-label="ورود به اتاق طراحی و حساب کاربری"><span>welcome</span></Link>
           </div>
           <figcaption>
-            <h2>پیشنهاد سالن · میز مرکزی و ویترین عمودی</h2>
-            <p>شش طاقچه برای استندهای ثابت حفظ شده‌اند. میز مرکزی برای نمایش تکی محصول خالی است؛ تلفن و صندوق روی پیشخوان جدا قرار دارند. ویترین شیشه‌ای عمودی باید همهٔ محصولات منتشرشدهٔ سایت را یکی‌یکی نشان دهد و ورودی فهرست کامل و دسته‌بندی‌شدهٔ آثار باشد. پشت درِ چوب گردو، اتاق طراحی از میان شیشه‌های شش‌ضلعیِ شفاف نارنجی و فیروزه‌ای پیداست.</p>
-            <p className={styles.notice}>این تصویر طرح مفهومیِ فضاست و هنوز به گالری تعاملی وصل نشده است. نمایش همهٔ محصولات در ویترین، نمای میزِ تک‌محصولی و دفتر حساب کاربر به پیاده‌سازی و آزمون جداگانه نیاز دارند.</p>
+            <h2>سالن بازبینی · دو نیمکت آبی کنار میز</h2>
+            <p>میز نمایش تک‌محصول در وسط فرش لاکی قرار دارد و دو نیمکت کم‌ارتفاع با فرم عکس مرجع، نشیمن آبی افغانی و پایه‌های چوبی در دو سوی آن هستند. طاق سمت چپ حذف شده؛ ارکیده‌های کوچک سفید و زرد کنار دیوار ساده قرار دارند. حروف کاهگلی ORNOVA، درِ شش‌ضلعیِ کارگاه روشن، تلفن و صندوق روی پیشخوان جلو حفظ شده‌اند.</p>
+            <p>شش طبقهٔ چوب و شیشه برای استندهای آبی و عکس‌های اصلی آثار خالی گذاشته شده‌اند. نور طبقات از نور عمومی سالن برجسته‌تر است؛ کتاب فهرست زیر ویترین قرار دارد. نشان بالای در و نوشتهٔ دست‌نویس «welcome» روی کارت با کد سایت قرار گرفته‌اند تا خوانا بمانند.</p>
+            <p className={styles.notice}>این قاب تصویر مفهومیِ فضاست. جای‌گذاری استندها، گردش محصولات، نمای میز و خرید در گالری اصلی هنوز در دست پیاده‌سازی و آزمون‌اند.</p>
           </figcaption>
         </figure>
         <figure className={`${styles.figure} ${styles.featuredFigure}`}>
