@@ -9,6 +9,8 @@
 .door { position: absolute; z-index: 5; top: 29%; left: 40%; width: 18.2%; height: 33%; border-radius: 48% 48% 1% 1% / 30% 30% 1% 1%; color: #4a3325; text-decoration: none; }
 .door span { position: absolute; top: 65.5%; left: 51.5%; font-family: "Segoe Script", "Brush Script MT", cursive; font-size: .7cqw; font-weight: 600; letter-spacing: -.09em; line-height: 1; transform: translateX(-50%) rotate(-10deg); }
 .placedStand { position: absolute; z-index: 3; overflow: hidden; transform: translateX(-50%); pointer-events: none; filter: drop-shadow(0 2px 2px #26160e77); }
+.ringPhotoStand { overflow: visible; }
+.ringPhotoStand img[data-gallery-product-number="05"] { mask-image: radial-gradient(ellipse 32% 18% at 50% 22%, #000 80%, transparent 100%); }
 .standAsset { position: absolute; left: var(--asset-left); top: var(--asset-top); width: var(--asset-width); height: var(--asset-height); max-width: none; }
 .tableStand { z-index: 6; filter: drop-shadow(0 6px 5px #26160e88); }
 .shelf { position: absolute; z-index: 4; left: 83.4%; width: 14.6%; height: 9.5%; padding: 0; border: 0; background: transparent; cursor: pointer; }

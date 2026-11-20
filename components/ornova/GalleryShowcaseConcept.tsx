@@ -31,7 +31,7 @@ function PlacedStand({ stand, sample, left, base, width, table = false }: {
     "--asset-width": `${iw / bw * 100}%`, "--asset-height": `${ih / bh * 100}%`,
     "--asset-left": `${-bx / bw * 100}%`, "--asset-top": `${-by / bh * 100}%`,
   } as CSSProperties;
-  return <div className={`${styles.placedStand} ${table ? styles.tableStand : ""}`} style={style} aria-hidden="true">
+  return <div className={`${styles.placedStand} ${table ? styles.tableStand : ""} ${stand.categoryId === "rings" && sample?.number === "05" ? styles.ringPhotoStand : ""}`} style={style} aria-hidden="true">
     <Image className={styles.standAsset} src={`/images/ornova/gallery/stands/${stand.asset}`} alt="" width={iw} height={ih} sizes={table ? "(max-width: 700px) 110px, 170px" : "90px"} />
     <GalleryStandSurface stand={stand} sample={sample} />
   </div>;
@@ -83,7 +83,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
 
   return <main className={styles.root} dir="rtl">
     <div className={styles.scene}>
-      <Image className={styles.architecture} src="/images/ornova/gallery/review/entry-ornova-blue-benches-v15.webp" alt="سالن بازبینی اُرنوا؛ فرش لاکی، دو نیمکت آبی، میز نمایش مرکزی و ویترین شش‌طبقه" fill sizes="(max-width: 700px) 180vw, 100vw" priority />
+      <Image className={styles.architecture} src="/images/ornova/gallery/review/entry-ornova-blue-benches-photoreal-v16.png" alt="سالن بازبینی اُرنوا؛ فرش لاکی، دو نیمکت آبی، میز نمایش مرکزی و ویترین شش‌طبقه" fill sizes="(max-width: 700px) 180vw, 100vw" unoptimized priority />
       <div className={styles.plaque}><OrnovaBrandMark className={styles.brandMark} /></div>
       <Link href="/?galleryPanel=account" className={styles.door} aria-label="ورود به حساب کاربری"><span>welcome</span></Link>
       {galleryRoomStands.map((stand, index) => {
@@ -95,7 +95,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
           </button>
         </div>;
       })}
-      {activeStand && activeSample && <PlacedStand stand={activeStand} sample={activeSample} left={49.3} base={66.0} width={activeStand.categoryId === "rings" || activeStand.categoryId === "bracelets" ? 11 : 6.5} table />}
+      {activeStand && activeSample && <PlacedStand stand={activeStand} sample={activeSample} left={49.3} base={66.0} width={activeStand.categoryId === "rings" || activeStand.categoryId === "bracelets" ? 14 : 8} table />}
       <button type="button" className={styles.book} onClick={() => { setActiveCategory(null); setMagazineOpen(true); }} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
       <Link href="/?galleryPanel=contact" className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
       <Link href="/?galleryPanel=basket" className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />

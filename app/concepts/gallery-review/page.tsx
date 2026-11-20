@@ -23,7 +23,8 @@ export default function GalleryReviewPage() {
         <figure className={`${styles.figure} ${styles.featuredFigure}`}>
           <div className={`${styles.imageFrame} ${styles.conceptImageFrame}`}>
             <Image
-              src="/images/ornova/gallery/review/entry-ornova-blue-benches-v15.webp"
+              src="/images/ornova/gallery/review/entry-ornova-blue-benches-photoreal-v16.png"
+              unoptimized
               alt="پیش‌نمایش سالن با حروف کاهگلی ORNOVA، درِ قوسی شش‌ضلعی، میز شیشه‌ای در وسط فرش لاکی با دو نیمکت پارچه‌ای آبی افغانی در دو طرف، و ویترین چوبی شش‌طبقه"
               fill
               sizes="(max-width: 760px) 100vw, 94vw"
