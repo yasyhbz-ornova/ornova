@@ -12,8 +12,8 @@ import { OrnovaBrandMark } from "./OrnovaBrandMark";
 import styles from "./GalleryShowcaseConcept.module.css";
 
 const shelves = [
-  { top: 11.6 }, { top: 22.8 }, { top: 32.7 },
-  { top: 42.2 }, { top: 51.6 }, { top: 61.0 },
+  { top: 13.5 }, { top: 23.35 }, { top: 33.1 },
+  { top: 42.35 }, { top: 51.5 }, { top: 60.6 },
 ] as const;
 
 function PlacedStand({ stand, sample, left, base, width, table = false }: {
@@ -64,9 +64,14 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
 
   return <main className={styles.root} dir="rtl">
     <div className={styles.scene}>
-      <Image className={styles.architecture} src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v20.png" alt="سالن اُرنوا با اُرُسی سه‌لنگه، نور روز، فرش لاکی، دو نیمکت آبی، ارکیدهٔ یاسی و ویترین شش‌طبقه با جعبه‌های خاتم‌کاری" fill sizes="(max-width: 700px) 180vw, 100vw" unoptimized priority />
-      <OrnovaBrandMark className={styles.wallSymbol} />
-      <div className={styles.plaque}>more than metal</div>
+      <Image
+        className={styles.architecture}
+        src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v21.webp"
+        alt="سالن اُرنوا با اُرُسی سه‌لنگهٔ فیروزه‌ای و کهربایی، ویترین خاتم‌کاری و نشان و شعار برجستهٔ more than metal روی دیوار کاهگلی"
+        fill
+        unoptimized
+        preload
+      />
       <Link href="/?galleryPanel=account" className={styles.door} aria-label="ورود به حساب کاربری"><span>welcome</span></Link>
       {galleryRoomStands.map((stand, index) => {
         const tier = shelves[index];
