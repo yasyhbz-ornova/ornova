@@ -66,7 +66,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
     <div className={styles.scene}>
       <Image
         className={styles.architecture}
-        src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v21.webp"
+        src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v22.webp"
         alt="سالن اُرنوا با اُرُسی سه‌لنگهٔ فیروزه‌ای و کهربایی، ویترین خاتم‌کاری و نشان و شعار برجستهٔ more than metal روی دیوار کاهگلی"
         fill
         unoptimized
