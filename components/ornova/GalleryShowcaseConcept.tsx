@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Circle, Gem, Link2, Moon, Pin, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { galleryRoomStands, type GalleryRoomStand } from "@/lib/constants/gallery-room";
 import { roomSamplesWithCatalog, type GalleryRoomSample } from "@/lib/constants/gallery-room-samples";
@@ -13,12 +12,8 @@ import { OrnovaBrandMark } from "./OrnovaBrandMark";
 import styles from "./GalleryShowcaseConcept.module.css";
 
 const shelves = [
-  { base: 22.8, top: 11.6, width: 6.3, Icon: Circle },
-  { base: 32.7, top: 22.8, width: 3.5, Icon: Pin },
-  { base: 42.2, top: 32.7, width: 3.5, Icon: Sparkles },
-  { base: 51.6, top: 42.2, width: 3.5, Icon: Gem },
-  { base: 61.0, top: 51.6, width: 3.5, Icon: Moon },
-  { base: 70.1, top: 61.0, width: 6.3, Icon: Link2 },
+  { top: 11.6 }, { top: 22.8 }, { top: 32.7 },
+  { top: 42.2 }, { top: 51.6 }, { top: 61.0 },
 ] as const;
 
 function PlacedStand({ stand, sample, left, base, width, table = false }: {
@@ -42,20 +37,6 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
   const [indices, setIndices] = useState<Record<string, number>>({});
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [magazineOpen, setMagazineOpen] = useState(false);
-  const [pointerOverShelf, setPointerOverShelf] = useState(false);
-  const turn = useRef(0);
-
-  useEffect(() => {
-    if (activeCategory || magazineOpen || pointerOverShelf) return;
-    const timer = window.setInterval(() => {
-      if (document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const categoryId = galleryRoomStands[turn.current++ % galleryRoomStands.length].categoryId;
-      const count = samplesByCategory[categoryId]?.length ?? 0;
-      if (count > 1) setIndices((current) => ({ ...current, [categoryId]: ((current[categoryId] ?? 0) + 1) % count }));
-    }, 1500);
-    return () => window.clearInterval(timer);
-  }, [activeCategory, magazineOpen, pointerOverShelf, samplesByCategory]);
-
   useEffect(() => {
     if (!activeCategory && !magazineOpen) return;
     const onEscape = (event: KeyboardEvent) => {
@@ -83,19 +64,19 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
 
   return <main className={styles.root} dir="rtl">
     <div className={styles.scene}>
-      <Image className={styles.architecture} src="/images/ornova/gallery/review/entry-ornova-blue-benches-photoreal-v16.png" alt="سالن بازبینی اُرنوا؛ فرش لاکی، دو نیمکت آبی، میز نمایش مرکزی و ویترین شش‌طبقه" fill sizes="(max-width: 700px) 180vw, 100vw" unoptimized priority />
-      <div className={styles.plaque}><OrnovaBrandMark className={styles.brandMark} /></div>
+      <Image className={styles.architecture} src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v20.png" alt="سالن اُرنوا با اُرُسی سه‌لنگه، نور روز، فرش لاکی، دو نیمکت آبی، ارکیدهٔ یاسی و ویترین شش‌طبقه با جعبه‌های خاتم‌کاری" fill sizes="(max-width: 700px) 180vw, 100vw" unoptimized priority />
+      <OrnovaBrandMark className={styles.wallSymbol} />
+      <div className={styles.plaque}>more than metal</div>
       <Link href="/?galleryPanel=account" className={styles.door} aria-label="ورود به حساب کاربری"><span>welcome</span></Link>
       {galleryRoomStands.map((stand, index) => {
         const tier = shelves[index];
         return <div key={stand.id}>
-          <PlacedStand stand={stand} sample={currentSample(stand.categoryId)} left={90.5} base={tier.base} width={tier.width} />
-          <button className={styles.shelf} style={{ top: `${tier.top}%` }} type="button" data-stand-id={stand.id} aria-label={`نمایش ${stand.label} روی میز`} onPointerEnter={() => setPointerOverShelf(true)} onPointerLeave={() => setPointerOverShelf(false)} onClick={() => { setMagazineOpen(false); setActiveCategory(stand.categoryId); }}>
-            <span className={styles.shelfLabel}><tier.Icon size={15} strokeWidth={1.5} aria-hidden="true" />{stand.label}</span>
+          <button className={styles.shelf} style={{ top: `${tier.top}%` }} type="button" data-stand-id={stand.id} aria-label={`نمایش ${stand.label} روی میز`} onClick={() => { setMagazineOpen(false); setActiveCategory(stand.categoryId); }}>
+            <span className={styles.shelfLabel}>{stand.label}</span>
           </button>
         </div>;
       })}
-      {activeStand && activeSample && <PlacedStand stand={activeStand} sample={activeSample} left={49.3} base={66.0} width={activeStand.categoryId === "rings" || activeStand.categoryId === "bracelets" ? 14 : 8} table />}
+      {activeStand && activeSample && <PlacedStand stand={activeStand} sample={activeSample} left={49.3} base={65.8} width={activeStand.categoryId === "rings" || activeStand.categoryId === "bracelets" ? 7.5 : 5.3} table />}
       <button type="button" className={styles.book} onClick={() => { setActiveCategory(null); setMagazineOpen(true); }} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
       <Link href="/?galleryPanel=contact" className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
       <Link href="/?galleryPanel=basket" className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />
@@ -109,6 +90,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
       <OrnovaBrandMark className={styles.dossierBrand} />
       <p className={styles.kicker}>شناسنامهٔ اثر · {activeStand.label}</p>
       <h1>{linkedProduct?.name ?? activeSample.title}</h1>
+      <figure className={styles.mobileProduct}><Image src={activeSample.src} alt={activeSample.title} width={activeSample.image[0]} height={activeSample.image[1]} sizes="90vw" unoptimized /></figure>
       <dl><div><dt>شناسهٔ تصویر</dt><dd>{activeSample.number}</dd></div><div><dt>گروه</dt><dd>{activeStand.label}</dd></div></dl>
       {linkedProduct ? <Link className={styles.request} href={`/?galleryPanel=product&product=${encodeURIComponent(linkedProduct.slug)}`}>مشخصات و ثبت درخواست خرید ←</Link> : <p className={styles.pending}>مشخصات سفارش این اثر هنوز تأیید نشده است.</p>}
       <div className={styles.navigation}><button type="button" onClick={() => moveSample(-1)} disabled={activeCount < 2}>اثر قبلی</button><span>{new Intl.NumberFormat("fa-IR").format(activeIndex + 1)} از {new Intl.NumberFormat("fa-IR").format(activeCount)}</span><button type="button" onClick={() => moveSample(1)} disabled={activeCount < 2}>اثر بعدی</button></div>

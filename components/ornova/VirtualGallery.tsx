@@ -10,7 +10,7 @@ import { GalleryAccountPanel } from "@/components/ornova/GalleryAccountPanel";
 import { GalleryGuidePanel, type GuideChapter } from "@/components/ornova/GalleryGuidePanel";
 import { GalleryLibraryPanel } from "@/components/ornova/GalleryLibraryPanel";
 import { DesignStudio } from "@/components/studio/DesignStudio";
-import { GalleryRoom } from "./GalleryRoom";
+import { GalleryShowcaseConcept } from "./GalleryShowcaseConcept";
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
 import { OrnovaBrandMark } from "./OrnovaBrandMark";
 import { roomSamplesWithCatalog } from "@/lib/constants/gallery-room-samples";
@@ -401,7 +401,7 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   const displayFocused = drawer?.kind === "category";
 
   return <div className={`${styles.root} virtualGallery`} dir="rtl" data-focused-display={displayFocused ? drawer.id : undefined} data-product-open={productOpen ? "true" : undefined}>
-  <GalleryRoom samplesByCategory={roomSamplesByCategory} activeCategory={displayFocused ? drawer.id : undefined} panelOpen={Boolean(drawer)} onSelectStand={openStand} onStandIntent={scheduleStandOpen} onCancelIntent={cancelScheduledStandOpen} onSelectObject={(kind) => { cancelScheduledStandOpen(); openDrawer({ kind }); }} />
+  <GalleryShowcaseConcept products={products} />
 
     {drawer && <div className={styles.overlay} data-room-sample={roomSampleOpen || undefined} data-product-open={selectedProduct ? "true" : "false"} data-studio-open={drawer.kind === "studio" ? "true" : "false"} data-basket-open={drawer.kind === "basket" ? "true" : undefined} data-focused-display={category?.id} data-focus-side={focusedNiche ? (focusedNiche.x > 50 ? "left" : "right") : undefined} role="dialog" aria-modal="true" aria-labelledby={selectedProduct ? "product-dossier-title" : "gallery-drawer-title"} onMouseDown={(event) => { const target = event.target; if (target === event.currentTarget || (selectedProduct && target instanceof Element && !target.closest("[data-dossier-content], [data-dossier-top]"))) closeDrawer(); }}>
       <aside className={styles.drawer} ref={drawerRef}>
