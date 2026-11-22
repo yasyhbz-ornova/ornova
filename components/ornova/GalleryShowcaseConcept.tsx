@@ -37,6 +37,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
   const [indices, setIndices] = useState<Record<string, number>>({});
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [magazineOpen, setMagazineOpen] = useState(false);
+  const [dismissedTooltip, setDismissedTooltip] = useState<string | null>(null);
   useEffect(() => {
     if (!activeCategory && !magazineOpen) return;
     const onEscape = (event: KeyboardEvent) => {
@@ -66,20 +67,41 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
     <div className={styles.scene}>
       <Image
         className={styles.architecture}
-        src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v22.webp"
+        src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23.webp"
         alt="سالن اُرنوا با اُرُسی سه‌لنگهٔ فیروزه‌ای و کهربایی، ویترین خاتم‌کاری و نشان و شعار برجستهٔ more than metal روی دیوار کاهگلی"
         fill
         unoptimized
         preload
       />
-      <Link href="/?galleryPanel=account" className={styles.door} aria-label="ورود به حساب کاربری"><span>welcome</span></Link>
+      <Link href="/?galleryPanel=account" className={styles.door} aria-label="ورود به حساب کاربری">
+        <span className={styles.doorTag} lang="en" dir="ltr">welcome</span>
+      </Link>
       {galleryRoomStands.map((stand, index) => {
         const tier = shelves[index];
-        return <div key={stand.id}>
-          <button className={styles.shelf} style={{ top: `${tier.top}%` }} type="button" data-stand-id={stand.id} aria-label={`نمایش ${stand.label} روی میز`} onClick={() => { setMagazineOpen(false); setActiveCategory(stand.categoryId); }}>
+        return (
+          <button
+            key={stand.id}
+            className={styles.shelf}
+            style={{ top: `${tier.top}%`, animationDelay: `${index * -0.6}s` }}
+            type="button"
+            data-stand-id={stand.id}
+            data-tooltip-dismissed={dismissedTooltip === stand.id || undefined}
+            aria-label={`نمایش ${stand.label} روی میز`}
+            onMouseLeave={() => setDismissedTooltip(null)}
+            onBlur={() => setDismissedTooltip(null)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && dismissedTooltip !== stand.id) {
+                event.stopPropagation();
+                setDismissedTooltip(stand.id);
+              }
+            }}
+            onClick={() => { setMagazineOpen(false); setActiveCategory(stand.categoryId); }}
+          >
+            <span className={styles.shelfGlow} aria-hidden="true" />
             <span className={styles.shelfLabel}>{stand.label}</span>
+            <span className={styles.shelfTooltip} aria-hidden="true">{stand.label}</span>
           </button>
-        </div>;
+        );
       })}
       {activeStand && activeSample && <PlacedStand stand={activeStand} sample={activeSample} left={49.3} base={65.8} width={activeStand.categoryId === "rings" || activeStand.categoryId === "bracelets" ? 7.5 : 5.3} table />}
       <button type="button" className={styles.book} onClick={() => { setActiveCategory(null); setMagazineOpen(true); }} aria-label="باز کردن کتاب فهرست همهٔ آثار" />

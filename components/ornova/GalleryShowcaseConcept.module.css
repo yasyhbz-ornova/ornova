@@ -6,14 +6,69 @@
 .brandMark :global(.ornova-script-wordmark) { grid-column: 2; grid-row: 1; font-family: cursive; font-size: 2.2cqw; font-style: italic; line-height: 1; }
 .brandMark :global(.ornova-english-motto) { grid-column: 2; grid-row: 2; font-family: Georgia, serif; font-size: .48cqw; font-style: italic; white-space: nowrap; }
 .door { position: absolute; z-index: 5; top: 29%; left: 40%; width: 18.2%; height: 33%; border-radius: 48% 48% 1% 1% / 30% 30% 1% 1%; color: #4a3325; text-decoration: none; }
-.door span { position: absolute; top: 65.5%; left: 51.5%; font-family: "Segoe Script", "Brush Script MT", cursive; font-size: .7cqw; font-weight: 600; letter-spacing: -.09em; line-height: 1; transform: translateX(-50%) rotate(-10deg); }
+.doorTag {
+  position: absolute;
+  top: 76.5%;
+  left: 53%;
+  color: #45291b;
+  font-family: "Segoe Script", "Brush Script MT", "URW Chancery L", Georgia, cursive;
+  font-size: .77cqw;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(-50%, -50%) rotate(72deg);
+}
 .placedStand { position: absolute; z-index: 3; overflow: hidden; transform: translateX(-50%); pointer-events: none; filter: drop-shadow(0 2px 2px #26160e77); }
 .ringPhotoStand { overflow: visible; }
 .ringPhotoStand img[data-gallery-product-number="05"] { mask-image: radial-gradient(ellipse 32% 18% at 50% 22%, #000 80%, transparent 100%); }
 .standAsset { position: absolute; left: var(--asset-left); top: var(--asset-top); width: var(--asset-width); height: var(--asset-height); max-width: none; }
 .tableStand { z-index: 6; filter: drop-shadow(0 6px 5px #26160e88); }
 .shelf { position: absolute; z-index: 4; left: 83.4%; width: 14.6%; height: 8.8%; padding: 0; border: 0; background: transparent; cursor: pointer; }
-.shelf:hover, .shelf:focus-visible { background: #f5e6c31c; }
+.shelfGlow {
+  position: absolute;
+  top: 62%;
+  left: 47%;
+  width: 4.5cqw;
+  height: 1.5cqw;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #fff4d7 0 8%, #ffe1a8c9 16%, #ffd28c63 37%, transparent 71%);
+  transform: translate(-50%, -50%) rotate(-5deg);
+  animation: shelf-shimmer 4.8s ease-in-out infinite;
+  animation-delay: inherit;
+  pointer-events: none;
+}
+@keyframes shelf-shimmer {
+  0%, 100% { opacity: .55; }
+  50% { opacity: .92; }
+}
+.shelfTooltip {
+  position: absolute;
+  top: 50%;
+  right: 96%;
+  z-index: 1;
+  visibility: hidden;
+  opacity: 0;
+  padding: .35rem .6rem;
+  border: 1px solid #c6aa88;
+  border-radius: .25rem;
+  background: #fbf0dd;
+  box-shadow: 0 2px 8px #4430234a;
+  color: #483627;
+  font-size: .82rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+.shelf:not([data-tooltip-dismissed]):focus-visible .shelfTooltip {
+  visibility: visible;
+  opacity: 1;
+}
+@media (hover: hover) {
+  .shelf:not([data-tooltip-dismissed]):hover .shelfTooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+}
 .shelfLabel {
   position: absolute;
   left: 43%;
@@ -75,4 +130,7 @@
   .magazineCategories { grid-template-columns: 1fr; }
   .hint { position: relative; right: auto; bottom: auto; max-width: calc(100% - 1.3rem); margin: .35rem auto 1rem; white-space: normal; text-align: center; transform: none; }
 }
-@media (prefers-reduced-motion: reduce) { .placedStand { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .placedStand { transition: none; }
+  .shelfGlow { animation: none; opacity: .72; }
+}
