@@ -14,11 +14,13 @@ export function MagicLinkForm({
   phoneAuthEnabled = PHONE_AUTH_ENABLED,
   googleAuthEnabled = GOOGLE_AUTH_ENABLED,
   nextDestination,
+  compact = false,
 }: {
   initialError?: string | null;
   phoneAuthEnabled?: boolean;
   googleAuthEnabled?: boolean;
   nextDestination?: string;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -171,7 +173,7 @@ export function MagicLinkForm({
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-2 text-sm text-graphite"><span>ایمیل</span><input required type="email" autoComplete="email" dir="ltr" disabled={loading} value={email} onChange={(event) => { if (active.current) return; setEmail(event.target.value); clearFeedback(); }} className="border-b border-silver bg-transparent px-1 py-3 text-left outline-none focus:border-sapphire" placeholder="you@example.com" /></label>
         <button type="submit" disabled={loading} className="w-fit rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{pendingKind === "email" ? "در حال ارسال…" : "ارسال لینک ورود"}</button>
-        <p className="text-xs leading-6 text-graphite/55">لینک یک‌بارمصرف به ایمیل شما فرستاده می‌شود؛ بعد از ورود، می‌توانید درخواستتان را ادامه دهید.</p>
+        {!compact && <p className="text-xs leading-6 text-graphite/55">لینک یک‌بارمصرف به ایمیل شما فرستاده می‌شود؛ بعد از ورود، می‌توانید درخواستتان را ادامه دهید.</p>}
       </form>
 
       {phoneAuthEnabled && awaitingPhoneOtp ? <form onSubmit={handlePhoneOtpSubmit} className="grid gap-4">
@@ -182,11 +184,11 @@ export function MagicLinkForm({
       </form> : phoneAuthEnabled ? <form onSubmit={handlePhoneSubmit} className="grid gap-4">
         <label className="grid gap-2 text-sm text-graphite"><span>شماره موبایل</span><input ref={phoneRef} required type="tel" inputMode="tel" autoComplete="tel" dir="ltr" disabled={loading} value={phone} onChange={(event) => { if (active.current) return; setPhone(event.target.value); clearFeedback(); }} className="border-b border-silver bg-transparent px-1 py-3 text-left outline-none focus:border-sapphire" placeholder="+98912…" /></label>
         <button type="submit" disabled={loading} className="rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{pendingKind === "phone" ? "در حال آماده‌سازی…" : "دریافت کد پیامکی"}</button>
-      </form> : <p className="border-r border-silver pr-4 text-sm leading-7 text-graphite/60">ورود با شماره موبایل پس از فعال‌شدن سرویس پیامک در دسترس قرار می‌گیرد.</p>}
+      </form> : !compact && <p className="border-r border-silver pr-4 text-sm leading-7 text-graphite/60">ورود با شماره موبایل پس از فعال‌شدن سرویس پیامک در دسترس قرار می‌گیرد.</p>}
 
       {googleAuthEnabled && <div className="flex items-center gap-4 text-xs text-graphite/40" aria-hidden="true"><span className="h-px flex-1 bg-silver" /><span>یا</span><span className="h-px flex-1 bg-silver" /></div>}
 
-      {googleAuthEnabled ? <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="rounded-full border border-silver px-6 py-3 text-sm text-graphite transition-colors hover:border-sapphire hover:text-sapphire disabled:opacity-60">{pendingKind === "google" ? "در حال انتقال…" : "ادامه با حساب گوگل"}</button> : <p className="border-r border-silver pr-4 text-sm leading-7 text-graphite/60">ورود با حساب گوگل پس از تکمیل تنظیمات امن ورود در دسترس قرار می‌گیرد.</p>}
+      {googleAuthEnabled ? <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="rounded-full border border-silver px-6 py-3 text-sm text-graphite transition-colors hover:border-sapphire hover:text-sapphire disabled:opacity-60">{pendingKind === "google" ? "در حال انتقال…" : "ادامه با حساب گوگل"}</button> : !compact && <p className="border-r border-silver pr-4 text-sm leading-7 text-graphite/60">ورود با حساب گوگل پس از تکمیل تنظیمات امن ورود در دسترس قرار می‌گیرد.</p>}
 
       {message && <p role="status" aria-live="polite" className="text-sm leading-7 text-sapphire">{message}</p>}
       {error && <p ref={errorRef} tabIndex={-1} role="alert" className="text-sm leading-7 text-graphite/70">{error}</p>}

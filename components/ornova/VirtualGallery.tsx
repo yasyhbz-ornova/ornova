@@ -12,7 +12,7 @@ import { GalleryLibraryPanel } from "@/components/ornova/GalleryLibraryPanel";
 import { DesignStudio } from "@/components/studio/DesignStudio";
 import { GalleryShowcaseConcept } from "./GalleryShowcaseConcept";
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
-import { OrnovaBrandMark } from "./OrnovaBrandMark";
+import { OrnovaBrandMark, OrnovaSymbol } from "./OrnovaBrandMark";
 import { roomSamplesWithCatalog } from "@/lib/constants/gallery-room-samples";
 import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { catalogCategories, catalogFamilies } from "@/lib/constants/catalog";
@@ -407,7 +407,7 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
     window.dispatchEvent(new Event(galleryPanelEvent));
   }} />
 
-    {drawer && <div className={styles.overlay} data-room-sample={roomSampleOpen || undefined} data-product-open={selectedProduct ? "true" : "false"} data-studio-open={drawer.kind === "studio" ? "true" : "false"} data-basket-open={drawer.kind === "basket" ? "true" : undefined} data-focused-display={category?.id} data-focus-side={focusedNiche ? (focusedNiche.x > 50 ? "left" : "right") : undefined} role="dialog" aria-modal="true" aria-labelledby={selectedProduct ? "product-dossier-title" : "gallery-drawer-title"} onMouseDown={(event) => { const target = event.target; if (target === event.currentTarget || (selectedProduct && target instanceof Element && !target.closest("[data-dossier-content], [data-dossier-top]"))) closeDrawer(); }}>
+    {drawer && <div className={styles.overlay} data-room-sample={roomSampleOpen || undefined} data-product-open={selectedProduct ? "true" : "false"} data-studio-open={drawer.kind === "studio" ? "true" : "false"} data-basket-open={drawer.kind === "basket" ? "true" : undefined} data-account-open={drawer.kind === "account" || undefined} data-focused-display={category?.id} data-focus-side={focusedNiche ? (focusedNiche.x > 50 ? "left" : "right") : undefined} role="dialog" aria-modal="true" aria-labelledby={selectedProduct ? "product-dossier-title" : "gallery-drawer-title"} onMouseDown={(event) => { const target = event.target; if (target === event.currentTarget || (selectedProduct && target instanceof Element && !target.closest("[data-dossier-content], [data-dossier-top]"))) closeDrawer(); }}>
       <aside className={styles.drawer} ref={drawerRef}>
         <div className={styles.drawerTop} data-dossier-top={selectedProduct ? "true" : undefined}>
           <button type="button" onClick={handleDrawerBack} className={styles.backButton}>{selectedProduct ? (categoryFromMagazine ? "بازگشت به ویترین" : productOpenedFromBasket ? "بازگشت به صندوق" : "بازگشت به نمای گالری") : (drawer.kind === "category" && categoryFromMagazine) || drawer.kind === "collection" ? "بازگشت به فهرست" : (drawer.kind === "contact" && contactContext?.sourceContext === "ring-builder") || (drawer.kind === "size-guide" && sizeGuideFromBuilder) ? "بازگشت به طراحی انگشتر" : "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
@@ -517,8 +517,10 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
           </>;
         })()}
         {drawer.kind === "account" && <>
-          <p className={styles.eyebrow}>دفترچهٔ مشتری اُرنوا</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{accountCompletionMode ? "تکمیل شناسنامه" : "حساب من"}</h1>
-          <p className={styles.intro}>{accountCompletionMode ? "برای ادامهٔ انتخاب‌ها، راه تماس و نشانی را در شناسنامهٔ خصوصی خود ثبت کن. پس از ذخیره، مستقیم به صندوق گالری برمی‌گردی." : "برای پیگیری درخواست‌ها و گفت‌وگوها، لینک ورود یک‌بارمصرف را به ایمیلت بفرست. ورود و تکمیل شناسنامه در همین فضای گالری انجام می‌شود."}</p>
+          <header className={styles.accountHeading}>
+            <OrnovaSymbol className={styles.accountSymbol} />
+            <h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{accountCompletionMode ? "تماس و نشانی" : "حساب من"}</h1>
+          </header>
           <GalleryAccountPanel completionMode={accountCompletionMode} initialError={accountInitialError} signOutFailed={accountSignOutFailed} onReturnToBasket={() => openDrawer({ kind: "basket" })} nextDestination={accountReturnDestination} />
         </>}
         {drawer.kind === "library" && <><span id="gallery-drawer-title" className="sr-only">گالری من</span><GalleryLibraryPanel onOpenAccount={openLibraryAccount} /></>}

@@ -9,7 +9,6 @@ import { InquiryConversation } from "@/components/account/InquiryConversation";
 import { CustomerQuoteDocument } from "@/components/account/CustomerQuoteDocument";
 import { InquiryQuoteCard } from "@/components/commerce/InquiryQuoteCard";
 import { ProductPreferencesSummary } from "@/components/commerce/ProductPreferencesSummary";
-import { OrnovaBrandMark } from "@/components/ornova/OrnovaBrandMark";
 import { getInquiryStatusGuidance, getInquiryStatusLabel } from "@/lib/commerce/inquiry-status";
 import type { CustomerQuoteDTO } from "@/lib/account/inquiry-quotes";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -26,7 +25,7 @@ type AccountProfile = {
 };
 
 type PanelState = "checking" | "guest" | "signed-in" | "ready" | "unavailable";
-type AccountIdentity = { email: string; phone: string; createdAt: string; displayName: string };
+type AccountIdentity = { phone: string; displayName: string };
 type AccountInquiry = { id: string; status: string; created_at: string; message: string };
 type InquiryItem = { inquiry_id: string; product_name: string; quantity: number; preferences?: unknown };
 type InquiryFile = { id: string; inquiry_id: string; original_name: string };
@@ -62,9 +61,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
           .maybeSingle();
         if (!active) return;
         setIdentity({
-          email: user.email ?? "",
           phone: user.phone ?? "",
-          createdAt: user.created_at ?? "",
           displayName: typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "",
         });
         setProfileUnavailable(Boolean(error));
@@ -88,29 +85,6 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     return () => { active = false; };
   }, [attempt, completionMode]);
 
-  const joined = identity?.createdAt && Number.isFinite(Date.parse(identity.createdAt))
-    ? new Date(identity.createdAt).toLocaleDateString("fa-IR", { year: "numeric", month: "long" })
-    : "ثبت نشده";
-  const accountName = profile?.display_name || identity?.displayName || "هنوز ثبت نشده";
-  const accountIdentifier = identity?.email || identity?.phone || "هنوز ثبت نشده";
-  const accountContact = profile?.phone || identity?.phone || "هنوز ثبت نشده";
-  const accountAddress = profile?.address_line
-    ? [profile.address_line, profile.city, profile.province, profile.postal_code ? `کد پستی ${profile.postal_code}` : ""].filter(Boolean).join("، ")
-    : identity ? "هنوز ثبت نشده" : "پس از ورود تکمیل می‌شود";
-  const passport = <section className={styles.accountPassport} aria-label="شناسنامهٔ همراهی اُرنوا">
-    <OrnovaBrandMark className={styles.accountPassportBrand} />
-    <span className={styles.accountPassportSeal} aria-hidden="true">✳</span>
-    <h2>شناسنامهٔ همراهی</h2>
-    <div className={styles.accountPassportFields}>
-      <div><span>نام همراه</span><i>{identity ? accountName : "پس از ورود تکمیل می‌شود"}</i></div>
-      <div><span>شناسهٔ ورود</span><i dir="auto">{identity ? accountIdentifier : "پس از ورود تکمیل می‌شود"}</i></div>
-      <div><span>راه تماس</span><i dir="auto">{identity ? accountContact : "پس از ورود تکمیل می‌شود"}</i></div>
-      <div><span>نشانی همراهی</span><i>{identity ? accountAddress : "پس از ورود تکمیل می‌شود"}</i></div>
-      <div><span>تاریخ پیوستن</span><i>{identity ? joined : "ــــــــــــــــــــــــــــ"}</i></div>
-    </div>
-    <p className={styles.accountPassportFooter}>پروندهٔ خصوصی همراهی <span aria-hidden="true">·</span> روایتی آرام از همراهی با اُرنوا</p>
-  </section>;
-
   const profileForm = <ProfileForm
     displayName={profile?.display_name ?? identity?.displayName ?? ""}
     phone={profile?.phone ?? identity?.phone ?? ""}
@@ -125,38 +99,29 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     onSaved={setProfile}
   />;
 
-  const steps = completionMode
-    ? ["ورود به گالری", "نشانی و اطلاعات همراهی", "بازگشت به صندوق"]
-    : ["ورود به حساب", "شناسنامهٔ همراهی", "پایان دفتر گالری"];
-  const activeStep = completionMode ? (state === "ready" ? 2 : 1) : state === "signed-in" ? 2 : 1;
   let content;
-  if (state === "checking") content = <p className="text-sm leading-7 text-graphite/65" role="status">در حال بازکردن شناسنامهٔ همراهی…</p>;
+  if (state === "checking") content = <p className="text-sm leading-7 text-graphite/65" role="status">در حال بررسی حساب…</p>;
   else if (state === "unavailable") content = <div className="grid gap-3 text-sm leading-7 text-graphite/70" role="alert"><p>اتصال امن حساب فعلاً پاسخ نداد؛ انتخاب‌های صندوق در همین مرورگر محفوظ‌اند.</p><button type="button" className="w-fit border-b border-silver pb-1 text-sapphire" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>;
   else if (state === "guest") content = <>
-    {completionMode && <p className={styles.accountDeskNote}>مرحلهٔ اول: با لینک یک‌بارمصرف وارد شو. بعد از تأیید لینک، همین شناسنامه برای ثبت شمارهٔ تماس و نشانی باز می‌شود و انتخاب‌ها در صندوق می‌مانند.</p>}
     <div className={styles.accountLogin}>
-      <p className={styles.accountLoginHeading}>مُهر ورود به دفتر اُرنوا</p>
-      <MagicLinkForm initialError={initialError} nextDestination={completionMode ? "/?galleryPanel=account&complete=1" : nextDestination} />
+      <p className={styles.accountLoginHeading}>{completionMode ? "برای ادامهٔ درخواست، ابتدا با ایمیل وارد شو." : "لینک ورود یک‌بارمصرف به ایمیلت فرستاده می‌شود."}</p>
+      <MagicLinkForm compact initialError={initialError} nextDestination={completionMode ? "/?galleryPanel=account&complete=1" : nextDestination} />
     </div>
   </>;
-  else if (state === "signed-in") content = <div className="grid gap-4">
-    <p className={styles.accountDeskNote}>نشست حساب فعال است؛ اطلاعات تماس و نشانی را همین‌جا در دفتر گالری بازبینی یا ویرایش کن.</p>
-    {profileUnavailable && <p className="border-r-2 border-silver px-4 py-2 text-xs leading-7 text-graphite/65" role="status">اطلاعات قبلی از شناسنامه خوانده نشد؛ پیش از ثبت درخواست، اطلاعات لازم را دوباره وارد کن.</p>}
+  else if (state === "signed-in") content = <details className={styles.accountProfile} open={profileUnavailable || undefined}>
+    <summary>ویرایش تماس و نشانی</summary>
+    {profileUnavailable && <p className="text-sm leading-7" role="status">اطلاعات قبلی در دسترس نیست. قبل از ثبت درخواست، تماس و نشانی را بررسی کن.</p>}
     {profileForm}
-  </div>;
+  </details>;
   else content = <div className="grid gap-4">
-      {profileUnavailable && <p className="border-r-2 border-silver px-4 py-2 text-xs leading-7 text-graphite/65" role="status">نشانی قبلی در شناسنامه پیدا نشد؛ اطلاعات را وارد کن و ذخیره کن. اگر ذخیره انجام نشد، از تلفن گالری کمک بگیر.</p>}
+      {profileUnavailable && <p className="text-sm leading-7" role="status">نشانی قبلی در دسترس نیست. برای ادامهٔ درخواست، شمارهٔ تماس و نشانی را وارد کن.</p>}
       {profileForm}
     </div>;
 
   return <div className={styles.accountWorkflow}>
     {activeQuote ? <CustomerQuoteDocument quote={activeQuote.quote} isPreviousVersion={activeQuote.isPreviousVersion} checkedAt={activeQuote.checkedAt} embedded onBack={() => setActiveQuote(null)} onAccepted={(acceptedAt) => { setActiveQuote(current => current && { ...current, quote: { ...current.quote, accepted_at: acceptedAt } }); setHistory(current => current && { ...current, quotes: current.quotes.map(quote => quote.id === activeQuote.quote.id ? { ...quote, accepted_at: acceptedAt } : quote) }); }} /> : <>
-    <ol className={styles.accountSteps} aria-label={completionMode ? "مراحل ثبت درخواست در گالری" : "مراحل شناسنامهٔ حساب در گالری"}>
-      {steps.map((label, index) => <li key={label} data-active={activeStep === index + 1 ? "true" : undefined} data-complete={activeStep > index + 1 ? "true" : undefined}><span>{index + 1}</span>{label}</li>)}
-    </ol>
-    {passport}
     {signOutFailed && <p className="border-r-2 border-sapphire px-4 py-2 text-sm leading-7 text-graphite/70" role="alert">خروج از حساب انجام نشد؛ دوباره تلاش کن.</p>}
-    {state === "ready" && completionMode && <p className={styles.accountDeskNote}>برگِ مشخصات همراهی است؛ اطلاعات تکمیلی اینجا ثبت می‌شود و پس از ذخیره به صندوق همین گالری برمی‌گردی.</p>}
+    {state === "ready" && completionMode && <p className="text-sm leading-7 text-graphite/75">پس از ذخیرهٔ شمارهٔ تماس و نشانی، به صندوق برمی‌گردی.</p>}
     {content}
     {state === "signed-in" && <section className={`${styles.accountHistory} account-inquiries`} aria-labelledby="gallery-account-inquiries-title">
       <div className="account-section-title"><h2 id="gallery-account-inquiries-title">درخواست‌های من</h2></div>
@@ -183,7 +148,6 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
             </article>;
           })}
         </div>}
-      <p className={styles.accountDeskNote}>سوابق فقط برای حساب صاحب درخواست نمایش داده می‌شود و پیوست‌ها از مسیر خصوصی همان پرونده باز می‌شوند.</p>
     </section>}
     {state === "signed-in" && !completionMode && <form action={signOutCurrentSession} className="border-t border-silver pt-4 text-right">
       <button type="submit" className="min-h-11 border-b border-silver pb-1 text-sm text-graphite/60 underline underline-offset-4 transition-colors hover:text-sapphire focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sapphire">خروج از حساب</button>

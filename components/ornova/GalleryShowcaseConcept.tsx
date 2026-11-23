@@ -10,7 +10,7 @@ import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catal
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
 import { galleryShowcaseEntries, type GalleryRoomSample } from "@/lib/constants/gallery-room-samples";
 import type { Product } from "@/lib/constants/products";
-import { OrnovaBrandMark } from "./OrnovaBrandMark";
+import { OrnovaBrandMark, OrnovaSymbol } from "./OrnovaBrandMark";
 import styles from "./GalleryShowcaseConcept.module.css";
 
 const shelves = [
@@ -20,7 +20,7 @@ const shelves = [
 const number = new Intl.NumberFormat("fa-IR");
 const motionPreference = "(prefers-reduced-motion: reduce)";
 const workInterval = 12_000;
-const tablePreviewPhoto = "05";
+const archiveRingPhoto = "05";
 
 function subscribeToMotionPreference(listener: () => void) {
   const media = window.matchMedia(motionPreference);
@@ -48,9 +48,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     for (const category of catalogCategories) {
       const categoryEntries = entries[category.id];
       if (categoryEntries) {
-        entries[category.id] = categoryEntries.filter(({ product, sample }) =>
-          product ? product.galleryPlacementVerified === true && Boolean(product.standImage)
-            : sample?.number === tablePreviewPhoto,
+        entries[category.id] = categoryEntries.filter(({ product }) =>
+          !product || (product.galleryPlacementVerified === true && Boolean(product.standImage)),
         );
       }
     }
@@ -118,8 +117,6 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       } : undefined,
     };
   }
-  const activeStand = galleryRoomStands.find((stand) => stand.categoryId === activeCategory);
-  const categoryLabel = activeStand?.label ?? catalogCategories.find((category) => category.id === activeCategory)?.label;
   const activeEntries = activeCategory ? entriesByCategory[activeCategory] ?? [] : [];
   const activeCount = activeEntries.length;
   const activeIndex = activeCategory ? (indices[activeCategory] ?? 0) % Math.max(activeCount, 1) : 0;
@@ -221,7 +218,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
                   ? <div className={styles.catalogCutout} data-table-product={linkedProduct.slug}>
                       <Image src={linkedProduct.standImage} alt={linkedProduct.name} fill sizes="(max-width: 700px) 124px, 260px" unoptimized />
                     </div>
-                  : activeSample && <TrayRing sample={activeSample} />}
+                  : activeSample?.number === archiveRingPhoto ? <TrayRing sample={activeSample} />
+                    : activeSample && <figure className={styles.archivePhoto} data-gallery-product-number={activeSample.number}>
+                        <Image src={activeSample.src} alt={activeSample.title} width={activeSample.image[0]} height={activeSample.image[1]} sizes="(max-width: 700px) 135px, 400px" unoptimized />
+                      </figure>}
               </div>
             </div>
             <div
@@ -233,14 +233,13 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             >
               <article className={styles.dossier} tabIndex={0} aria-live={autoAdvance ? "off" : "polite"} aria-label="شناسنامهٔ اثر روی میز">
                 <header className={styles.dossierHeader}>
-                  <span lang="en" dir="ltr">Ornova by Yas</span>
+                  <OrnovaSymbol className={styles.dossierSymbol} />
                   <span>شناسنامهٔ اثر</span>
                 </header>
                 <div className={styles.workName}>
-                  <span>نام طرح</span><h1>{workName}</h1>
+                  <h1>{workName}</h1>
                 </div>
                 <dl className={styles.workDetails}>
-                  <div><dt>دسته</dt><dd>{linkedProduct?.category ?? categoryLabel}</dd></div>
                   <div><dt>جنس</dt><dd>{material || "نامشخص"}</dd></div>
                   <div><dt>سنگ</dt><dd>{stone || "نامشخص"}</dd></div>
                   <div><dt>وزن</dt><dd>{weight || "نامشخص"}</dd></div>
@@ -259,10 +258,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaperFocused(false); }}
           >
             {linkedProduct && canRequestProduct
-              ? <RequestBasketButton key={linkedProduct.slug} item={{ slug: linkedProduct.slug, name: linkedProduct.name, category: linkedProduct.category }} label="درخواست رزرو" onAdded={openBasket} />
+              ? <RequestBasketButton key={linkedProduct.slug} item={{ slug: linkedProduct.slug, name: linkedProduct.name, category: linkedProduct.category }} label="ثبت سفارش" onAdded={openBasket} />
               : <>
-                  <button type="button" disabled aria-describedby="gallery-reservation-status">درخواست رزرو</button>
-                  <p id="gallery-reservation-status" className={styles.reservationStatus}>فعلاً قابل رزرو نیست</p>
+                  <button type="button" disabled aria-describedby="gallery-reservation-status">ثبت سفارش</button>
+                  <p id="gallery-reservation-status" className={styles.reservationStatus}>نمای آرشیو · فقط نمایش</p>
                 </>}
           </div>
           {activeCount > 1 && <div className={styles.navigation} role="group" aria-label="ورق زدن آثار این دسته">
@@ -276,10 +275,6 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
           </div></>}
         </>}
       </section>
-    </div>
-    <div className={styles.mobileShelfList} hidden={tableOpen} inert={magazineOpen} role="group" aria-label="دسته‌های ویترین">
-      <button type="button" aria-pressed={magazineOpen} onClick={(event) => showMagazine(event.currentTarget)}>کتاب آثار</button>
-      {galleryRoomStands.map((stand) => <button key={stand.id} type="button" disabled={!entriesByCategory[stand.categoryId]?.length} onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}>{stand.label}</button>)}
     </div>
     {magazineOpen && <section className={styles.magazine} aria-label="کتاب فهرست آثار">
       <button ref={closeMagazine} type="button" className={styles.close} onClick={() => setMagazineOpen(false)} aria-label="بستن فهرست">×</button>
