@@ -401,7 +401,11 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
   const displayFocused = drawer?.kind === "category";
 
   return <div className={`${styles.root} virtualGallery`} dir="rtl" data-focused-display={displayFocused ? drawer.id : undefined} data-product-open={productOpen ? "true" : undefined}>
-  <GalleryShowcaseConcept products={products} />
+  <GalleryShowcaseConcept products={products} panelOpen={Boolean(drawer)} onOpenPanel={(href) => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    window.history.pushState(window.history.state, "", href);
+    window.dispatchEvent(new Event(galleryPanelEvent));
+  }} />
 
     {drawer && <div className={styles.overlay} data-room-sample={roomSampleOpen || undefined} data-product-open={selectedProduct ? "true" : "false"} data-studio-open={drawer.kind === "studio" ? "true" : "false"} data-basket-open={drawer.kind === "basket" ? "true" : undefined} data-focused-display={category?.id} data-focus-side={focusedNiche ? (focusedNiche.x > 50 ? "left" : "right") : undefined} role="dialog" aria-modal="true" aria-labelledby={selectedProduct ? "product-dossier-title" : "gallery-drawer-title"} onMouseDown={(event) => { const target = event.target; if (target === event.currentTarget || (selectedProduct && target instanceof Element && !target.closest("[data-dossier-content], [data-dossier-top]"))) closeDrawer(); }}>
       <aside className={styles.drawer} ref={drawerRef}>

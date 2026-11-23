@@ -6,6 +6,7 @@ import { galleryRenders } from "@/lib/constants/gallery-renders";
 import { catalogCategories, resolveCatalogSelection } from "@/lib/constants/catalog";
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
+import { dossierFields, isDossierField, readDossierField, updateDossierField } from "@/lib/catalog/dossier-fields";
 import { draftCatalogFormFromPhoto } from "@/lib/catalog/photo-draft";
 import type { RoomPlacement } from "@/lib/catalog/room-placement";
 import { RoomPlacementEditor } from "./RoomPlacementEditor";
@@ -153,7 +154,35 @@ export function CatalogEditor() {
       </fieldset>}
       {mediaEditor("gallery", "تصاویر شناسنامه")}
       {mediaEditor("packaging_gallery", "تصاویر بسته‌بندی")}
-      <fieldset className="rounded-lg border border-silver p-4"><legend className="px-2 text-sm">مشخصات اثر</legend>{form.details.map((item, index) => <div key={index} className="mb-2 grid gap-2 md:grid-cols-[1fr_2fr_auto]"><input className={fieldClass} aria-label={`عنوان مشخصهٔ ${index + 1}`} value={item.label} onChange={(event) => updateDetail(index, "label", event.target.value)} /><input className={fieldClass} aria-label={`مقدار مشخصهٔ ${index + 1}`} value={item.value} onChange={(event) => updateDetail(index, "value", event.target.value)} /><button type="button" onClick={() => update("details", form.details.filter((_, position) => position !== index))} className="text-sm text-sapphire">حذف</button></div>)}<button type="button" onClick={() => update("details", [...form.details, { label: "", value: "" }])} className="text-sm text-sapphire underline underline-offset-4">افزودن مشخصه</button></fieldset>
+      <fieldset className="rounded-lg border border-silver p-4">
+        <legend className="px-2 text-sm">شناسنامهٔ روی میز</legend>
+        <p className="mb-3 text-sm leading-7 text-graphite/75">فقط مقدارهای تأییدشده را وارد کنید. وزن را همراه واحد بنویسید. جنس، نوع سنگ و وزنِ ثبت‌نشده روی شناسنامه «نامشخص» نمایش داده می‌شوند.</p>
+        <div className="grid gap-3 md:grid-cols-2">
+          {dossierFields.map((field) => <label className={labelClass} key={field.id}>
+            {field.label}
+            <input
+              name={`dossier-${field.id}`}
+              className={fieldClass}
+              maxLength={240}
+              placeholder={field.placeholder}
+              value={readDossierField(form.details, field.id)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setForm((current) => ({ ...current, details: updateDossierField(current.details, field.id, value) }));
+              }}
+            />
+          </label>)}
+        </div>
+        <details className="mt-4 border-t border-silver pt-3">
+          <summary className="cursor-pointer text-sm text-graphite">سایر مشخصات کاتالوگ</summary>
+          {form.details.map((item, index) => (!isDossierField(item.label) || !item.value.trim()) && <div key={index} className="my-2 grid gap-2 md:grid-cols-[1fr_2fr_auto]">
+            <input className={fieldClass} aria-label={`عنوان مشخصهٔ ${index + 1}`} value={item.label} onChange={(event) => updateDetail(index, "label", event.target.value)} />
+            <input className={fieldClass} aria-label={`مقدار مشخصهٔ ${index + 1}`} value={item.value} onChange={(event) => updateDetail(index, "value", event.target.value)} />
+            <button type="button" onClick={() => update("details", form.details.filter((_, position) => position !== index))} className="text-sm text-sapphire">حذف</button>
+          </div>)}
+          <button type="button" disabled={form.details.length >= 20} onClick={() => update("details", [...form.details, { label: "", value: "" }])} className="mt-2 text-sm text-sapphire underline underline-offset-4 disabled:opacity-50">افزودن مشخصه</button>
+        </details>
+      </fieldset>
       <label className={labelClass}>ویدیوی چرخش، در صورت آماده‌بودن<input className={fieldClass} dir="ltr" value={form.turntable_video_path ?? ""} onChange={(event) => update("turntable_video_path", event.target.value || null)} placeholder="مسیر کامل فایل ویدیو" /></label>
       <label className="flex items-start gap-3 text-sm leading-7"><input type="checkbox" checked={form.gallery_placement_verified} onChange={(event) => update("gallery_placement_verified", event.target.checked)} className="mt-2" />جای‌گذاری اثر روی استند و نسبت تصویر بررسی شده است.</label>
       <label className={labelClass}>وضعیت<select className={fieldClass} value={form.status} onChange={(event) => update("status", event.target.value as CatalogProductInput["status"])}><option value="review">در بازبینی</option><option value="published">انتشار عمومی</option><option value="archived">بایگانی</option></select></label>

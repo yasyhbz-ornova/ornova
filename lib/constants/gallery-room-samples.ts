@@ -1,5 +1,6 @@
 import type { CatalogCategoryId } from "./catalog";
 import type { Product } from "./products";
+import { findGalleryProduct } from "../catalog/gallery-product-link";
 import { galleryRenders } from "./gallery-renders";
 
 /** Measured blue stand silhouettes in the owner's final photographs (source pixels).
@@ -72,4 +73,32 @@ export function roomSamplesWithCatalog(products: readonly Product[]): Record<str
       src: placement.src, image: placement.image, bounds: placement.bounds, productSlug: product.slug });
   }
   return result;
+}
+
+type GalleryShowcaseEntry =
+  | { product: Product; sample?: GalleryRoomSample }
+  | { product: null; sample: GalleryRoomSample };
+
+export function galleryShowcaseEntries(products: readonly Product[]): Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>> {
+  const entries: Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>> = {};
+  const archive: Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>> = {};
+  const selectedPhotos = new Map<string, GalleryRoomSample>();
+  for (const samples of Object.values(roomSamplesWithCatalog(products))) {
+    for (const sample of samples) {
+      const linked = findGalleryProduct(products, sample);
+      if (linked) {
+        if (!selectedPhotos.has(linked.slug)) selectedPhotos.set(linked.slug, sample);
+      } else if (!sample.productSlug) {
+        (archive[sample.categoryId] ??= []).push({ product: null, sample });
+      }
+    }
+  }
+  for (const product of products.filter((item) => item.publicationStatus === "published").sort((a, b) => a.slug.localeCompare(b.slug))) {
+    const sample = selectedPhotos.get(product.slug);
+    (entries[product.categoryId] ??= []).push(sample ? { product, sample } : { product });
+  }
+  for (const category of Object.keys(archive) as CatalogCategoryId[]) {
+    (entries[category] ??= []).push(...(archive[category] ?? []));
+  }
+  return entries;
 }

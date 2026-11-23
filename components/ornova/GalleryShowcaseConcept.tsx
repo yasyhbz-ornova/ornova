@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
-import { galleryRoomStands, type GalleryRoomStand } from "@/lib/constants/gallery-room";
-import { roomSamplesWithCatalog, type GalleryRoomSample } from "@/lib/constants/gallery-room-samples";
+import Link, { type LinkProps } from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
+import { displayDossierField } from "@/lib/catalog/dossier-fields";
+import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catalog";
+import { galleryRoomStands } from "@/lib/constants/gallery-room";
+import { galleryShowcaseEntries, type GalleryRoomSample } from "@/lib/constants/gallery-room-samples";
 import type { Product } from "@/lib/constants/products";
-import { GalleryStandSurface } from "./GalleryStandSurface";
 import { OrnovaBrandMark } from "./OrnovaBrandMark";
 import styles from "./GalleryShowcaseConcept.module.css";
 
@@ -15,57 +17,154 @@ const shelves = [
   { top: 13.5 }, { top: 23.35 }, { top: 33.1 },
   { top: 42.35 }, { top: 51.5 }, { top: 60.6 },
 ] as const;
+const number = new Intl.NumberFormat("fa-IR");
+const motionPreference = "(prefers-reduced-motion: reduce)";
+const workInterval = 12_000;
+const tablePreviewPhoto = "05";
 
-function PlacedStand({ stand, sample, left, base, width, table = false }: {
-  stand: GalleryRoomStand; sample?: GalleryRoomSample; left: number; base: number; width: number; table?: boolean;
-}) {
-  const [bx, by, bw, bh] = stand.bounds;
-  const [iw, ih] = stand.image;
-  const style = {
-    left: `${left}%`, bottom: `${100 - base}%`, width: `${width}%`, aspectRatio: `${bw} / ${bh}`,
-    "--asset-width": `${iw / bw * 100}%`, "--asset-height": `${ih / bh * 100}%`,
-    "--asset-left": `${-bx / bw * 100}%`, "--asset-top": `${-by / bh * 100}%`,
-  } as CSSProperties;
-  return <div className={`${styles.placedStand} ${table ? styles.tableStand : ""} ${stand.categoryId === "rings" && sample?.number === "05" ? styles.ringPhotoStand : ""}`} style={style} aria-hidden="true">
-    <Image className={styles.standAsset} src={`/images/ornova/gallery/stands/${stand.asset}`} alt="" width={iw} height={ih} sizes={table ? "(max-width: 700px) 110px, 170px" : "90px"} />
-    <GalleryStandSurface stand={stand} sample={sample} />
-  </div>;
+function subscribeToMotionPreference(listener: () => void) {
+  const media = window.matchMedia(motionPreference);
+  media.addEventListener("change", listener);
+  return () => media.removeEventListener("change", listener);
 }
 
-export function GalleryShowcaseConcept({ products, catalogUnavailable = false }: { products: Product[]; catalogUnavailable?: boolean }) {
-  const samplesByCategory = useMemo(() => roomSamplesWithCatalog(products), [products]);
+function TrayRing({ sample }: { sample: GalleryRoomSample }) {
+  const clipId = useId();
+  // Trace only the metal and stone in the source 1008 × 634 photo, not the cushion.
+  return <svg className={styles.trayRing} viewBox="270 30 465 214" role="img" aria-label={sample.title} data-gallery-product-number={sample.number}>
+    <defs><clipPath id={clipId}>
+      <path clipRule="evenodd" d="M531 35 Q548 35 545 56 Q585 91 589 151 Q590 169 585 180 Q628 155 677 157 Q719 155 727 191 Q684 192 632 206 L574 220 Q574 236 554 230 Q520 243 491 229 Q469 242 468 218 L466 199 L322 196 Q278 196 276 168 Q274 135 303 121 Q334 108 380 99 Q485 75 519 56 Q515 39 531 35Z M312 163 Q353 146 468 124 Q454 153 457 187 Q357 189 312 165Z" />
+    </clipPath></defs>
+    <image href={sample.src} width={sample.image[0]} height={sample.image[1]} clipPath={`url(#${clipId})`} />
+  </svg>;
+}
+
+export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, onOpenPanel }: {
+  products: Product[]; catalogUnavailable?: boolean; panelOpen?: boolean; onOpenPanel?: (href: string) => void;
+}) {
+  const router = useRouter();
+  const entriesByCategory = useMemo(() => {
+    const entries = galleryShowcaseEntries(products);
+    for (const category of catalogCategories) {
+      const categoryEntries = entries[category.id];
+      if (categoryEntries) {
+        entries[category.id] = categoryEntries.filter(({ product, sample }) =>
+          product ? product.galleryPlacementVerified === true && Boolean(product.standImage)
+            : sample?.number === tablePreviewPhoto,
+        );
+      }
+    }
+    return entries;
+  }, [products]);
   const [indices, setIndices] = useState<Record<string, number>>({});
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<CatalogCategoryId | null>(null);
   const [magazineOpen, setMagazineOpen] = useState(false);
   const [dismissedTooltip, setDismissedTooltip] = useState<string | null>(null);
-  useEffect(() => {
-    if (!activeCategory && !magazineOpen) return;
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (magazineOpen) setMagazineOpen(false);
-      else setActiveCategory(null);
-    };
-    window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
-  }, [activeCategory, magazineOpen]);
+  const [autoPaused, setAutoPaused] = useState(false);
+  const [paperHovered, setPaperHovered] = useState(false);
+  const [paperFocused, setPaperFocused] = useState(false);
+  const reducedMotion = useSyncExternalStore(subscribeToMotionPreference, () => window.matchMedia(motionPreference).matches, () => true);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const backToGallery = useRef<HTMLButtonElement>(null);
+  const closeMagazine = useRef<HTMLButtonElement>(null);
+  const tableOpen = activeCategory !== null;
 
-  const currentSample = (categoryId: string) => {
-    const categorySamples = samplesByCategory[categoryId] ?? [];
-    return categorySamples.length ? categorySamples[(indices[categoryId] ?? 0) % categorySamples.length] : undefined;
-  };
+  useEffect(() => {
+    if (tableOpen) backToGallery.current?.focus();
+    else if (magazineOpen) closeMagazine.current?.focus();
+    else {
+      returnFocus.current?.focus();
+      returnFocus.current = null;
+    }
+  }, [tableOpen, magazineOpen]);
+
+  function showCategory(id: CatalogCategoryId, trigger?: HTMLElement) {
+    if (!entriesByCategory[id]?.length) return;
+    if (trigger) returnFocus.current = trigger;
+    setAutoPaused(true);
+    setPaperHovered(false);
+    setPaperFocused(false);
+    setMagazineOpen(false);
+    setActiveCategory(id);
+  }
+
+  function showMagazine(trigger: HTMLElement) {
+    returnFocus.current = trigger;
+    setMagazineOpen(true);
+  }
+
+  function handleEscape(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    if (tableOpen) {
+      event.stopPropagation();
+      setActiveCategory(null);
+    } else if (magazineOpen) {
+      event.stopPropagation();
+      setMagazineOpen(false);
+    }
+  }
+
+  function openBasket() {
+    if (onOpenPanel) onOpenPanel("/?galleryPanel=basket");
+    else router.push("/?galleryPanel=basket");
+  }
+
+  function panelLink(href: string): Pick<LinkProps, "href" | "onNavigate"> {
+    return {
+      href,
+      onNavigate: onOpenPanel ? (event) => {
+        event.preventDefault();
+        onOpenPanel(href);
+      } : undefined,
+    };
+  }
   const activeStand = galleryRoomStands.find((stand) => stand.categoryId === activeCategory);
-  const activeSample = activeCategory ? currentSample(activeCategory) : undefined;
-  const linkedProduct = activeSample ? findGalleryProduct(products, activeSample) : null;
-  const activeCount = activeCategory ? samplesByCategory[activeCategory]?.length ?? 0 : 0;
+  const categoryLabel = activeStand?.label ?? catalogCategories.find((category) => category.id === activeCategory)?.label;
+  const activeEntries = activeCategory ? entriesByCategory[activeCategory] ?? [] : [];
+  const activeCount = activeEntries.length;
   const activeIndex = activeCategory ? (indices[activeCategory] ?? 0) % Math.max(activeCount, 1) : 0;
+  const activeEntry = activeEntries[activeIndex];
+  const activeSample = activeEntry?.sample;
+  const linkedProduct = activeEntry?.product;
+  const canRequestProduct = linkedProduct?.galleryPlacementVerified === true && Boolean(linkedProduct.standImage);
+  const workName = linkedProduct?.name ?? activeSample?.title;
+  const workDetails = linkedProduct?.details ?? [];
+  const material = displayDossierField(workDetails, "material");
+  const stone = displayDossierField(workDetails, "stone");
+  const stoneColor = displayDossierField(workDetails, "stoneColor");
+  const weight = displayDossierField(workDetails, "weight");
+  const dimensions = displayDossierField(workDetails, "dimensions");
+  const autoAdvance = !autoPaused && !reducedMotion;
+
+  useEffect(() => {
+    if (!activeCategory || activeCount < 2 || !autoAdvance || panelOpen || paperHovered || paperFocused) return;
+    const category = activeCategory;
+    let timer: number;
+    function schedule() {
+      window.clearTimeout(timer);
+      if (document.hidden) return;
+      timer = window.setTimeout(() => {
+        setIndices((current) => ({ ...current, [category]: (activeIndex + 1) % activeCount }));
+      }, workInterval);
+    }
+    schedule();
+    document.addEventListener("visibilitychange", schedule);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", schedule);
+    };
+  }, [activeCategory, activeCount, activeIndex, autoAdvance, panelOpen, paperHovered, paperFocused]);
+
   const moveSample = (step: number) => {
     if (!activeCategory || activeCount < 2) return;
+    setAutoPaused(true);
     setIndices((current) => ({ ...current, [activeCategory]: ((current[activeCategory] ?? 0) + step + activeCount) % activeCount }));
   };
 
-  return <main className={styles.root} dir="rtl">
-    <div className={styles.scene}>
-      <Image
+  return <main className={styles.root} dir="rtl" onKeyDown={handleEscape}>
+    <div className={styles.scene} data-table-open={tableOpen || undefined}>
+      <div className={styles.roomView} inert={tableOpen || magazineOpen}>
+        <Image
         className={styles.architecture}
         src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23.webp"
         alt="سالن اُرنوا با اُرُسی سه‌لنگهٔ فیروزه‌ای و کهربایی، ویترین خاتم‌کاری و نشان و شعار برجستهٔ more than metal روی دیوار کاهگلی"
@@ -73,11 +172,12 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
         unoptimized
         preload
       />
-      <Link href="/?galleryPanel=account" className={styles.door} aria-label="ورود به حساب کاربری">
+      <Link {...panelLink("/?galleryPanel=account")} className={styles.door} aria-label="ورود به حساب کاربری">
         <span className={styles.doorTag} lang="en" dir="ltr">welcome</span>
       </Link>
       {galleryRoomStands.map((stand, index) => {
         const tier = shelves[index];
+        const available = Boolean(entriesByCategory[stand.categoryId]?.length);
         return (
           <button
             key={stand.id}
@@ -86,7 +186,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
             type="button"
             data-stand-id={stand.id}
             data-tooltip-dismissed={dismissedTooltip === stand.id || undefined}
-            aria-label={`نمایش ${stand.label} روی میز`}
+            aria-disabled={!available || undefined}
+            aria-label={available ? `نمایش ${stand.label} روی میز` : stand.label}
             onMouseLeave={() => setDismissedTooltip(null)}
             onBlur={() => setDismissedTooltip(null)}
             onKeyDown={(event) => {
@@ -95,42 +196,103 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false }:
                 setDismissedTooltip(stand.id);
               }
             }}
-            onClick={() => { setMagazineOpen(false); setActiveCategory(stand.categoryId); }}
+            onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}
           >
             <span className={styles.shelfGlow} aria-hidden="true" />
-            <span className={styles.shelfLabel}>{stand.label}</span>
             <span className={styles.shelfTooltip} aria-hidden="true">{stand.label}</span>
           </button>
         );
       })}
-      {activeStand && activeSample && <PlacedStand stand={activeStand} sample={activeSample} left={49.3} base={65.8} width={activeStand.categoryId === "rings" || activeStand.categoryId === "bracelets" ? 7.5 : 5.3} table />}
-      <button type="button" className={styles.book} onClick={() => { setActiveCategory(null); setMagazineOpen(true); }} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
-      <Link href="/?galleryPanel=contact" className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
-      <Link href="/?galleryPanel=basket" className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />
+      <button type="button" className={styles.book} onClick={(event) => showMagazine(event.currentTarget)} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
+      <Link {...panelLink("/?galleryPanel=contact")} className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
+      <Link {...panelLink("/?galleryPanel=basket")} className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />
+      </div>
+      <section className={styles.tableView} inert={!tableOpen} aria-label="نمای نزدیک میز و سینی">
+        {tableOpen && <picture className={styles.seatedPicture}>
+          <source media="(max-width: 700px) and (orientation: portrait)" srcSet="/images/ornova/gallery/review/ornova-velvet-tray-mobile-v1.webp" />
+          <Image className={styles.architecture} src="/images/ornova/gallery/review/ornova-velvet-tray-desktop-v1.webp" alt="" fill sizes="100vw" unoptimized loading="eager" />
+        </picture>}
+        {tableOpen && <>
+          <button ref={backToGallery} type="button" className={styles.backToGallery} onClick={() => setActiveCategory(null)}>بازگشت به گالری <span aria-hidden="true">↙</span></button>
+          {activeEntry && <><div className={styles.tableComposition} role="group" aria-label="سینی مخمل آبی افغانی">
+            <div className={styles.tableDisplay}>
+              <div key={linkedProduct?.slug ?? activeSample?.number} className={styles.tableProduct}>
+                {linkedProduct?.standImage
+                  ? <div className={styles.catalogCutout} data-table-product={linkedProduct.slug}>
+                      <Image src={linkedProduct.standImage} alt={linkedProduct.name} fill sizes="(max-width: 700px) 124px, 260px" unoptimized />
+                    </div>
+                  : activeSample && <TrayRing sample={activeSample} />}
+              </div>
+            </div>
+            <div
+              className={styles.tablePaper}
+              onPointerEnter={(event) => { if (event.pointerType === "mouse") setPaperHovered(true); }}
+              onPointerLeave={() => setPaperHovered(false)}
+              onFocus={() => setPaperFocused(true)}
+              onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaperFocused(false); }}
+            >
+              <article className={styles.dossier} tabIndex={0} aria-live={autoAdvance ? "off" : "polite"} aria-label="شناسنامهٔ اثر روی میز">
+                <header className={styles.dossierHeader}>
+                  <span lang="en" dir="ltr">Ornova by Yas</span>
+                  <span>شناسنامهٔ اثر</span>
+                </header>
+                <div className={styles.workName}>
+                  <span>نام طرح</span><h1>{workName}</h1>
+                </div>
+                <dl className={styles.workDetails}>
+                  <div><dt>دسته</dt><dd>{linkedProduct?.category ?? categoryLabel}</dd></div>
+                  <div><dt>جنس</dt><dd>{material || "نامشخص"}</dd></div>
+                  <div><dt>سنگ</dt><dd>{stone || "نامشخص"}</dd></div>
+                  <div><dt>وزن</dt><dd>{weight || "نامشخص"}</dd></div>
+                  {stoneColor && <div><dt>رنگ سنگ</dt><dd>{stoneColor}</dd></div>}
+                  {dimensions && <div><dt>ابعاد</dt><dd>{dimensions}</dd></div>}
+                </dl>
+              </article>
+            </div>
+          </div>
+          <div className={styles.tableActions}>
+          <div
+            className={styles.reservation}
+            onPointerEnter={(event) => { if (event.pointerType === "mouse") setPaperHovered(true); }}
+            onPointerLeave={() => setPaperHovered(false)}
+            onFocus={() => setPaperFocused(true)}
+            onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaperFocused(false); }}
+          >
+            {linkedProduct && canRequestProduct
+              ? <RequestBasketButton key={linkedProduct.slug} item={{ slug: linkedProduct.slug, name: linkedProduct.name, category: linkedProduct.category }} label="درخواست رزرو" onAdded={openBasket} />
+              : <>
+                  <button type="button" disabled aria-describedby="gallery-reservation-status">درخواست رزرو</button>
+                  <p id="gallery-reservation-status" className={styles.reservationStatus}>فعلاً قابل رزرو نیست</p>
+                </>}
+          </div>
+          {activeCount > 1 && <div className={styles.navigation} role="group" aria-label="ورق زدن آثار این دسته">
+            <button type="button" aria-label="اثر قبلی" onClick={() => moveSample(-1)}><span aria-hidden="true">→</span></button>
+            <span>{number.format(activeIndex + 1)} از {number.format(activeCount)}</span>
+            <button type="button" aria-label="اثر بعدی" onClick={() => moveSample(1)}><span aria-hidden="true">←</span></button>
+            {!reducedMotion && <button type="button" onClick={() => setAutoPaused((paused) => !paused)} aria-label={autoAdvance ? "توقف تعویض خودکار" : "ادامهٔ تعویض خودکار"}>
+              <span aria-hidden="true">{autoAdvance ? "Ⅱ" : "▷"}</span>
+            </button>}
+          </div>}
+          </div></>}
+        </>}
+      </section>
     </div>
-    <div className={styles.mobileShelfList} role="group" aria-label="دسته‌های ویترین">
-      <button type="button" aria-pressed={magazineOpen} onClick={() => { setActiveCategory(null); setMagazineOpen(true); }}>کتاب آثار</button>
-      {galleryRoomStands.map((stand) => <button key={stand.id} type="button" aria-pressed={activeCategory === stand.categoryId} onClick={() => { setMagazineOpen(false); setActiveCategory(stand.categoryId); }}>{stand.label}</button>)}
+    <div className={styles.mobileShelfList} hidden={tableOpen} inert={magazineOpen} role="group" aria-label="دسته‌های ویترین">
+      <button type="button" aria-pressed={magazineOpen} onClick={(event) => showMagazine(event.currentTarget)}>کتاب آثار</button>
+      {galleryRoomStands.map((stand) => <button key={stand.id} type="button" disabled={!entriesByCategory[stand.categoryId]?.length} onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}>{stand.label}</button>)}
     </div>
-    {activeStand && activeSample && <aside className={styles.dossier} aria-live="polite" aria-label="شناسنامهٔ اثر روی میز">
-      <button className={styles.close} type="button" onClick={() => setActiveCategory(null)} aria-label="بستن شناسنامه">×</button>
-      <OrnovaBrandMark className={styles.dossierBrand} />
-      <p className={styles.kicker}>شناسنامهٔ اثر · {activeStand.label}</p>
-      <h1>{linkedProduct?.name ?? activeSample.title}</h1>
-      <figure className={styles.mobileProduct}><Image src={activeSample.src} alt={activeSample.title} width={activeSample.image[0]} height={activeSample.image[1]} sizes="90vw" unoptimized /></figure>
-      <dl><div><dt>شناسهٔ تصویر</dt><dd>{activeSample.number}</dd></div><div><dt>گروه</dt><dd>{activeStand.label}</dd></div></dl>
-      {linkedProduct ? <Link className={styles.request} href={`/?galleryPanel=product&product=${encodeURIComponent(linkedProduct.slug)}`}>مشخصات و ثبت درخواست خرید ←</Link> : <p className={styles.pending}>مشخصات سفارش این اثر هنوز تأیید نشده است.</p>}
-      <div className={styles.navigation}><button type="button" onClick={() => moveSample(-1)} disabled={activeCount < 2}>اثر قبلی</button><span>{new Intl.NumberFormat("fa-IR").format(activeIndex + 1)} از {new Intl.NumberFormat("fa-IR").format(activeCount)}</span><button type="button" onClick={() => moveSample(1)} disabled={activeCount < 2}>اثر بعدی</button></div>
-    </aside>}
     {magazineOpen && <section className={styles.magazine} aria-label="کتاب فهرست آثار">
-      <button type="button" className={styles.close} onClick={() => setMagazineOpen(false)} aria-label="بستن فهرست">×</button>
+      <button ref={closeMagazine} type="button" className={styles.close} onClick={() => setMagazineOpen(false)} aria-label="بستن فهرست">×</button>
       <OrnovaBrandMark className={styles.dossierBrand} />
       <h1>کتاب آثار اُرنوا</h1>
       <p>دستهٔ موردنظرت را انتخاب کن تا آثار آن روی میز نمایش داده شوند.</p>
-      <div className={styles.magazineCategories}>{galleryRoomStands.map((stand) => <button key={stand.id} type="button" onClick={() => { setMagazineOpen(false); setActiveCategory(stand.categoryId); }}><span>{stand.label}</span><small>{new Intl.NumberFormat("fa-IR").format(samplesByCategory[stand.categoryId]?.length ?? 0)} تصویر</small></button>)}</div>
+      <div className={styles.magazineCategories}>{catalogCategories.map((category) => {
+        const count = entriesByCategory[category.id]?.length ?? 0;
+        if (!count) return null;
+        return <button key={category.id} type="button" onClick={() => showCategory(category.id)}><span>{category.label}</span><small>{number.format(count)} اثر</small></button>;
+      })}</div>
       {catalogUnavailable && <p className={styles.pending}>فهرست برخط محصولات موقتاً در دسترس نیست؛ تصویرهای تأییدشدهٔ گالری نمایش داده می‌شوند.</p>}
-      <Link href="/?galleryPanel=magazine">دیدن فهرست کامل و مجموعه‌های مناسبتی ←</Link>
+      <Link {...panelLink("/?galleryPanel=magazine")}>دیدن فهرست کامل و مجموعه‌های مناسبتی ←</Link>
     </section>}
-    {!activeCategory && !magazineOpen && <p className={styles.hint}>یکی از طبقه‌های ویترین را انتخاب کن؛ محصول روی میز نمایان می‌شود.</p>}
   </main>;
 }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { toCatalogForm } from "../lib/catalog/editor-form.ts";
+import { displayDossierField, isDossierField, readDossierField, updateDossierField } from "../lib/catalog/dossier-fields.ts";
 
 test("catalog editor strips database-only fields before another strict save", () => {
   const stored = {
@@ -18,4 +19,27 @@ test("catalog editor strips database-only fields before another strict save", ()
   assert.equal(form.revision, 3);
   form.gallery[0].alt = "تغییر";
   assert.equal(stored.gallery[0].alt, "انگشتر");
+});
+
+test("fixed dossier inputs update legacy labels and preserve other catalog details", () => {
+  const existing = [
+    { label: "وزن", value: "۳ گرم" },
+    { label: "نوع سنگ", value: "بدون سنگ" },
+    { label: "پرداخت", value: "مات" },
+  ];
+  assert.equal(readDossierField(existing, "weight"), "۳ گرم");
+  assert.equal(readDossierField(existing, "stone"), "بدون سنگ");
+  assert.ok(isDossierField("نوع‌سنگ"));
+  let details = updateDossierField(existing, "weight", "۳٫۲ گرم");
+  details = updateDossierField(details, "dimensions", "۱۲ × ۸ میلی‌متر");
+  assert.deepEqual(details, [
+    { label: "وزن تقریبی", value: "۳٫۲ گرم" },
+    ...existing.slice(1),
+    { label: "ابعاد تقریبی", value: "۱۲ × ۸ میلی‌متر" },
+  ]);
+  assert.equal(displayDossierField(details, "weight"), "۳٫۲ گرم");
+  assert.equal(displayDossierField(details, "stone"), "بدون سنگ");
+  assert.equal(readDossierField(updateDossierField(details, "stone", ""), "stone"), "");
+  assert.equal(displayDossierField([], "weight"), "");
+  assert.equal(displayDossierField([{ label: "سنگ", value: "جزئیات پس از بررسی درخواست اعلام می‌شود" }], "stone"), "پس از بررسی");
 });

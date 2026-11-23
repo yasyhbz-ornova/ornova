@@ -70,3 +70,15 @@ test("catalog list is staff-only and reports database failure", async () => {
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
+
+test("staff dossier details reach storage in the existing catalog format", async () => {
+  const ready = fixture();
+  const details = [
+    { label: "جنس", value: "نقره" },
+    { label: "سنگ", value: "بدون سنگ" },
+    { label: "وزن تقریبی", value: "۳٫۲ گرم" },
+    { label: "ابعاد تقریبی", value: "۱۲ × ۸ میلی‌متر" },
+  ];
+  assert.equal((await ready.post({ ...product, details })).status, 201);
+  assert.deepEqual(ready.writes[0][1].p_product.details, details);
+});
