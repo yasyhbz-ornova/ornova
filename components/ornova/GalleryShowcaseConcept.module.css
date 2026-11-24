@@ -134,6 +134,12 @@
 .book { top: 73.5%; left: 84.5%; width: 10.5%; height: 5%; }
 .phone { top: 78%; left: 1.5%; width: 11%; height: 18%; }
 .register { top: 78%; left: 13%; width: 9%; height: 17%; }
+.roomView :is(.door, .book, .phone, .register)[data-guide-current] {
+  background-color: #fff1d01a;
+  box-shadow: 0 0 0 1px #fff0d3eb, 0 0 .7rem #ffd99299;
+}
+.roomView :is(.book, .phone, .register)[data-guide-current] { border-radius: .25rem; }
+.shelfTrigger[data-guide-current] .shelfSign { filter: brightness(1.22) drop-shadow(0 0 3px #fff0cc); }
 .door:focus-visible, .shelfTrigger:focus-visible, .book:focus-visible, .phone:focus-visible, .register:focus-visible { outline: 2px solid #355a82; outline-offset: -2px; }
 .tableView { position: absolute; z-index: 1; inset: 0; isolation: isolate; visibility: hidden; opacity: 0; transition: opacity 420ms ease, visibility 420ms; }
 .tableView, .staffTrayPreview {
@@ -347,7 +353,7 @@
 }
 @media (max-width: 700px) and (orientation: portrait) and (hover: none) {
   .roomView { --touch-index-space: 6rem; }
-  .roomView:has(:is([data-guide-stop="magazine"], [data-guide-stop="cashier"], [data-guide-stop="phone"])) { --lower-guide-space: 8.25rem; }
+  .roomView:has(:is([data-guide-stop="magazine"], [data-guide-stop="cashier"], [data-guide-stop="phone"])) { --lower-guide-space: 9rem; }
   .mobileShelfIndex {
     position: absolute;
     z-index: 3;

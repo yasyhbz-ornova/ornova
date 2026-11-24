@@ -42,11 +42,11 @@
 .note h2 { margin: 0; font-size: .93rem; font-weight: 700; line-height: 1.55; }
 .note p { margin: .2rem 0 .35rem; font-size: .83rem; line-height: 1.65; }
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .6rem; border-top: 1px solid #79552d3d; }
-.controls > button { min-height: 2.05rem; padding: .13rem 0; border: 0; background: transparent; color: #584739; font-size: .71rem; cursor: pointer; }
+.controls > button { min-height: 44px; padding: .13rem 0; border: 0; background: transparent; color: #584739; font-size: .71rem; cursor: pointer; }
 .controls > button:first-child { color: #233e59; font-weight: 700; }
 .controls > button[aria-disabled="true"] { opacity: .48; cursor: default; }
 .controls > button:last-child:not(:nth-child(2)) { margin-inline-start: auto; }
-.replay { right: max(.65rem, 2%); bottom: max(.55rem, env(safe-area-inset-bottom)); padding: .39rem .7rem; border-radius: .3rem; font-size: .78rem; cursor: pointer; }
+.replay { right: max(.65rem, 2%); bottom: max(.55rem, env(safe-area-inset-bottom)); min-height: 44px; padding: .39rem .7rem; border-radius: .3rem; font-size: .78rem; cursor: pointer; }
 .controls button:focus-visible, .replay:focus-visible { outline: 2px solid #355a82; outline-offset: 2px; }
 
 @media (max-width: 700px) and (orientation: portrait) {

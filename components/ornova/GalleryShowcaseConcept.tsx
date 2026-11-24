@@ -75,6 +75,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const roomBook = useRef<HTMLButtonElement>(null);
   const closeMagazine = useRef<HTMLButtonElement>(null);
   const tableOpen = activeCategory !== null;
+  const visibleGuideStop = !tableOpen && !magazineOpen && !panelOpen ? guide.stop : undefined;
   const pointedShelf = hoveredShelf ?? focusedShelf;
   const visibleTooltip = !tableOpen && !magazineOpen && !panelOpen && pointedShelf !== dismissedTooltip ? pointedShelf : null;
 
@@ -230,7 +231,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             fetchPriority="high"
           />
         </picture>
-      <Link {...panelLink("/?galleryPanel=studio", "studio")} className={styles.door} aria-label="ورود به کارگاه طراحی">
+      <Link {...panelLink("/?galleryPanel=studio", "studio")} className={styles.door} data-guide-current={visibleGuideStop === "studio" || undefined} aria-label="ورود به کارگاه طراحی">
         <span className={styles.doorTag} lang="en" dir="ltr">welcome</span>
       </Link>
       {galleryRoomStands.map((stand, index) => {
@@ -252,6 +253,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
           >
             <button
               className={styles.shelfTrigger}
+              data-guide-current={visibleGuideStop === "showcase" || undefined}
               type="button"
               data-stand-id={stand.id}
               aria-disabled={!count || undefined}
@@ -283,9 +285,9 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
           </div>
         );
       })}
-      <button ref={roomBook} type="button" className={styles.book} onClick={(event) => showMagazine(event.currentTarget)} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
-      <Link {...panelLink("/?galleryPanel=phone", "phone")} className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
-      <Link {...panelLink("/?galleryPanel=basket", "cashier")} className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />
+      <button ref={roomBook} type="button" className={styles.book} data-guide-current={visibleGuideStop === "magazine" || undefined} onClick={(event) => showMagazine(event.currentTarget)} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
+      <Link {...panelLink("/?galleryPanel=phone", "phone")} className={styles.phone} data-guide-current={visibleGuideStop === "phone" || undefined} aria-label="ارتباط با اُرنوا از تلفن گالری" />
+      <Link {...panelLink("/?galleryPanel=basket", "cashier")} className={styles.register} data-guide-current={visibleGuideStop === "cashier" || undefined} aria-label="باز کردن صندوق درخواست‌ها" />
       <div className={styles.mobileShelfIndex} role="group" aria-label="دسته‌های ویترین">
         {galleryRoomStands.map((stand) => <button
           key={stand.id}

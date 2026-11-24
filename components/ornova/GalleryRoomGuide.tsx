@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import styles from "./GalleryRoomGuide.module.css";
 
 const stops = [
@@ -49,6 +49,7 @@ export function useGalleryRoomGuide() {
   const step = useSyncExternalStore(subscribe, getStep, () => -1);
   return {
     step,
+    stop: stops[step]?.id,
     follow(stop: GalleryGuideStop) {
       const current = getStep();
       if (stops[current]?.id === stop) setStep(current + 1);
@@ -62,10 +63,23 @@ export function useGalleryRoomGuide() {
 }
 
 export function GalleryRoomGuide({ step }: { step: number }) {
+  const primaryControl = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
+  useEffect(() => {
+    if (!restoreFocus.current) return;
+    restoreFocus.current = false;
+    primaryControl.current?.focus({ preventScroll: true });
+  }, [step]);
+
+  function switchGuide(next: number) {
+    restoreFocus.current = true;
+    setStep(next);
+  }
+
   if (step < 0) return null;
   const stop = stops[step];
   if (!stop) {
-    return <button type="button" className={styles.replay} onClick={() => setStep(0)}>راهنمای بازدید</button>;
+    return <button ref={primaryControl} type="button" className={styles.replay} onClick={() => switchGuide(0)}>راهنمای بازدید</button>;
   }
   const isLast = step === stops.length - 1;
 
@@ -76,9 +90,9 @@ export function GalleryRoomGuide({ step }: { step: number }) {
         <p>{stop.instruction}</p>
       </div>
       <div className={styles.controls}>
-        <button type="button" onClick={() => setStep(step + 1)}>{isLast ? "پایان راهنما" : "بخش بعدی"}</button>
+        <button ref={primaryControl} type="button" onClick={() => isLast ? switchGuide(stops.length) : setStep(step + 1)}>{isLast ? "پایان راهنما" : "بخش بعدی"}</button>
         <button type="button" aria-disabled={step === 0 || undefined} onClick={() => { if (step > 0) setStep(step - 1); }}>قبلی</button>
-        {!isLast && <button type="button" onClick={() => setStep(stops.length)}>رد کردن راهنما</button>}
+        {!isLast && <button type="button" onClick={() => switchGuide(stops.length)}>رد کردن راهنما</button>}
       </div>
     </aside>
   );

@@ -125,6 +125,35 @@ test("mobile tray and cashier retain their layout", async ({ page }) => {
   await expect(page).toHaveScreenshot("cashier.png");
 });
 
+test("the visit guide marks its objects and restores keyboard focus on finish and replay", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/");
+  const replay = page.getByRole("button", { name: "راهنمای بازدید", exact: true });
+  const guide = page.getByRole("complementary", { name: "راهنمای بازدید" });
+  const next = guide.getByRole("button", { name: "بخش بعدی", exact: true });
+  await replay.press("Enter");
+  await expect(next).toBeFocused();
+
+  for (const [stop, target] of [
+    ["showcase", page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true })],
+    ["magazine", magazine(page)],
+    ["cashier", page.getByRole("link", { name: "باز کردن صندوق درخواست‌ها", exact: true })],
+    ["phone", page.getByRole("link", { name: "ارتباط با اُرنوا از تلفن گالری", exact: true })],
+    ["studio", page.getByRole("link", { name: "ورود به کارگاه طراحی", exact: true })],
+  ] as const) {
+    await expect(guide).toHaveAttribute("data-guide-stop", stop);
+    await expect(guide).toBeInViewport({ ratio: 1 });
+    await expect(target).toHaveAttribute("data-guide-current", "true");
+    if (stop === "studio") await guide.getByRole("button", { name: "پایان راهنما" }).press("Enter");
+    else await next.press("Enter");
+  }
+  await expect(replay).toBeFocused();
+  await replay.press("Enter");
+  await expect(next).toBeFocused();
+  await guide.getByRole("button", { name: "رد کردن راهنما" }).press("Enter");
+  await expect(replay).toBeFocused();
+});
+
 test("downloaded archive receipts include the stamp and only their confirmed amount", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const acceptedId = "39fe816c-5c30-4cde-8200-611bcfb2afd0";
