@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { isAuthSessionMissingError } from "@supabase/supabase-js";
 import { signOutCurrentSession } from "@/app/account/actions";
 import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
@@ -25,14 +25,21 @@ type AccountProfile = {
 };
 
 type PanelState = "checking" | "guest" | "signed-in" | "ready" | "unavailable";
-type AccountIdentity = { phone: string; displayName: string };
+type AccountIdentity = { phone: string; displayName: string; canOpenIdea: boolean };
 type AccountInquiry = { id: string; status: string; created_at: string; message: string };
 type InquiryItem = { inquiry_id: string; product_name: string; quantity: number; preferences?: unknown };
 type InquiryFile = { id: string; inquiry_id: string; original_name: string };
 type InquiryHistory = { inquiries: AccountInquiry[]; items: InquiryItem[]; files: InquiryFile[]; quotes: CustomerQuoteDTO[]; detailsError: boolean; quoteError: boolean; quoteReadAt: string };
 type ActiveQuote = { quote: CustomerQuoteDTO; isPreviousVersion: boolean; checkedAt: string };
+export type WorkshopBookPage = "profile" | "orders" | "idea";
+const bookPages = [
+  { id: "profile", title: "مشخصات من" },
+  { id: "orders", title: "سفارش‌های من" },
+  { id: "idea", title: "ایده و سفارش اختصاصی" },
+] as const;
+type WorkshopBook = { page: WorkshopBookPage; onPageChange(page: WorkshopBookPage): void; authorizeIdea(accountId: string): boolean; idea: ReactNode; hasDraft: boolean; busy: boolean };
 
-export function GalleryAccountPanel({ completionMode, initialError, signOutFailed = false, onReturnToBasket, nextDestination, prepareEmailDestination }: { completionMode: boolean; initialError?: string | null; signOutFailed?: boolean; onReturnToBasket?: () => void; nextDestination?: string; prepareEmailDestination?: () => string | null }) {
+export function GalleryAccountPanel({ completionMode, initialError, signOutFailed = false, onReturnToBasket, nextDestination, prepareEmailDestination, workshopBook }: { completionMode: boolean; initialError?: string | null; signOutFailed?: boolean; onReturnToBasket?: () => void; nextDestination?: string; prepareEmailDestination?: () => string | null; workshopBook?: WorkshopBook }) {
   const [state, setState] = useState<PanelState>("checking");
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [identity, setIdentity] = useState<AccountIdentity | null>(null);
@@ -41,21 +48,42 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
   const [historyError, setHistoryError] = useState(false);
   const [activeQuote, setActiveQuote] = useState<ActiveQuote | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const bookNav = useRef<HTMLElement>(null);
+  const bookPageIndex = bookPages.findIndex((page) => page.id === workshopBook?.page);
+  const authorizeIdea = workshopBook?.authorizeIdea;
+
+  function turnPage(index: number) {
+    const next = bookPages[index];
+    if (!next || !workshopBook || workshopBook.busy || index === bookPageIndex) return;
+    setActiveQuote(null);
+    workshopBook.onPageChange(next.id);
+    window.requestAnimationFrame(() => bookNav.current?.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus());
+  }
 
   useEffect(() => {
     let active = true;
+    let subscription: { unsubscribe(): void } | undefined;
     async function loadSession() {
       setState("checking");
       setHistory(null);
       setHistoryError(false);
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const client = createSupabaseBrowserClient();
+        subscription = client.auth.onAuthStateChange((event) => {
+          if (event !== "SIGNED_OUT") return;
+          active = false;
+          setProfile(null);
+          setIdentity(null);
+          setHistory(null);
+          setActiveQuote(null);
+          setState("guest");
+        }).data.subscription;
+        const { data: { user }, error: authError } = await client.auth.getUser();
         if (!active) return;
         if (authError && !isAuthSessionMissingError(authError)) throw authError;
         if (!user) { setIdentity(null); setProfile(null); setState("guest"); return; }
 
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from("profiles")
           .select("display_name,phone,design_note,province,city,postal_code,address_line")
           .maybeSingle();
@@ -63,6 +91,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
         setIdentity({
           phone: user.phone ?? "",
           displayName: typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "",
+          canOpenIdea: authorizeIdea?.(user.id) ?? false,
         });
         setProfileUnavailable(Boolean(error));
         setProfile(error ? null : data as AccountProfile | null);
@@ -82,8 +111,8 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
       }
     }
     void loadSession();
-    return () => { active = false; };
-  }, [attempt, completionMode]);
+    return () => { active = false; subscription?.unsubscribe(); };
+  }, [attempt, authorizeIdea, completionMode]);
 
   const profileForm = <ProfileForm
     displayName={profile?.display_name ?? identity?.displayName ?? ""}
@@ -101,14 +130,15 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
 
   let content;
   if (state === "checking") content = <p className="text-sm leading-7 text-graphite/65" role="status">در حال بررسی حساب…</p>;
-  else if (state === "unavailable") content = <div className="grid gap-3 text-sm leading-7 text-graphite/70" role="alert"><p>{prepareEmailDestination ? "حساب فعلاً در دسترس نیست. می‌توانی به ایده‌ات در کارگاه برگردی." : "اتصال امن حساب فعلاً پاسخ نداد؛ انتخاب‌های صندوق در همین مرورگر محفوظ‌اند."}</p><button type="button" className="w-fit border-b border-silver pb-1 text-sapphire" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>;
+  else if (state === "unavailable") content = <div className="grid gap-3 text-sm leading-7 text-graphite/70" role="alert"><p>{workshopBook ? "حساب فعلاً در دسترس نیست. برای بازکردن دفتر دوباره تلاش کن." : "اتصال امن حساب فعلاً پاسخ نداد؛ انتخاب‌های صندوق در همین مرورگر محفوظ‌اند."}</p><button type="button" className="w-fit border-b border-silver pb-1 text-sapphire" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>;
   else if (state === "guest") content = <>
     <div className={styles.accountLogin}>
       <p className={styles.accountLoginHeading}>{completionMode ? "برای ادامهٔ درخواست، ابتدا با ایمیل وارد شو." : prepareEmailDestination ? "برای ورود یا ثبت‌نام، ایمیلت را وارد کن. لینک یک‌بارمصرف تو را به همین کارگاه برمی‌گرداند." : "لینک ورود یک‌بارمصرف به ایمیلت فرستاده می‌شود."}</p>
+      {workshopBook?.hasDraft && <p className={styles.accountLoginHeading}>برای ادامه بعد از ورود، پیش‌نویس تا ۳۰ دقیقه در همین مرورگر می‌ماند.</p>}
       <MagicLinkForm compact initialError={initialError} nextDestination={completionMode ? "/?galleryPanel=account&complete=1" : nextDestination} prepareEmailDestination={prepareEmailDestination} />
     </div>
   </>;
-  else if (state === "signed-in") content = <details className={styles.accountProfile} open={profileUnavailable || undefined}>
+  else if (state === "signed-in" && !workshopBook) content = <details className={styles.accountProfile} open={profileUnavailable || undefined}>
     <summary>ویرایش تماس و نشانی</summary>
     {profileUnavailable && <p className="text-sm leading-7" role="status">اطلاعات قبلی در دسترس نیست. قبل از ثبت درخواست، تماس و نشانی را بررسی کن.</p>}
     {profileForm}
@@ -118,12 +148,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
       {profileForm}
     </div>;
 
-  return <div className={styles.accountWorkflow}>
-    {activeQuote ? <CustomerQuoteDocument quote={activeQuote.quote} isPreviousVersion={activeQuote.isPreviousVersion} checkedAt={activeQuote.checkedAt} embedded onBack={() => setActiveQuote(null)} onAccepted={(acceptedAt) => { setActiveQuote(current => current && { ...current, quote: { ...current.quote, accepted_at: acceptedAt } }); setHistory(current => current && { ...current, quotes: current.quotes.map(quote => quote.id === activeQuote.quote.id ? { ...quote, accepted_at: acceptedAt } : quote) }); }} /> : <>
-    {signOutFailed && <p className="border-r-2 border-sapphire px-4 py-2 text-sm leading-7 text-graphite/70" role="alert">خروج از حساب انجام نشد؛ دوباره تلاش کن.</p>}
-    {state === "ready" && completionMode && <p className="text-sm leading-7 text-graphite/75">پس از ذخیرهٔ شمارهٔ تماس و نشانی، به صندوق برمی‌گردی.</p>}
-    {content}
-    {state === "signed-in" && <section className={`${styles.accountHistory} account-inquiries`} aria-labelledby="gallery-account-inquiries-title">
+  const historyPage = state === "signed-in" && <section className={`${styles.accountHistory} account-inquiries`} aria-labelledby="gallery-account-inquiries-title">
       <div className="account-section-title"><h2 id="gallery-account-inquiries-title">درخواست‌های من</h2></div>
       {historyError ? <div className="account-empty" role="alert"><p>پرونده‌های درخواست فعلاً دریافت نشدند؛ این پیام به معنی حذف اطلاعات نیست.</p><button type="button" className="mt-4 text-sm text-sapphire underline underline-offset-4" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>
         : !history ? <p className="account-empty" role="status">در حال بازکردن پرونده‌های خصوصی…</p>
@@ -148,10 +173,29 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
             </article>;
           })}
         </div>}
-    </section>}
-    {state === "signed-in" && !completionMode && <form action={signOutCurrentSession} className="border-t border-silver pt-4 text-right">
+    </section>;
+  const signOut = state === "signed-in" && !completionMode && <form action={signOutCurrentSession} className="border-t border-silver pt-4 text-right">
       <button type="submit" className="min-h-11 border-b border-silver pb-1 text-sm text-graphite/60 underline underline-offset-4 transition-colors hover:text-sapphire focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sapphire">خروج از حساب</button>
-    </form>}
+    </form>;
+
+  return <div className={styles.accountWorkflow}>
+    {activeQuote && state === "signed-in" ? <CustomerQuoteDocument quote={activeQuote.quote} isPreviousVersion={activeQuote.isPreviousVersion} checkedAt={activeQuote.checkedAt} embedded onBack={() => setActiveQuote(null)} onAccepted={(acceptedAt) => { setActiveQuote(current => current && { ...current, quote: { ...current.quote, accepted_at: acceptedAt } }); setHistory(current => current && { ...current, quotes: current.quotes.map(quote => quote.id === activeQuote.quote.id ? { ...quote, accepted_at: acceptedAt } : quote) }); }} /> : <>
+    {signOutFailed && <p className="border-r-2 border-sapphire px-4 py-2 text-sm leading-7 text-graphite/70" role="alert">خروج از حساب انجام نشد؛ دوباره تلاش کن.</p>}
+    {state === "ready" && completionMode && <p className="text-sm leading-7 text-graphite/75">پس از ذخیرهٔ شمارهٔ تماس و نشانی، به صندوق برمی‌گردی.</p>}
+    {workshopBook ? state === "signed-in" ? <div className={styles.customerBook}>
+      <nav ref={bookNav} className={styles.customerBookIndex} aria-label="برگ‌های دفتر مشتری">
+        {bookPages.map((page, index) => <button key={page.id} type="button" aria-current={workshopBook.page === page.id ? "page" : undefined} disabled={workshopBook.busy} onClick={() => turnPage(index)}>{page.title}</button>)}
+      </nav>
+      {bookPages.map((page) => <section key={page.id} className={styles.customerBookLeaf} aria-label={page.title} hidden={workshopBook.page !== page.id} inert={workshopBook.page !== page.id}>
+        {page.id !== "orders" && <h3>{page.title}</h3>}
+        {page.id === "profile" ? content : page.id === "orders" ? historyPage : identity?.canOpenIdea ? workshopBook.idea : <p role="status">برای بازکردن پیش‌نویس ایده، با حسابی وارد شو که ایده را در آن شروع کردی.</p>}
+      </section>)}
+      <footer className={styles.customerBookTurn}>
+        <button type="button" disabled={workshopBook.busy || bookPageIndex <= 0} onClick={() => turnPage(bookPageIndex - 1)}><span aria-hidden="true">→ </span>برگ قبلی</button>
+        <button type="button" disabled={workshopBook.busy || bookPageIndex >= bookPages.length - 1} onClick={() => turnPage(bookPageIndex + 1)}>برگ بعدی<span aria-hidden="true"> ←</span></button>
+      </footer>
+      {signOut}
+    </div> : <div className={styles.customerBookLock}>{content}</div> : <>{content}{historyPage}{signOut}</>}
     </>}
   </div>;
 }

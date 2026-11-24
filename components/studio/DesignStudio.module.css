@@ -1,10 +1,11 @@
 .studio { max-width: 1440px; margin: auto; padding: 3.5rem 6vw 5rem; display: grid; grid-template-columns: .7fr 1.3fr; gap: clamp(2rem, 6vw, 6rem); align-items: start; }
-.embedded { max-width: none; min-height: calc(100svh - 110px); padding: clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3.5rem) 3rem; gap: clamp(1.5rem, 4vw, 4rem); }
+.embedded { max-width: 72rem; min-height: calc(100svh - 110px); grid-template-columns: minmax(12rem, .46fr) minmax(0, 1fr); padding: clamp(1rem, 2.8vw, 2rem) clamp(1rem, 3vw, 2.5rem) 3rem; gap: clamp(1rem, 3.3vw, 3rem); }
 .embedded .intro { position: static; }
 .embedded .reference { display: none; }
 .intro { position: sticky; top: 1.5rem; padding: .5rem 0; }
 .eyebrow { font-size: .8rem; color: var(--color-sapphire); }
 .intro h1 { font-family: var(--font-display); font-size: clamp(2.2rem, 3.8vw, 3.5rem); line-height: 1.7; font-weight: 400; margin: 1rem 0; }
+.embedded .intro h1 { margin-block: .3rem .55rem; font-size: clamp(1.55rem, 3.25vw, 2.55rem); line-height: 1.55; }
 .intro h1:focus { outline: none; }
 .intro > p:not(.eyebrow) { font-size: .85rem; line-height: 2.2; color: color-mix(in srgb, var(--color-graphite) 80%, transparent); max-width: 32ch; }
 .reference { margin-top: 2rem; max-width: 320px; }
@@ -18,12 +19,33 @@
 .workshopNav button[aria-expanded="true"] { border-color: var(--color-sapphire); }
 .workshopNav button:disabled { opacity: .55; cursor: default; }
 .workshopNav button:focus-visible, .customerAccount button:focus-visible { outline: 2px solid var(--color-sapphire); outline-offset: 3px; }
-.customerAccount { min-width: 0; border: 1px solid var(--color-silver); background: var(--color-ivory-soft); padding: clamp(1rem, 4vw, 1.75rem); }
-.customerAccount > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1rem; margin-bottom: 1rem; }
-.customerAccount > header h2 { font-family: var(--font-display); font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 400; }
+.customerAccount { min-width: 0; padding: clamp(.55rem, 1.9vw, 1.45rem); }
+.customerAccount[data-book-requested="true"] { border: 1px solid #dad0be; background: #f8f3e8e8; }
+.customerAccount > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1rem; margin-bottom: .6rem; }
+.customerAccount > header h2 { color: #47382c; font-family: "Ornova Nastaliq", var(--font-display), serif; font-size: clamp(1.3rem, 2.6vw, 1.85rem); font-weight: 400; line-height: 1.8; }
 .customerAccount > header h2:focus { outline: none; }
-.customerAccount > header button, .accountDraftNote { font-size: .75rem; }
-.accountDraftNote { margin-bottom: 1rem; line-height: 1.9; }
+.customerAccount > header button { font-size: .75rem; }
+.closedBook {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  inline-size: min(100%, 15rem);
+  margin: .7rem auto 1.5rem;
+  padding: 2.5rem .75rem;
+  border: 1px solid #574438;
+  border-radius: 3px 10px 8px 3px;
+  color: #e3d2ad;
+  background: linear-gradient(80deg, #4b3b37f5, #705545ec 90%, #4c3a2d), url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / cover;
+  box-shadow: inset -6px 0 #3628215c, 0 3px #957954, 0 5px #dfcb9e, 0 7px #533c2e, 5px 13px 14px #35251d5e;
+  font-family: "Ornova Nastaliq", var(--font-display), serif;
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 2;
+  cursor: pointer;
+}
+.closedBook svg { width: 2.25rem; height: 2.4rem; }
+.closedBook:focus-visible { outline: 2px solid #385a77; outline-offset: 4px; }
+.customerAccount .conversation { padding: .5rem 0; border: 0; background: transparent; }
 .conversation { min-width: 0; border: 1px solid var(--color-silver); background: var(--color-ivory-soft); padding: 24px 28px; }
 .chatHeader { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-bottom: 18px; font-size: .85rem; }
 .chatHeader span:last-child { font-size: .7rem; color: var(--color-sapphire); }
@@ -84,7 +106,9 @@
 @media (prefers-reduced-motion: no-preference) { .currentQuestion { animation: questionArrival 200ms ease-out; } }
 @media (max-width: 800px) {
   .studio { grid-template-columns: 1fr; gap: 1.5rem; padding: 1.5rem 1.5rem 3rem; }
-  .embedded { min-height: auto; gap: .5rem; padding: .5rem 1rem 2rem; }
+  .embedded { min-height: auto; gap: .5rem; padding: .45rem clamp(.35rem, 2.2vw, 1rem) 2rem; }
+  .embedded .intro { padding-inline: .35rem; }
+  .embedded .intro .workshopNav { margin-top: .2rem; }
   .intro { padding: 0; position: static; }
   .intro h1 { font-size: 2.2rem; line-height: 1.7; margin: .5rem 0; }
   .intro h1 br { display: none; }

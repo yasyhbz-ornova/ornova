@@ -3,8 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useRef, useState } from "react";
-import { GalleryAccountPanel } from "@/components/ornova/GalleryAccountPanel";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { GalleryAccountPanel, type WorkshopBookPage } from "@/components/ornova/GalleryAccountPanel";
+import { OrnovaSymbol } from "@/components/ornova/OrnovaBrandMark";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { buildStudioBrief, parseStudioDraft, STUDIO_QUESTIONS, studioLoginPath, type StudioDraft } from "@/lib/studio/conversation";
 import styles from "./DesignStudio.module.css";
@@ -15,11 +16,11 @@ type Conversation = { answers: string[]; input: string; note: string };
 
 export type StudioInquiryMode = "transferred" | "review-existing";
 
-export function DesignStudio({ draftId, userId, imageMode = "offline", embedded = false, active = true, onOpenInquiry, onReturnToInquiry, onOpenAccountGallery }: { draftId: string | null; userId: string | null; imageMode?: "offline" | "preview"; embedded?: boolean; active?: boolean; onOpenInquiry?: (mode: StudioInquiryMode) => void; onReturnToInquiry?: () => void; onOpenAccountGallery?: () => void }) {
+export function DesignStudio({ draftId, userId, initialBookPage = null, imageMode = "offline", embedded = false, active = true, onOpenInquiry, onReturnToInquiry, onOpenAccountGallery }: { draftId: string | null; userId: string | null; initialBookPage?: WorkshopBookPage | null; imageMode?: "offline" | "preview"; embedded?: boolean; active?: boolean; onOpenInquiry?: (mode: StudioInquiryMode) => void; onReturnToInquiry?: () => void; onOpenAccountGallery?: () => void }) {
   const router = useRouter();
   const [conversation, setConversation] = useState<Conversation>({ answers: [], input: "", note: "" });
   const [currentUserId, setCurrentUserId] = useState(userId);
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [bookPage, setBookPage] = useState<WorkshopBookPage | null>(initialBookPage);
   const [consent, setConsent] = useState(false);
   const [gate, setGate] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -27,6 +28,10 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
   const [result, setResult] = useState<{ id: string; imageUrl: string } | null>(null);
   const requestId = useRef<string | null>(null);
   const ideaOwnerId = useRef<string | null>(userId);
+  const authorizeIdea = useCallback((accountId: string) => {
+    ideaOwnerId.current ??= accountId;
+    return ideaOwnerId.current === accountId;
+  }, []);
   const activeDraftId = useRef(draftId);
   const inFlight = useRef(false);
   const [uncertain, setUncertain] = useState(false);
@@ -34,6 +39,7 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
   const messagesRef = useRef<HTMLDivElement>(null);
   const reviewRef = useRef<HTMLHeadingElement>(null);
   const accountRef = useRef<HTMLHeadingElement>(null);
+  const accountTrigger = useRef<HTMLButtonElement>(null);
   const copyOperation = useRef<symbol | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "manual">("idle");
   const { answers, input, note } = conversation;
@@ -88,25 +94,25 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
     } catch { return null; }
   }
 
-  function openAccount() {
-    setAccountOpen(true);
+  function openAccount(page: WorkshopBookPage) {
+    setBookPage(page);
     window.requestAnimationFrame(() => accountRef.current?.focus());
   }
 
-  function openIdea() {
-    setAccountOpen(false);
-    window.requestAnimationFrame(() => (question ? inputRef.current : reviewRef.current)?.focus());
+  function closeAccount() {
+    setBookPage(null);
+    window.requestAnimationFrame(() => accountTrigger.current?.focus());
   }
 
   function prepareAccountDestination() {
-    const studioPath = "/?galleryPanel=studio";
+    const studioPath = `/?galleryPanel=studio&customerPage=${bookPage ?? "profile"}`;
     if (!answers.length && !input.trim()) return studioPath;
     const id = saveDeviceDraft();
     return id ? `${studioPath}&draft=${encodeURIComponent(id)}` : null;
   }
 
   function login() {
-    if (embedded) { openAccount(); return; }
+    if (embedded) { openAccount("idea"); return; }
     const id = saveDeviceDraft();
     if (id) router.push(studioLoginPath(id));
     else setError("مرورگر اجازهٔ نگهداری ایده را نداد. پیش از ورود، خلاصه را کپی کن تا از دست نرود.");
@@ -115,7 +121,12 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
   function clearDeviceDraft() {
     try {
       if (activeDraftId.current) localStorage.removeItem(draftKey(activeDraftId.current));
-      router.push("/custom-design");
+      if (embedded) {
+        activeDraftId.current = null;
+        setConversation({ answers: [], input: "", note: "" });
+        setResult(null); setGate(false); setConsent(false); setUncertain(false); setError(""); requestId.current = null;
+        router.replace("/?galleryPanel=studio&customerPage=idea");
+      } else router.push("/custom-design");
     } catch { setError("پاک‌کردن پیش‌نویس انجام نشد؛ تنظیمات ذخیره‌سازی مرورگر را بررسی کن."); }
   }
 
@@ -177,18 +188,7 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
     finally { if (copyOperation.current === operation) copyOperation.current = null; }
   }
 
-  return <div className={`${styles.studio} ${embedded ? styles.embedded : ""}`}>
-    <aside className={styles.intro}>
-      <p className={styles.eyebrow}>استودیو طراحی اختصاصی</p><h1 id={embedded && active ? "gallery-drawer-title" : undefined} tabIndex={embedded ? -1 : undefined}>از ایدهٔ تو{" "}<br />شروع کنیم.</h1>
-      <p>لازم نیست همه‌چیز را بدانی.<br />از فرم، رنگ یا حسی که در ذهن داری بگو.</p>
-      {embedded && <nav className={styles.workshopNav} aria-label="میز مشتری در کارگاه">
-        <button type="button" onClick={openAccount} disabled={busy} aria-expanded={accountOpen} aria-controls="studio-customer-account">حساب مشتری</button>
-        <button type="button" onClick={openIdea} disabled={busy}>ثبت ایده</button>
-      </nav>}
-      <figure className={styles.reference}><div><Image src="/images/ornova/lajvard-shab-04.png" alt="انگشتر لاجورد شب کنار دست‌نوشته؛ نمونه‌ای از آرشیو Ornova" fill sizes="(max-width: 800px) 1px, 400px" className={styles.referencePhoto} /></div><figcaption>از آرشیو Ornova by Yas · لاجورد شب</figcaption></figure>
-      {!embedded && <nav aria-label="مسیرهای دیگر استودیو"><Link href="/account/gallery">گالری من <span aria-hidden="true">↖</span></Link><Link href="/ring-builder">طراحی انگشتر <span aria-hidden="true">↖</span></Link></nav>}
-    </aside>
-    <section className={styles.conversation} aria-label="گفت‌وگوی طراحی" hidden={accountOpen} inert={accountOpen}>
+  const ideaPage = <section className={styles.conversation} aria-label="گفت‌وگوی طراحی">
       <header className={styles.chatHeader}><span>دفتر ایدهٔ تو</span><span>{question ? `${new Intl.NumberFormat("fa-IR").format(answers.length + 1)} از ۴` : "مرور ایده"}</span></header>
       <ol className={styles.progress} aria-label="مراحل تعریف ایده">{STUDIO_QUESTIONS.map((step, index) => <li key={step.label} aria-current={index === answers.length ? "step" : undefined} data-complete={index < answers.length}><span aria-hidden="true">{new Intl.NumberFormat("fa-IR").format(index + 1)}</span>{step.label}</li>)}</ol>
       <p className={styles.disclosure}>راهنمای مرحله‌ای برای جمع‌بندی ایده؛ پاسخ‌گوی زندهٔ هوش مصنوعی نیست.</p>
@@ -223,14 +223,25 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
           <p role="status">تصویر در گالری خصوصی تو ذخیره شد.</p>{embedded && onOpenAccountGallery ? <button type="button" className={styles.libraryAction} onClick={onOpenAccountGallery}>دیدن گالری من ←</button> : <Link href="/account/gallery">دیدن گالری من ←</Link>}<button type="button" onClick={() => edit(1)}>اصلاح ایده و ساخت نسخهٔ تازه</button>
         </div>}
       </div>}
-      {error && <div className={styles.error}><p role="alert">{error}</p>{!onReturnToInquiry && (embedded && onOpenInquiry ? <button type="button" onClick={() => onOpenInquiry("review-existing")}>بازکردن تلفن گالری <span aria-hidden="true">←</span></button> : <Link href="/contact?from=custom-design">بازکردن فرم درخواست و بررسی پیش‌نویس <span aria-hidden="true">←</span></Link>)}</div>}
-      <footer className={styles.chatFooter}><span>برای تعریف ایده، نیازی به ورود نیست.</span>{draftId && <button type="button" onClick={clearDeviceDraft} disabled={busy}>پاک‌کردن پیش‌نویس این دستگاه</button>}{!embedded && <a href="/custom-design">شروع یک ایدهٔ تازه</a>}</footer>
-    </section>
-    {embedded && <section id="studio-customer-account" className={styles.customerAccount} aria-labelledby="studio-customer-account-title" hidden={!accountOpen}>
-      {accountOpen && <>
-        <header><h2 id="studio-customer-account-title" ref={accountRef} tabIndex={-1}>حساب مشتری</h2><button type="button" onClick={openIdea}>بازگشت به ایده</button></header>
-        {(answers.length > 0 || input.trim()) && <p className={styles.accountDraftNote}>برای ادامه بعد از ورود، پیش‌نویس تا ۳۰ دقیقه در همین مرورگر می‌ماند.</p>}
-        <GalleryAccountPanel completionMode={false} prepareEmailDestination={prepareAccountDestination} />
+      {error && <div className={styles.error}><p role="alert">{error}</p>{!onReturnToInquiry && (embedded && onOpenInquiry ? <button type="button" onClick={() => onOpenInquiry("review-existing")}>بازکردن پیش‌نویس درخواست <span aria-hidden="true">←</span></button> : <Link href="/contact?from=custom-design">بازکردن فرم درخواست و بررسی پیش‌نویس <span aria-hidden="true">←</span></Link>)}</div>}
+      {(draftId || !embedded) && <footer className={styles.chatFooter}>{draftId && <button type="button" onClick={clearDeviceDraft} disabled={busy}>پاک‌کردن پیش‌نویس این دستگاه</button>}{!embedded && <a href="/custom-design">شروع یک ایدهٔ تازه</a>}</footer>}
+    </section>;
+
+  return <div className={`${styles.studio} ${embedded ? styles.embedded : ""}`}>
+    <aside className={styles.intro}>
+      <p className={styles.eyebrow}>اُرنوا</p>
+      <h1 id={embedded && active ? "gallery-drawer-title" : undefined} tabIndex={embedded ? -1 : undefined}>{embedded ? "کارگاه طراحی" : "از ایدهٔ تو شروع کنیم."}</h1>
+      {embedded && <nav className={styles.workshopNav} aria-label="میز مشتری در کارگاه">
+        <button ref={accountTrigger} type="button" onClick={() => openAccount("profile")} disabled={busy} aria-expanded={Boolean(bookPage)} aria-controls="studio-customer-account">حساب مشتری</button>
+        <button type="button" onClick={() => openAccount("idea")} disabled={busy}>ثبت ایده</button>
+      </nav>}
+      <figure className={styles.reference}><div><Image src="/images/ornova/lajvard-shab-04.png" alt="انگشتر لاجورد شب کنار دست‌نوشته؛ نمونه‌ای از آرشیو Ornova" fill sizes="(max-width: 800px) 1px, 400px" className={styles.referencePhoto} /></div><figcaption>از آرشیو Ornova by Yas · لاجورد شب</figcaption></figure>
+      {!embedded && <nav aria-label="مسیرهای دیگر استودیو"><Link href="/account/gallery">گالری من <span aria-hidden="true">↖</span></Link><Link href="/ring-builder">طراحی انگشتر <span aria-hidden="true">↖</span></Link></nav>}
+    </aside>
+    {!embedded ? ideaPage : <section id="studio-customer-account" aria-label="دفتر مشتری" className={styles.customerAccount} data-book-requested={Boolean(bookPage)}>
+      {!bookPage ? <button className={styles.closedBook} type="button" onClick={() => openAccount("profile")}><OrnovaSymbol />دفتر مشتری</button> : <>
+        <header><h2 ref={accountRef} tabIndex={-1}>دفتر مشتری</h2><button type="button" onClick={closeAccount} disabled={busy}>بستن دفتر</button></header>
+        <GalleryAccountPanel completionMode={false} prepareEmailDestination={prepareAccountDestination} workshopBook={{ page: bookPage, onPageChange: setBookPage, authorizeIdea, idea: ideaPage, hasDraft: Boolean(answers.length || input.trim()), busy }} />
       </>}
     </section>}
   </div>;

@@ -30,13 +30,12 @@ function subscribeToMotionPreference(listener: () => void) {
 type PhotoReturn = { label: string; onBack(): void };
 export type GalleryShowcaseHandle = { openPhoto(photo: GalleryShowcasePhoto, returnTo: PhotoReturn): boolean };
 
-export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, productPreview, onOpenPanel, onOpenBirthMonths, ref }: {
+export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, productPreview, onOpenPanel, ref }: {
   products: Product[];
   catalogUnavailable?: boolean;
   panelOpen?: boolean;
   productPreview?: { product: Pick<Product, "slug" | "categoryId">; backLabel?: string; onClose(): void };
   onOpenPanel?: (href: string) => void;
-  onOpenBirthMonths?: (trigger: HTMLButtonElement) => void;
   ref?: Ref<GalleryShowcaseHandle>;
 }) {
   const router = useRouter();
@@ -53,7 +52,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     return entries;
   }, [products]);
   const [indices, setIndices] = useState<Record<string, number>>({});
-  const [table, setTable] = useState<{ categoryId: CatalogCategoryId; returnTo?: PhotoReturn } | null>(null);
+  const [table, setTable] = useState<{ categoryId: CatalogCategoryId; returnTo?: PhotoReturn; fromShelf?: boolean } | null>(null);
   const previewEntry = productPreview
     ? entriesByCategory[productPreview.product.categoryId]?.find((entry) => entry.product?.slug === productPreview.product.slug)
     : undefined;
@@ -87,7 +86,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     setPaperHovered(false);
     setPaperFocused(false);
     if (!returnTo) setMagazineOpen(false);
-    setTable({ categoryId: id, returnTo });
+    setTable({ categoryId: id, returnTo, fromShelf: Boolean(trigger?.dataset.standId) });
   }
 
   useImperativeHandle(ref, () => ({
@@ -111,6 +110,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   }
 
   function showMagazine(trigger: HTMLElement) {
+    if (onOpenPanel) {
+      onOpenPanel("/?galleryPanel=magazine");
+      return;
+    }
     returnFocus.current = trigger;
     setMagazineOpen(true);
   }
@@ -176,7 +179,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   };
 
   return <main className={styles.root} dir="rtl" onKeyDown={handleEscape}>
-    <div className={styles.scene} data-table-open={tableOpen || undefined}>
+    <div className={styles.scene} data-table-open={tableOpen || undefined} data-shelf-approach={(tableOpen && table?.fromShelf && !previewProduct) || undefined}>
       <div className={styles.roomView} inert={tableOpen || magazineOpen || panelOpen}>
         <Image
         className={styles.architecture}
@@ -218,10 +221,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
         );
       })}
       <button ref={roomBook} type="button" className={styles.book} onClick={(event) => showMagazine(event.currentTarget)} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
-      <Link {...panelLink("/?galleryPanel=contact")} className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
+      <Link {...panelLink("/?galleryPanel=phone")} className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
       <Link {...panelLink("/?galleryPanel=basket")} className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />
       </div>
-      <section className={styles.tableView} inert={!tableOpen || panelOpen} aria-label="نمای نزدیک میز و سینی">
+      <section className={styles.tableView} inert={!tableOpen || panelOpen} aria-hidden={!tableOpen || panelOpen || undefined} aria-label="نمای نزدیک میز و سینی">
         {tableOpen && <GalleryTrayBackdrop />}
         {tableOpen && <>
           <button ref={backToGallery} type="button" className={styles.backToGallery} onClick={closeTable}>{(previewProduct ? productPreview?.backLabel : table?.returnTo?.label) ?? "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
@@ -230,10 +233,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
               <div key={linkedProduct?.slug ?? activeSample?.number} className={styles.tableProduct}>
                 {linkedProduct?.standImage
                   ? <div className={styles.catalogCutout} data-table-product={linkedProduct.slug}>
-                      <Image src={linkedProduct.standImage} alt={linkedProduct.name} fill sizes="(max-width: 700px) 124px, 260px" unoptimized />
+                      <Image src={linkedProduct.standImage} alt={linkedProduct.name} fill sizes="(max-width: 700px) 124px, 260px" loading="eager" unoptimized />
                     </div>
                   : activeSample && trayImage && <div className={styles.archiveCutout} data-gallery-product-number={activeSample.number} data-tray-cutout>
-                        <Image src={trayImage} alt={activeSample.title} fill sizes="(max-width: 700px) 140px, 352px" unoptimized />
+                        <Image src={trayImage} alt={activeSample.title} fill sizes="(max-width: 700px) 140px, 352px" loading="eager" unoptimized />
                       </div>}
               </div>
             </div>
@@ -253,24 +256,24 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             </div>
           </div>
           <div className={styles.tableActions}>
-            {linkedProduct && canRequestProduct && <div
+            <div
               className={styles.orderAction}
               onPointerEnter={(event) => { if (event.pointerType === "mouse") setPaperHovered(true); }}
               onPointerLeave={() => setPaperHovered(false)}
               onFocus={() => setPaperFocused(true)}
               onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaperFocused(false); }}
             >
-              <RequestBasketButton key={linkedProduct.slug} item={{ slug: linkedProduct.slug, name: linkedProduct.name, category: linkedProduct.category }} label="ثبت سفارش" keepExistingQuantity onAdded={openBasket} />
-            </div>}
+              {linkedProduct && canRequestProduct
+                ? <RequestBasketButton key={linkedProduct.slug} item={{ slug: linkedProduct.slug, name: linkedProduct.name, category: linkedProduct.category }} label="ثبت سفارش" keepExistingQuantity onAdded={openBasket} />
+                : activeSample && <Link {...panelLink(`/?galleryPanel=contact&archive=${activeSample.number}`)} prefetch={false}>ثبت سفارش</Link>}
+            </div>
             {canChangeWork && activeCount > 1 && <div
               className={styles.navigation}
               role="group"
               aria-label="ورق زدن آثار این دسته"
-              onFocus={() => setPaperFocused(true)}
-              onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaperFocused(false); }}
             >
               <button type="button" aria-label="اثر قبلی" onClick={() => moveSample(-1)}><span aria-hidden="true">→</span></button>
-              <button type="button" aria-label="اثر بعدی" onClick={() => moveSample(1)}><span aria-hidden="true">←</span></button>
+              <button type="button" aria-label="اثر بعدی" onClick={() => moveSample(1)}>بعدی <span aria-hidden="true">←</span></button>
             </div>}
           </div></>}
         </>}
@@ -287,7 +290,6 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
         return <button key={category.id} type="button" onClick={() => showCategory(category.id)}><span>{category.label}</span><small>{number.format(count)} اثر</small></button>;
       })}</div>
       <div className={styles.magazineLinks}>
-        {onOpenBirthMonths && <button type="button" onClick={(event) => onOpenBirthMonths(event.currentTarget)}>ماه‌های تولد</button>}
         <Link {...panelLink("/?galleryPanel=account")}>حساب من</Link>
       </div>
       {catalogUnavailable && <p className={styles.pending}>فهرست برخط محصولات موقتاً در دسترس نیست؛ تصویرهای تأییدشدهٔ گالری نمایش داده می‌شوند.</p>}

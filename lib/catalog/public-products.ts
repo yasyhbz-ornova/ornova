@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCatalogSelection } from "@/lib/constants/catalog";
 import { isReferenceOnlyGalleryPhoto } from "@/lib/constants/gallery-renders";
-import { products as legacyProducts, type Product } from "@/lib/constants/products";
+import { getProductBySlug, products as legacyProducts, type Product } from "@/lib/constants/products";
 import { roomPlacementSchema } from "@/lib/catalog/room-placement";
 
 type CatalogRow = {
@@ -21,7 +21,23 @@ export async function getPublishedProducts(): Promise<Product[]> {
   // Existing installations show the original catalog until migration 017 is applied.
   if (error?.code === "42P01" || error?.code === "PGRST205") return legacyProducts;
   if (error) throw new Error("Catalog read failed");
-  return ((data ?? []) as CatalogRow[]).flatMap((row) => {
+  return ((data ?? []) as CatalogRow[]).flatMap((stored) => {
+    let row = stored;
+    // Replace the original floral import while retaining the published SKU and staff-entered details.
+    if (row.slug === "sepid-brooch"
+      && row.image_path === "/images/ornova/sepid-brooch-01.png"
+      && row.stand_image_path === "/images/ornova/gallery/products/sepid-brooch-stand-cutout-preview-v1.webp") {
+      const brooch = getProductBySlug(row.slug);
+      if (brooch?.standImage) row = {
+        ...row,
+        name: brooch.name,
+        description: brooch.description,
+        image_path: brooch.image,
+        stand_image_path: brooch.standImage,
+        gallery: [...brooch.gallery, ...row.gallery.filter(({ src }) => src !== row.image_path && src !== row.stand_image_path && src !== brooch.image)],
+        room_placement: null,
+      };
+    }
     const category = resolveCatalogSelection(row.category_id, row.subtype_id).category;
     if (!category) throw new Error("Catalog category invalid");
     const gallery = row.gallery.filter(({ src }) => !isReferenceOnlyGalleryPhoto(src));

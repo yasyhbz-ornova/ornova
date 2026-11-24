@@ -6,7 +6,7 @@ export const metadata = createPageMetadata({ title: "استودیو طراحی �
 
 export default async function CustomDesignPage({ searchParams }: { searchParams: Promise<{ draft?: string }> }) {
   const { draft } = await searchParams;
-  const params = new URLSearchParams({ galleryPanel: "studio" });
+  const params = new URLSearchParams({ galleryPanel: "studio", customerPage: "idea" });
   if (isStudioId(draft)) params.set("draft", draft);
   redirect(`/?${params.toString()}`);
 }

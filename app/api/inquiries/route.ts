@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getProductBySlug } from "@/lib/constants/products";
+import { visibleGalleryRenders } from "@/lib/constants/gallery-renders";
 import { isSameOriginRequest } from "@/lib/auth/authorization";
 import { parseProductPreferences, productConfigurationKey } from "@/lib/commerce/product-preferences";
 
 const inquirySchema = z.object({
   customer_name: z.string().trim().min(1).max(80),
-  message: z.string().trim().min(1).max(5000),
+  message: z.string().trim().max(5000),
+  archive_photo: z.string().regex(/^\d{2}$/).optional(),
   contact: z.string().trim().min(1).max(320),
   items: z.array(z.object({
     product_slug: z.string().trim().min(1).max(120),
@@ -23,6 +25,16 @@ export async function POST(request: Request) {
 
   try {
     const body = inquirySchema.parse(await request.json());
+    const archive = body.archive_photo ? visibleGalleryRenders.find((photo) => photo.number === body.archive_photo) : undefined;
+    if ((body.archive_photo && (!archive || body.items.length)) || (!archive && !body.message)) {
+      return NextResponse.json({ error: "اطلاعات درخواست کامل یا معتبر نیست." }, { status: 400 });
+    }
+    const message = archive
+      ? [`درخواست سفارش اثر آرشیو «${archive.title}» (عکس ${archive.number})`, body.message].filter(Boolean).join("\n\n")
+      : body.message;
+    if (message.length > 5000) {
+      return NextResponse.json({ error: "متن درخواست بیش از اندازه طولانی است." }, { status: 400 });
+    }
     const supabase = await createSupabaseServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -54,7 +66,7 @@ export async function POST(request: Request) {
     const rpcName = multipleConfigurations ? "create_inquiry_with_configurations" : items.some((item) => item?.preferences) ? "create_inquiry_with_preferences" : "create_inquiry_with_items";
     const { data: inquiryId, error: inquiryError } = await supabase.rpc(rpcName, {
       p_customer_name: body.customer_name,
-      p_message: body.message,
+      p_message: message,
       p_contact: body.contact,
       p_items: items.filter((item): item is NonNullable<typeof item> => item !== null),
     });

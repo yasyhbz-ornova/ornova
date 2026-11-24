@@ -50,12 +50,26 @@ function routeFixture({ user = { id: "customer-a" }, rpcError = null, catalogErr
   const { POST } = load("app/api/inquiries/route.ts", {
     "@/lib/supabase/server": { createSupabaseServerClient: async () => ({ auth: { getUser: async () => ({ data: { user }, error: null }) }, from: () => ({ select: () => ({ in: () => ({ eq: async () => ({ data: catalogError ? null : catalogRows, error: catalogError }) }) }) }), rpc: async (...args) => { calls.push(args); return { data: rpcError ? null : "inquiry-id", error: rpcError }; } }) },
     "@/lib/constants/products": load("lib/constants/products.ts"),
+    "@/lib/constants/gallery-renders": load("lib/constants/gallery-renders.ts"),
     "@/lib/commerce/product-preferences": prefs,
     "@/lib/auth/authorization": load("lib/auth/authorization.ts"),
   });
-  const send = (items) => POST(new Request("http://localhost:3058/api/inquiries", { method: "POST", headers: { origin: "http://localhost:3058", "content-type": "application/json" }, body: JSON.stringify({ customer_name: "آزمایش", message: "بررسی قطعه", contact: "synthetic@example.invalid", items }) }));
+  const send = (items, overrides = {}) => POST(new Request("http://localhost:3058/api/inquiries", { method: "POST", headers: { origin: "http://localhost:3058", "content-type": "application/json" }, body: JSON.stringify({ customer_name: "آزمایش", message: "بررسی قطعه", contact: "synthetic@example.invalid", items, ...overrides }) }));
   return { calls, send };
 }
+
+test("archive requests persist the title for a visible photo without inventing a catalog item", async () => {
+  const ready = routeFixture();
+  assert.equal((await ready.send([], { archive_photo: "07", message: "" })).status, 201);
+  assert.match(ready.calls[0][1].p_message, /سنجاق‌سینهٔ نواری مشبک/);
+  assert.deepEqual(ready.calls[0][1].p_items, []);
+  const invalid = routeFixture();
+  for (const photo of ["06", "99", "07/"]) {
+    assert.equal((await invalid.send([], { archive_photo: photo })).status, 400);
+  }
+  assert.equal((await invalid.send([{ product_slug: "sepid-brooch", quantity: 1 }], { archive_photo: "07" })).status, 400);
+  assert.equal(invalid.calls.length, 0);
+});
 
 test("configured inquiry uses atomic preference-aware RPC; missing schema never falls back and loses preferences", async () => {
   const item = { product_slug: "lajvard-shab-ring", quantity: 2, preferences: { version: 1, ring_size_eu: 54, stone_note: " آبی " } };

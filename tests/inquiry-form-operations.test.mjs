@@ -17,7 +17,7 @@ function form({run=async()=>({status:201,json:async()=>({id})}),upload=async()=>
   const browser={localStorage:local,sessionStorage:session,location:{search:""},addEventListener(){},removeEventListener(){},dispatchEvent(){}};
   const react={useState(initial){const i=cursor++;hooks[i]??={value:typeof initial==="function"?initial():initial};return[hooks[i].value,next=>{hooks[i].value=typeof next==="function"?next(hooks[i].value):next;}];},useRef(value){const i=cursor++;hooks[i]??={current:value};return hooks[i];},useEffect(fn,deps){const i=cursor++;if(!hooks[i]||deps.some((v,n)=>v!==hooks[i].deps[n])){hooks[i]={deps};effects.push(fn);}},useMemo:fn=>fn(),useSyncExternalStore:(_,snapshot)=>snapshot()};
   const jsx={jsx:(type,props,key)=>({type,props,key}),jsxs:(type,props,key)=>({type,props,key})},loaded={exports:{}};
-  new Function("require","exports","window","fetch","FormData","document",ts.transpileModule(readFileSync(new URL("../components/commerce/InquiryForm.tsx",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText)(name=>name==="react"?react:name==="react/jsx-runtime"?jsx:name==="next/link"?{default:"a"}:name==="./ProductPreferencesSummary"?{ProductPreferencesSummary:"summary"}:name==="@/lib/supabase/client"?{createSupabaseBrowserClient:()=>({auth:{getUser:async()=>({data:{user:null}})}})}:name==="@/lib/commerce/upload-inquiry-file"?{uploadInquiryReferenceFile:(target,file)=>{uploads.push({target,file});return upload(target,file);}}:name.startsWith("@/")?loadTs(name.slice(2)+".ts"):require(name),loaded.exports,browser,async(url,options)=>{calls.push({url,options});const response=await run(url,options);return{...response,ok:response.status>=200&&response.status<300};},class {get(k){return k==="file"?fields.file.files[0]:fields[k]?.value;}},{activeElement:null});
+  new Function("require","exports","window","fetch","FormData","document",ts.transpileModule(readFileSync(new URL("../components/commerce/InquiryForm.tsx",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText)(name=>name==="react"?react:name==="react/jsx-runtime"?jsx:name==="next/link"?{default:"a"}:name==="./GalleryOrderReceipt"?{GalleryOrderReceipt:"gallery-receipt"}:name==="./ProductPreferencesSummary"?{ProductPreferencesSummary:"summary"}:name==="@/lib/supabase/client"?{createSupabaseBrowserClient:()=>({auth:{getUser:async()=>({data:{user:null}})}})}:name==="@/lib/commerce/upload-inquiry-file"?{uploadInquiryReferenceFile:(target,file)=>{uploads.push({target,file});return upload(target,file);}}:name.startsWith("@/")?loadTs(name.slice(2)+".ts"):require(name),loaded.exports,browser,async(url,options)=>{calls.push({url,options});const response=await run(url,options);return{...response,ok:response.status>=200&&response.status<300};},class {get(k){return k==="file"?fields.file.files[0]:fields[k]?.value;}},{activeElement:null});
   const nodes=(node=tree)=>!node||typeof node!=="object"?[]:[node,...[node.props?.children].flat(Infinity).filter(v=>v!=null).flatMap(v=>nodes(v))];
   const text=(node=tree)=>typeof node==="string"?node:!node||typeof node!=="object"?" ":[node.props?.children].flat(Infinity).filter(v=>v!=null).map(v=>text(v)).join(" ");
   function render(){cursor=0;tree=loaded.exports.InquiryForm(props);while(typeof tree.type==="function")tree=tree.type(tree.props);for(const n of nodes()){if(n.props?.ref)n.props.ref.current=n.type==="form"?formElement:fields[n.props.name];}for(const effect of effects.splice(0))cleanups.push(effect());return tree;}
@@ -51,6 +51,21 @@ test("success clears only included unchanged ring, and completion after unmount 
 });
 test("form context key changes across source/product/intent rather than reusing an old receipt",()=>{
   const c=form();assert.notEqual(c.contextKey({sourceContext:"custom-design"}),c.contextKey({sourceContext:"ring-builder"}));assert.notEqual(c.contextKey({intent:"price"}),c.contextKey({intent:"question"}));
+});
+
+test("archive submits the exact photo with an isolated draft and stamps only a confirmed receipt", async () => {
+  const otherDraft = JSON.stringify({ message: "یادداشت سفارش دیگر" });
+  const session = storage({ [draftKey]: otherDraft });
+  const c = form({ session, props: { archiveOrder: { number: "08", title: "آویز آرشیو" }, includeRingDraft: false, galleryMode: true } });
+  assert.notEqual(c.fields.message.value, "یادداشت سفارش دیگر");
+  assert.equal(c.nodes().find((node) => node.type === "gallery-receipt"), undefined);
+  c.fields.message.value = "";
+  await c.submit();
+  c.render();
+  assert.deepEqual(JSON.parse(c.calls[0].options.body), { customer_name: "یاس", message: "", contact: "yas@example.com", archive_photo: "08", items: [] });
+  assert.equal(session.getItem(draftKey), otherDraft);
+  assert.equal(JSON.parse(c.local.getItem(basketKey)).length, 1);
+  assert.equal(c.nodes().find((node) => node.type === "gallery-receipt").props.archiveTitle, "آویز آرشیو");
 });
 
 test("a restored studio inquiry excludes the separate ring draft and leaves it available", async () => {

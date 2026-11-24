@@ -10,6 +10,15 @@
 .scene { position: relative; width: min(100%, calc(100svh * 1670 / 942)); aspect-ratio: 1670 / 942; overflow: hidden; container-type: inline-size; box-shadow: 0 12px 55px #43241226; }
 .roomView { position: absolute; z-index: 0; inset: 0; transform-origin: 49% 67%; transition: transform 1150ms cubic-bezier(.24, .63, .26, 1); }
 .scene[data-table-open] .roomView { transform: translateY(-12%) scale(2.25); }
+.scene[data-shelf-approach] .roomView {
+  animation: approach-table 1.24s cubic-bezier(.29, .45, .27, 1) both;
+}
+@keyframes approach-table {
+  0% { transform: translate(0, 0) scale(1); }
+  32% { transform: translate(-2%, -1%) scale(1.09); }
+  67% { transform: translate(-1.5%, -8%) scale(1.48); }
+  100% { transform: translate(0, -14%) scale(2.28); }
+}
 .architecture { object-fit: cover; }
 @media (min-width: 701px) {
   .scene { width: 100%; height: 100svh; height: 100dvh; aspect-ratio: auto; }
@@ -100,6 +109,15 @@
   --portrait-tray-floor: calc(50% - var(--portrait-tray-art-height) * .094) 11.5% calc(50% - var(--portrait-tray-art-height) * .063) 10.5%;
 }
 .scene[data-table-open] .tableView { visibility: visible; opacity: 1; transition: opacity 420ms ease 560ms; }
+.scene[data-shelf-approach] .tableView {
+  animation: settle-at-table 800ms cubic-bezier(.2, .55, .24, 1) 440ms both;
+  transform-origin: center 66%;
+}
+@keyframes settle-at-table {
+  0% { opacity: 0; transform: translateY(2.3%) scale(1.06); }
+  42% { opacity: .62; }
+  100% { opacity: 1; transform: none; }
+}
 .seatedPicture { position: absolute; z-index: -1; inset: 0; overflow: hidden; background: #68432f; }
 .seatedPicture .architecture { transform: scale(1.11); transform-origin: 50% 48%; }
 .backToGallery { position: absolute; z-index: 1; top: 4%; inset-inline-start: 4%; min-height: 44px; padding: .45rem .8rem; border: 1px solid #fff4dc85; border-radius: .25rem; color: #fff7e7; background: #3d2b24e6; font: inherit; font-size: .83rem; cursor: pointer; }
@@ -119,6 +137,7 @@
 .tableProduct { display: grid; width: 100%; min-height: 0; place-items: center; transform: translateY(clamp(-1.65rem, -2.5cqw, -.5rem)); }
 .archiveCutout { position: relative; width: min(92%, 22rem); height: clamp(5rem, 22cqw, 18.5rem); filter: drop-shadow(1px 2px 1px #040912b0) drop-shadow(3px 3px 4px #050a1857); animation: work-on-table 320ms ease-out both; }
 .archiveCutout img { object-fit: contain; }
+.catalogCutout[data-table-product="sepid-brooch"] img { transform: rotate(-90deg) scale(1.12); filter: none; }
 .archiveCutout[data-gallery-product-number="21"] img { transform: scale(.65); }
 .archiveCutout[data-gallery-product-number="22"] img { transform: scale(.86); }
 .catalogCutout { position: relative; width: min(94%, 22rem); height: clamp(5rem, 20cqw, 17rem); filter: drop-shadow(1px 2px 1px #040912b0) drop-shadow(3px 3px 4px #050a1857); animation: work-on-table 320ms ease-out both; }
@@ -183,25 +202,32 @@
   direction: ltr;
 }
 .orderAction { grid-area: 1 / 3; justify-self: end; min-width: 0; direction: rtl; }
-.orderAction button {
+.orderAction :is(button, a) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
-  padding: .45rem .78rem;
-  border: 1px solid #a4a39c;
-  border-radius: 7px;
-  color: #f8f1e3;
-  background: #223a52;
-  box-shadow: 0 2px 5px #2c1b14a6;
-  font-size: .76rem;
-  font-weight: 600;
-  line-height: 1.42;
+  padding: .24rem clamp(.55rem, 1.4cqw, 1.48rem) .49rem;
+  border: 1px solid #ac9272;
+  border-radius: 2px 4px 3px 2px;
+  color: #263c54;
+  background: linear-gradient(158deg, #f2e7ce22, #ac865b32), #ead9b9 url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / 100% 100%;
+  box-shadow: 1px 2px #86613f, 3px 6px 8px #2c1b14a6, inset 0 0 0 3px #f6e8cb70;
+  font-family: "Ornova Nastaliq", var(--font-display), serif;
+  font-size: clamp(.82rem, 1.34cqw, 1.08rem);
+  font-weight: 400;
+  line-height: 1.65;
+  text-decoration: none;
   text-align: center;
+  transform: rotate(-2.5deg);
+  transition: transform 130ms ease, box-shadow 130ms ease;
   cursor: pointer;
 }
-.orderAction button:hover { background: #304b63; }
-.orderAction button:focus-visible { outline: 2px solid #faf4e7; outline-offset: 3px; }
+.orderAction :is(button, a):hover { transform: rotate(-1deg) translateY(-1px); box-shadow: 1px 2px #86613f, 3px 7px 11px #2c1b149c; }
+.orderAction :is(button, a):focus-visible { outline: 2px solid #faf4e7; outline-offset: 3px; }
+.orderAction :is(button, a):active { transform: rotate(-2deg) translateY(1px); }
 .orderAction p { margin: 0; padding: .2rem .4rem; border-radius: 4px; color: #30271e; background: #f1e4cc; }
-.navigation { grid-area: 1 / 2; display: flex; align-items: center; gap: .5rem; padding: 0 .45rem; border-radius: 3px; color: #423124; background: #f1e4cc; box-shadow: 2px 4px 10px #26160e59; font-size: .76rem; white-space: nowrap; direction: rtl; }
-.navigation:not(:focus-within) { clip-path: inset(50%); pointer-events: none; }
+.navigation { grid-area: 1 / 1; justify-self: start; display: flex; align-items: center; gap: .18rem; padding: 0 .35rem; border: 1px solid #a98a65; border-radius: 2px; color: #423124; background: #eee0c5; box-shadow: 1px 2px #8c694a, 2px 4px 8px #26160e69; font-size: .76rem; white-space: nowrap; direction: rtl; }
 .navigation button { min-height: 44px; padding: .2rem .4rem; border: 0; color: #2c4c68; background: transparent; font: inherit; cursor: pointer; }
 .navigation button:focus-visible { outline: 2px solid #355a82; outline-offset: -2px; }
 .navigation button span { display: inline-block; min-width: 1.2rem; font-size: 1.05rem; }
@@ -275,9 +301,17 @@
   .workDetails > div { gap: .14rem; }
   .workDetails dd { padding: .04rem .05rem; }
 }
+@media (min-width: 701px) and (max-height: 550px) {
+  .archiveCutout, .catalogCutout, .catalogCutout[data-table-product="lajvard-shab-ring"] { height: min(16cqw, 35svh); }
+  .tableProduct { transform: translateY(-.35rem); }
+  .tablePaper { width: min(100%, 17.5rem); }
+  .workTitle { font-size: clamp(.8rem, 1.6cqw, 1rem); line-height: 1.7; }
+  .workDetails { font-size: .68rem; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .navigation:not(:focus-within) { clip-path: none; pointer-events: auto; }
   .roomView, .tableView, .scene[data-table-open] .tableView { transition: none; }
+  .scene[data-shelf-approach] :is(.roomView, .tableView) { animation: none; }
+  .orderAction :is(button, a) { transition: none; }
   .scene[data-table-open] .roomView { transform: none; }
   .archiveCutout, .catalogCutout, .shelfGlow, .shelfGlow::after { animation: none; }
   .shelfGlow { opacity: .72; }

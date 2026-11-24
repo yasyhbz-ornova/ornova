@@ -6,6 +6,7 @@ import { useState, useSyncExternalStore } from "react";
 import { clearRequestItems, removeRequestItem, updateRequestItemNote, updateRequestItemQuantity } from "./RequestBasketButton";
 import { getRequestItemKey, MAX_REQUEST_ITEM_NOTE_LENGTH, parseRequestBasketReview, readRequestBasketSnapshot } from "@/lib/commerce/request-basket";
 import { ProductPreferencesSummary } from "./ProductPreferencesSummary";
+import { GalleryEnvelope } from "./GalleryEnvelope";
 import { productPreferenceRows } from "@/lib/commerce/product-preferences";
 import type { Product } from "@/lib/constants/products";
 import styles from "./RequestFlow.module.css";
@@ -53,9 +54,9 @@ export function RequestBasketView({ galleryMode = false, products = [], onBrowse
   const basketLabel = galleryMode ? "صندوق درخواست" : "سبد درخواست";
   function changed(success: boolean, message = galleryMode ? "تغییر انتخاب در صندوق ذخیره نشد؛ انتخاب‌های فعلی را دوباره بررسی کن." : "تغییر در سبد ذخیره نشد؛ انتخاب‌های فعلی را دوباره بررسی کن.") { setOperationError(success ? "" : message); }
 
-  const cashierReceipt = <section className={styles.registerReceipt} aria-label="رسید موقت صندوق اُرنوا">
-    <div className={styles.registerHead}><span>صندوق گالری</span><span>ORNOVA</span></div>
-    <div className={styles.receiptTitle}><h2>رسید انتخاب‌ها</h2><span>{items.length ? "پیش‌نویس درخواست" : "آمادهٔ ثبت انتخاب"}</span></div>
+  const cashierReceipt = galleryMode && <GalleryEnvelope><section className={styles.registerReceipt} aria-label="رسید موقت صندوق اُرنوا">
+    <div className={styles.registerHead}><span>صندوق گالری</span><span lang="en" dir="ltr">Ornova by Yas</span></div>
+    <div className={styles.receiptTitle}><h2>رسید انتخاب‌ها</h2><span>پیش‌نویس درخواست</span></div>
     {items.length > 0 && <ol className={styles.receiptItems} aria-label="ریز انتخاب‌های رسید">
       {items.map((item) => {
         const preferences = productPreferenceRows(item.preferences);
@@ -69,17 +70,15 @@ export function RequestBasketView({ galleryMode = false, products = [], onBrowse
         </li>;
       })}
     </ol>}
-    <dl className={styles.receiptLines}>
+    {review?.valid ? <dl className={styles.receiptLines}>
       <div><dt>مدل‌های انتخاب‌شده</dt><dd>{number.format(items.length)}</dd></div>
       <div><dt>تعداد قطعه‌ها</dt><dd>{number.format(pieceCount)}</dd></div>
-      <div><dt>مبلغ</dt><dd>پس از بررسی</dd></div>
-    </dl>
-    <p className={styles.receiptFoot}>این رسید، فهرست درخواست است؛ ثبت نهایی و برآورد هزینه پس از بررسی اُرنوا انجام می‌شود.</p>
-  </section>;
+    </dl> : <p className={styles.receiptFoot}>{review ? "خواندن انتخاب‌ها کامل نشد." : "در حال خواندن انتخاب‌ها…"}</p>}
+  </section></GalleryEnvelope>;
 
   if (!review || !review.valid || items.length === 0) {
     return <div className={`${styles.surface} ${styles.empty}`} data-register={galleryMode ? "true" : undefined} aria-busy={!review}>
-      {galleryMode && cashierReceipt}
+      {cashierReceipt}
       <p className={styles.label}>{basketLabel}</p>
       <h1>{!review ? (galleryMode ? "رسید در حال آماده‌شدن" : "انتخاب‌های تو") : !review.valid ? `${galleryMode ? "اطلاعات صندوق" : "سبد"} کامل خوانده نشد.` : `${basketLabel} خالی است.`}</h1>
       <p role={!review ? "status" : !review.valid ? "alert" : undefined}>{!review ? "در حال خواندن انتخاب‌های همین مرورگر…" : !review.valid ? `${galleryMode ? "اطلاعات صندوق" : "دادهٔ سبد"} در این مرورگر کامل خوانده نشد. برای ادامه، دسترسی به ذخیره‌سازی مرورگر را بررسی و صفحه را دوباره باز کن.` : "از میان قطعات بگرد؛ هر انتخاب با سایز و جزئیات دلخواهت اینجا می‌ماند."}</p>
@@ -92,7 +91,7 @@ export function RequestBasketView({ galleryMode = false, products = [], onBrowse
 
   return (
     <div className={styles.surface} data-register={galleryMode ? "true" : undefined}>
-      {galleryMode && cashierReceipt}
+      {cashierReceipt}
       <div className={styles.heading}>
         <div><p className={styles.label}>{basketLabel} / Ornova by Yas</p><h1>انتخاب‌های تو.</h1></div>
         <p>قطعه‌ها و جزئیات را مرور کن.<br />قیمت و ادامهٔ سفارش، پس از بررسی درخواست هماهنگ می‌شوند.</p>
@@ -126,7 +125,7 @@ export function RequestBasketView({ galleryMode = false, products = [], onBrowse
         })}
         <div className={styles.listFooter}>{galleryMode && onBrowseCatalog ? <button type="button" onClick={onBrowseCatalog} className={styles.textLink}>ادامهٔ دیدن آثار <span aria-hidden="true">←</span></button> : <Link href="/shop" className={styles.textLink}>ادامهٔ دیدن قطعات <span aria-hidden="true">←</span></Link>}<button type="button" className={styles.remove} onClick={() => changed(clearRequestItems(), galleryMode ? "پاک‌سازی انتخاب‌های صندوق کامل تأیید نشد؛ ممکن است یادآور قدیمی در مرورگر مانده باشد." : "پاک‌سازی سبد کامل تأیید نشد؛ ممکن است یادآور قدیمی در مرورگر مانده باشد.")}>{galleryMode ? "پاک‌کردن انتخاب‌ها" : "پاک‌کردن سبد"}</button></div>
       </section>
-        <aside className={styles.summary} aria-label={`خلاصهٔ ${galleryMode ? "صندوق" : "سبد"}`}><p className={styles.label}>قدم بعد</p><h2>برای بررسی آماده‌اش کن.</h2><dl><div><dt>انتخاب‌های مستقل</dt><dd>{number.format(items.length)}</dd></div><div><dt>مجموع تعداد</dt><dd>{number.format(items.reduce((sum, item) => sum + item.quantity, 0))}</dd></div></dl><p>{galleryMode ? "ادامه، ورود و کامل‌بودن نشانی را بررسی می‌کند؛ سپس همین انتخاب‌ها را برای ثبت درخواست به تلفن گالری می‌برد. پرداخت در این مرحله انجام نمی‌شود." : "در فرم بعد، توضیح و راه ارتباطی‌ات را می‌نویسی. ارسال درخواست پس از ورود انجام می‌شود."}</p>{galleryMode && onContinueRequest ? <button type="button" onClick={onContinueRequest} disabled={continuePending} aria-busy={continuePending} className={styles.primary}>{continuePending ? "در حال بررسی حساب و نشانی…" : "ادامه برای ثبت درخواست"} <span aria-hidden="true">←</span></button> : <Link href="/contact?from=request-basket" className={styles.primary}>ادامه به فرم درخواست <span aria-hidden="true">←</span></Link>}{continueError && <p className={styles.checkoutError} role="alert">{continueError}</p>}<p className={styles.hint}>انتخاب‌ها فعلاً در همین مرورگر نگه داشته می‌شوند.</p></aside>
+        <aside className={styles.summary} aria-label={`خلاصهٔ ${galleryMode ? "صندوق" : "سبد"}`}><p className={styles.label}>قدم بعد</p><h2>برای بررسی آماده‌اش کن.</h2><dl><div><dt>انتخاب‌های مستقل</dt><dd>{number.format(items.length)}</dd></div><div><dt>مجموع تعداد</dt><dd>{number.format(items.reduce((sum, item) => sum + item.quantity, 0))}</dd></div></dl><p>{galleryMode ? "ادامه، ورود و کامل‌بودن نشانی را بررسی می‌کند؛ سپس همین انتخاب‌ها را به فرم ثبت سفارش می‌برد. پرداخت در این مرحله انجام نمی‌شود." : "در فرم بعد، توضیح و راه ارتباطی‌ات را می‌نویسی. ارسال درخواست پس از ورود انجام می‌شود."}</p>{galleryMode && onContinueRequest ? <button type="button" onClick={onContinueRequest} disabled={continuePending} aria-busy={continuePending} className={styles.primary}>{continuePending ? "در حال بررسی حساب و نشانی…" : "ادامه برای ثبت درخواست"} <span aria-hidden="true">←</span></button> : <Link href="/contact?from=request-basket" className={styles.primary}>ادامه به فرم درخواست <span aria-hidden="true">←</span></Link>}{continueError && <p className={styles.checkoutError} role="alert">{continueError}</p>}<p className={styles.hint}>انتخاب‌ها فعلاً در همین مرورگر نگه داشته می‌شوند.</p></aside>
       </div>
     </div>
   );

@@ -53,6 +53,43 @@ try {
   assert.equal(counts.n,3);
   assert.equal((await as(customer,"select count(*)::int as n from public.catalog_products"))[0].n,3);
   assert.equal((await as(customer,"select count(*)::int as n from public.catalog_products where status='review'"))[0].n,0);
+
+  const detailsQuery = "select slug, revision, details from public.catalog_products order by slug";
+  const initialDetail = { label: "جنس", value: "نقره" };
+  const verifiedDetailsMigration = read("024_restore_verified_catalog_details.sql");
+  await db.exec(verifiedDetailsMigration);
+  const restoredDetails = await as(customer, detailsQuery);
+  assert.deepEqual(restoredDetails, [
+    { slug: "lajvard-shab-ring", revision: 2, details: [initialDetail, { label: "رنگ سنگ", value: "آبی شبانه" }] },
+    { slug: "sepid-brooch", revision: 1, details: [initialDetail] },
+    { slug: "silent-vase-pin", revision: 2, details: [initialDetail, { label: "سنگ", value: "بدون سنگ" }] },
+  ]);
+  await db.exec(verifiedDetailsMigration);
+  assert.deepEqual(await as(customer, detailsQuery), restoredDetails);
+
+  const replacement = [initialDetail, { label: "رنگ سنگ", value: "نمونهٔ بازبینی مدیر" }];
+  await db.query("update public.catalog_products set revision = 3, details = $1 where slug = 'lajvard-shab-ring'", [JSON.stringify(replacement)]);
+  await db.query(
+    "update public.catalog_products set revision = 1, details = $1, image_path = '/images/ornova/changed-cover.webp' where slug = 'silent-vase-pin'",
+    [JSON.stringify([initialDetail])],
+  );
+  const staffChangedDetails = await as(customer, detailsQuery);
+  await db.exec(verifiedDetailsMigration);
+  assert.deepEqual(await as(customer, detailsQuery), staffChangedDetails);
+
+  const broochMigration = read("025_replace_floral_brooch_import.sql");
+  await db.exec(broochMigration);
+  await db.exec(broochMigration);
+  const [brooch] = await as(customer, "select name, image_path, stand_image_path, revision from public.catalog_products where slug='sepid-brooch'");
+  assert.deepEqual(brooch, {
+    name: "سنجاق‌سینهٔ نواری مشبک",
+    image_path: "/images/ornova/gallery/final-renders/07-7d31d155.webp",
+    stand_image_path: "/images/ornova/gallery/tray-cutouts/07-7d31d155.webp",
+    revision: 2,
+  });
+  const [bareBroochRequest] = await as(customer, request([{ product_slug: "sepid-brooch", quantity: 1 }]));
+  assert.equal((await one(`select product_name from public.inquiry_items where inquiry_id='${bareBroochRequest.id}'`)).product_name, brooch.name);
+
   const draft = {name:"انگشتر آزمون",category_id:"rings",category_label:"انگشتر",subtype_id:null,description:"توضیح آزمون",image_path:null,stand_image_path:null,gallery:[],details:[],packaging_gallery:[],turntable_video_path:null,image_fit:"contain",gallery_placement_verified:false,status:"review"};
   const save = (rev, value = draft) => `select (public.save_catalog_product('test-ring',${rev},${json(value)})).revision as revision`;
   await assert.rejects(as(customer,save(0)),/CATALOG_FORBIDDEN/);
@@ -78,5 +115,5 @@ try {
   await as(staff,save(4,{...replaced,status:"archived"}),true);
   await assert.rejects(as(customer,request([{product_slug:"test-ring",quantity:1}])),/invalid product/);
   assert.equal((await one(`select product_name from public.inquiry_items where inquiry_id='${created.id}'`)).product_name,"انگشتر آزمون");
-  console.log("PASS: catalog migrations, RLS, staff media, measured room placement, revisions, publication and request snapshots");
+  console.log("PASS: catalog migrations, verified detail restoration, RLS, staff media, measured room placement, revisions, publication and request snapshots");
 } finally { await db.close(); }

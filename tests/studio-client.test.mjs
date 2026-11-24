@@ -22,6 +22,7 @@ function client({ responseStatus = 401, imageMode = "preview", embedded = false,
   const tabValues = new Map();
   const tabStorage = { getItem: (key) => tabValues.get(key) ?? null, setItem: (key, value) => tabValues.set(key, value) };
   const react = {
+    useCallback(callback) { return callback; },
     useState(initial) { const index = cursor++; hooks[index] ??= { value: typeof initial === "function" ? initial() : initial }; return [hooks[index].value, (value) => { hooks[index].value = typeof value === "function" ? value(hooks[index].value) : value; }]; },
     useRef(initial) { const index = cursor++; hooks[index] ??= { current: initial }; return hooks[index]; },
     useEffect(effect, deps) { const index = cursor++; if (!hooks[index] || deps.some((v, i) => v !== hooks[index][i])) { hooks[index] = deps; pending.push(effect); } },
@@ -37,6 +38,7 @@ function client({ responseStatus = 401, imageMode = "preview", embedded = false,
     if (name === "next/image") return { default: "img" };
     if (name === "next/navigation") return { useRouter: () => ({ push: (value) => { destination = value; } }) };
     if (name === "@/components/ornova/GalleryAccountPanel") return { GalleryAccountPanel: "account-panel" };
+    if (name === "@/components/ornova/OrnovaBrandMark") return { OrnovaSymbol: "ornova-symbol" };
     if (name.endsWith(".module.css")) return { default: new Proxy({}, { get: (_obj, key) => String(key) }) };
     if (name === "@/lib/studio/conversation") return conversation.exports;
     if (name === "@/lib/studio/inquiry-handoff") return handoff.exports;
@@ -55,11 +57,12 @@ function client({ responseStatus = 401, imageMode = "preview", embedded = false,
     if (effects.length) { effects.forEach((effect) => effect()); return render(); }
     return tree;
   }
-  function nodes(node) { if (!node || typeof node !== "object") return []; return [node, ...[node.props?.children].flat(Infinity).flatMap((child) => nodes(child))]; }
+  function nodes(node) { if (!node || typeof node !== "object") return []; return [node, ...[node.props?.children, node.props?.workshopBook?.page === "idea" ? node.props.workshopBook.idea : null].flat(Infinity).flatMap((child) => nodes(child))]; }
   const text = (node) => typeof node === "string" ? node : !node || typeof node !== "object" ? "" : [node.props?.children].flat(Infinity).map(text).join("");
   const button = (label) => { const found = nodes(tree).find((n) => n.type === "button" && text(n) === label); assert.ok(found, `button not found: ${label}`); return found; };
   render();
-  return { render, button, hasButton: (label) => nodes(tree).some((n) => n.type === "button" && text(n) === label), authCalls: () => authCalls, handoffDraft: () => JSON.parse(tabValues.get("ornova-inquiry-draft") ?? "null"), setSession: (value) => { sessionId = value; }, consent() { nodes(tree).find((n) => n.type === "input" && n.props.type === "checkbox").props.onChange({ target: { checked: true } }); render(); }, requests: () => requests, draft: () => JSON.parse(values.get(`ornova:studio:${id}`) ?? "null"), destination: () => destination, prepareAccount: () => nodes(tree).find((n) => n.type === "account-panel").props.prepareEmailDestination(), storedDrafts: () => values.size };
+  const account = () => nodes(tree).find((n) => n.type === "account-panel");
+  return { render, button, hasButton: (label) => nodes(tree).some((n) => n.type === "button" && text(n) === label), authCalls: () => authCalls, handoffDraft: () => JSON.parse(tabValues.get("ornova-inquiry-draft") ?? "null"), setSession: (value) => { sessionId = value; }, consent() { nodes(tree).find((n) => n.type === "input" && n.props.type === "checkbox").props.onChange({ target: { checked: true } }); render(); }, requests: () => requests, draft: () => JSON.parse(values.get(`ornova:studio:${id}`) ?? "null"), destination: () => destination, prepareAccount: () => account().props.prepareEmailDestination(), book: () => account().props.workshopBook, storedDrafts: () => values.size };
 }
 
 test("expired generation session never downgrades an owned draft into a guest handoff", async () => {
@@ -105,11 +108,13 @@ test("the workshop account retains the current idea and writes it only when prep
   c.render();
   assert.deepEqual(c.draft(), previousDraft);
   assert.equal(c.requests().length, 0);
-  assert.equal(c.prepareAccount(), `/?galleryPanel=studio&draft=${id}`);
+  assert.equal(c.prepareAccount(), `/?galleryPanel=studio&customerPage=profile&draft=${id}`);
   assert.equal(c.draft().ownerId, "user-a");
   assert.ok(c.draft().expiresAt > previousDraft.expiresAt);
   assert.equal(conversation.exports.parseStudioDraft(JSON.stringify(c.draft()), id, "user-b"), null);
-  c.button("بازگشت به ایده").props.onClick();
+  assert.equal(c.book().authorizeIdea("user-b"), false);
+  assert.equal(c.book().authorizeIdea("user-a"), true);
+  c.book().onPageChange("idea");
   c.render();
   c.button("ثبت ایده برای بررسی ←").props.onClick();
   assert.equal(c.handoffDraft().message, conversation.exports.buildStudioBrief(answers));
@@ -119,7 +124,7 @@ test("a visitor can open a workshop account before defining any idea without cre
   const c = client({ embedded: true, withDraft: false, imageMode: "offline" });
   c.button("حساب مشتری").props.onClick();
   c.render();
-  assert.equal(c.prepareAccount(), "/?galleryPanel=studio");
+  assert.equal(c.prepareAccount(), "/?galleryPanel=studio&customerPage=profile");
   assert.equal(c.storedDrafts(), 0);
   assert.equal(c.requests().length, 0);
 });

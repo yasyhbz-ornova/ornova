@@ -1,0 +1,174 @@
+@font-face {
+  font-family: "Ornova Nastaliq";
+  src: url("../../app/fonts/NotoNastaliqUrdu-arabic-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+:global([role="dialog"][data-phone-open="true"]):has(.notebook) {
+  align-items: center;
+  justify-content: center;
+  background: rgb(38 28 22 / 57%);
+}
+
+:global([role="dialog"][data-phone-open="true"]):has(.notebook) > aside {
+  --notebook-gutter: clamp(.8rem, 3.2vw, 2rem);
+  width: min(41rem, calc(100% - 1rem));
+  height: auto;
+  max-height: 92svh;
+  padding: 0 var(--notebook-gutter) 1.45rem;
+  border: 1px solid #b4a08c;
+  border-radius: 8px;
+  background: linear-gradient(140deg, #eee5d6, #d9c8b4);
+  box-shadow: 0 20px 57px #2b1e1866;
+}
+
+:global([role="dialog"][data-phone-open="true"]):has(.notebook) > aside > :has(+ .notebook) {
+  margin: 0 calc(-1 * var(--notebook-gutter)) 1rem;
+  padding: .1rem var(--notebook-gutter);
+  border-bottom-color: #c7b6a3;
+  background: rgb(240 231 216 / 96%);
+}
+
+.notebook {
+  --paper-ink: #3e392f;
+  --pen-ink: #3d4b59;
+  --spine-width: clamp(.9rem, 3.3vw, 1.65rem);
+  --page-inset: clamp(.95rem, 4vw, 2.45rem);
+  --tab-width: clamp(4.7rem, 17vw, 6.2rem);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--tab-width);
+  grid-template-rows: auto 1fr;
+  width: min(100%, 37rem);
+  min-height: clamp(19rem, 51vw, 24rem);
+  margin: .2rem auto .9rem;
+  color: var(--paper-ink);
+}
+
+.notebook::before {
+  position: absolute;
+  z-index: 0;
+  inset: -.15rem -.25rem -.5rem calc(var(--tab-width) - .55rem);
+  background: url("/images/ornova/gallery/review/ornova-phone-ledger-photo-v2.webp") center / 100% 100% no-repeat;
+  filter: drop-shadow(4px 8px 8px #38261969);
+  content: "";
+  pointer-events: none;
+}
+
+.header {
+  z-index: 1;
+  grid-area: 1 / 1;
+  min-width: 0;
+  margin-inline: calc(var(--spine-width) + var(--page-inset)) var(--page-inset);
+  padding-block: clamp(.8rem, 2.5vw, 1.35rem) .5rem;
+  border-bottom: 1px solid #9d7763a3;
+}
+
+.header h1, .entryTitle {
+  margin: 0;
+  color: var(--pen-ink);
+  font-family: "Ornova Nastaliq", var(--font-ornova-display), serif;
+  font-weight: 400;
+}
+
+.header h1 {
+  width: fit-content;
+  font-size: clamp(1.25rem, 4.7vw, 2.25rem);
+  line-height: 2.35;
+}
+
+.header h1:focus { outline: none; }
+
+.tabs {
+  z-index: -1;
+  display: grid;
+  grid-area: 1 / 2 / 3;
+  align-content: center;
+  padding-block: 1.4rem;
+}
+
+.tab {
+  position: relative;
+  min-height: 46px;
+  margin: 0;
+  margin-inline-end: 7%;
+  padding: .3rem .36rem .3rem .25rem;
+  border: 1px solid #a98f70;
+  border-inline-start: 0;
+  border-start-end-radius: 3px 6px;
+  border-end-end-radius: 3px;
+  color: #42382f;
+  background: linear-gradient(100deg, #faf0db5e, #92735531), url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / cover;
+  box-shadow: 1px 3px 4px #573e2952;
+  font-family: var(--font-ornova-display), serif;
+  font-size: clamp(.72rem, 2.6vw, .95rem);
+  line-height: 1.45;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tab:nth-child(even) { margin-inline-end: 11%; }
+.tab:nth-child(n + 4) { background-position: 25% 65%; }
+
+.tab:hover { color: #263d51; box-shadow: 0 2px 3px #573e2952, inset 0 1px #fff9e1; }
+
+.tab[aria-selected="true"] {
+  z-index: 1;
+  margin-inline: -.2rem 0;
+  border-color: #8b735b;
+  color: #314558;
+  box-shadow: 0 3px 5px #5d412a5a, inset 0 2px #fffbe993;
+}
+
+.leaf {
+  z-index: 1;
+  display: block;
+  grid-area: 2 / 1;
+  min-width: 0;
+  margin-inline: calc(var(--spine-width) + var(--page-inset)) var(--page-inset);
+  padding: .35rem 0 1.85rem;
+  background: repeating-linear-gradient(180deg, transparent 0 calc(1.9rem - 1px), #88796438 calc(1.9rem - 1px) 1.9rem) 0 1rem / 100% 100% no-repeat;
+}
+
+.leaf[hidden] { display: none; }
+
+.entryTitle { margin-bottom: .2rem; font-size: clamp(1.05rem, 3.6vw, 1.5rem); line-height: 2.65; }
+.entryText { margin: 0; max-width: 34ch; font-size: clamp(.84rem, 2.6vw, 1rem); line-height: 1.9rem; }
+
+.contactLink {
+  display: grid;
+  min-height: 44px;
+  max-width: 100%;
+  gap: .12rem .4rem;
+  align-items: baseline;
+  width: fit-content;
+  padding: .32rem 0;
+  border: 0;
+  color: #2d4558;
+  background: transparent;
+  font: inherit;
+  font-size: .83rem;
+  line-height: 1.65;
+  text-decoration: underline;
+  text-decoration-color: #736757;
+  text-underline-offset: .28em;
+  text-align: start;
+  cursor: pointer;
+}
+
+.contactLink bdi { overflow-wrap: anywhere; text-align: right; }
+.contactLink:hover { color: #553d33; }
+
+.leaf:focus-visible, .tab:focus-visible, .contactLink:focus-visible {
+  outline: 2px solid #3f5c72;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .notebook { --page-inset: .75rem; margin-block-start: .05rem; }
+  .header h1 { line-height: 2.15; }
+  .tabs { align-content: start; padding-block-start: 2.1rem; }
+  .tab { min-height: 44px; }
+}

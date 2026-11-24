@@ -1,0 +1,83 @@
+.envelope {
+  display: grid;
+  grid-template-rows: auto auto;
+  inline-size: min(100%, clamp(16.5rem, 43vw, 27rem));
+  margin: .75rem auto 1.5rem;
+  isolation: isolate;
+}
+
+.pocket {
+  display: grid;
+  grid-row: 2;
+  justify-items: center;
+  z-index: 1;
+  gap: .35rem;
+  inline-size: 100%;
+  border: 0;
+  padding: 0;
+  color: #513b2e;
+  background: transparent;
+  cursor: pointer;
+}
+
+.photo {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 2.24;
+  filter: drop-shadow(2px 7px 6px #4a342e51);
+}
+
+.photo::before, .photo::after {
+  position: absolute;
+  inset: 0;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: 100% auto;
+  transition: opacity 210ms ease;
+  content: "";
+}
+
+.photo::before { background-image: url("/images/ornova/gallery/review/ornova-envelope-closed-photo-v2.webp"); }
+.photo::after {
+  inset-block-start: -76%;
+  background-image: url("/images/ornova/gallery/review/ornova-envelope-open-photo-v2.webp");
+  opacity: 0;
+}
+
+.pocket[aria-expanded="true"] .photo::before { opacity: 0; }
+.pocket[aria-expanded="true"] .photo::after { opacity: 1; }
+
+.action {
+  font-family: "Ornova Nastaliq", var(--font-display), serif;
+  font-size: .95rem;
+  line-height: 2;
+}
+
+.pocket:hover .action { text-decoration: underline; text-underline-offset: .3em; }
+.pocket:focus-visible { outline: 2px solid #385a77; outline-offset: .4rem; }
+
+.reveal {
+  z-index: 2;
+  display: grid;
+  grid-row: 1;
+  grid-template-rows: 0fr;
+  pointer-events: none;
+  transition: grid-template-rows 500ms cubic-bezier(.22, .8, .3, 1);
+}
+
+.pocket[aria-expanded="true"] + .reveal { grid-template-rows: 1fr; }
+
+.track { min-block-size: 0; overflow: hidden; }
+
+.paper {
+  margin: 0 clamp(.55rem, 3vw, 1.7rem);
+  transform: translateY(105%);
+  transition: transform 500ms cubic-bezier(.22, .8, .3, 1);
+}
+
+.pocket[aria-expanded="true"] + .reveal .paper { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .photo::before, .photo::after, .reveal, .paper { transition: none; }
+}

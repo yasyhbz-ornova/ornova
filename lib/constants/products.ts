@@ -78,18 +78,18 @@ const productRecords: Product[] = [
   {
     slug: "sepid-brooch",
     publicationStatus: "published",
-    name: "بروچ نقره «سپید»",
+    name: "سنجاق‌سینهٔ نواری مشبک",
     category: "بروچ",
     categoryId: "brooches-pins",
     subtypeId: "brooch",
-    image: "/images/ornova/sepid-brooch-01.png",
-    standImage: "/images/ornova/gallery/products/sepid-brooch-stand-cutout-preview-v1.webp",
+    image: "/images/ornova/gallery/final-renders/07-7d31d155.webp",
+    standImage: "/images/ornova/gallery/tray-cutouts/07-7d31d155.webp",
     galleryPlacementVerified: true,
     gallery: [
-      { src: "/images/ornova/sepid-brooch-01.png", alt: "بروچ سپید روی لباس تیره" },
+      { src: "/images/ornova/gallery/final-renders/07-7d31d155.webp", alt: "سنجاق‌سینهٔ نواری مشبک روی مخمل آبی" },
     ],
     description:
-      "بروچی روشن و مینیمال از نقره؛ طراحی اختصاصی جواهرات نقره با بیانی آرام.",
+      "سنجاق‌سینهٔ نواری با نقش مشبک و سطح صیقلی نقره.",
     details: [
       { label: "جنس", value: "نقره" },
       { label: "سنگ", value: "پس از بررسی درخواست مشخص می‌شود" },
