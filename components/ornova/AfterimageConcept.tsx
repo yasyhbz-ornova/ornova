@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 import { products } from "@/lib/constants/products";
+import "./GalleryConcepts.css";
 
 const featured = products[0];
 

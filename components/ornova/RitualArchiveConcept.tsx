@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { products } from "@/lib/constants/products";
 import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
+import "./GalleryConcepts.css";
 
 const fragments = [
   { title: "چیزی که می‌ماند", text: "هر قطعه از یک رد شروع می‌شود؛ از چیزی که زمان نتوانسته کامل از بین ببرد." },

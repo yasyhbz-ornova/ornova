@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { EchoProductIndex } from "@/components/ornova/EchoProductIndex";
+import "./GalleryConcepts.css";
 
 const paths = [
   { number: "۰۱", title: "دیدن قطعه‌ها", detail: "آرشیو جواهرات نقره", href: "/shop" },

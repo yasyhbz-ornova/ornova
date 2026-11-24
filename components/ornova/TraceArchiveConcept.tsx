@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { products } from "@/lib/constants/products";
+import "./GalleryConcepts.css";
 
 const worlds = [
   { number: "۰۱", title: "ریشه", text: "نشانه‌هایی که از جایی دور، نزدیک مانده‌اند.", image: "/images/ornova/goldan-khamoosh-01.jpg" },

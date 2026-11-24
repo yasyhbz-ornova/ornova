@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { products } from "@/lib/constants/products";
 import { ShopArchiveExplorer } from "@/components/ornova/ShopArchiveExplorer";
+import "./GalleryConcepts.css";
 
 export function ShopArchiveConcept() {
   return (
