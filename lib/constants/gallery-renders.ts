@@ -267,7 +267,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "27",
     "sourcePrefix": "1b15f65a",
-    "title": "آویز فیبوناچی با نگین بنفش",
+    "title": "آویز فیبوناچی با نگین آبی تیره",
     "categoryId": "pendants",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/27-1b15f65a.webp",

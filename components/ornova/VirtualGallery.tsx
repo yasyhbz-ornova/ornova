@@ -269,13 +269,12 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
     openDrawer({ kind: "collection", id });
     if (roomBookTrigger) returnFocusRef.current = roomBookTrigger;
   }
-  function openGalleryPhoto(photo: GalleryShowcasePhoto, focusId: string, backLabel: string, holdWork = false) {
+  function openGalleryPhoto(photo: GalleryShowcasePhoto, focusId: string, backLabel: string) {
     if (!drawer) return;
     const fromRoomBook = drawer.kind === "collection" && collectionFromRoomBook;
     const roomBookTrigger = fromRoomBook ? returnFocusRef.current : null;
     const opened = showcaseRef.current?.openPhoto(photo, {
       label: backLabel,
-      holdWork,
       onBack() {
         returnDrawerFocusId.current = focusId;
         setCollectionFromRoomBook(fromRoomBook);
@@ -404,7 +403,7 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
             <h2 id="gallery-archive-title">آرشیو آثار</h2>
             <ul className={styles.indexWorks}>{archiveWorks.map(({ photo, image }) => {
               const id = `gallery-archive-photo-${photo.number}`;
-              return <GalleryIndexWork key={id} id={id} name={photo.title} image={image} archiveNumber={photo.number} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به آرشیو", true)} />;
+              return <GalleryIndexWork key={id} id={id} name={photo.title} image={image} archiveNumber={photo.number} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به آرشیو")} />;
             })}</ul>
           </section>}
           {filteredProducts.length === 0 && archiveWorks.length === 0 && <div className={styles.emptyState}>

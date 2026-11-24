@@ -27,7 +27,7 @@ function subscribeToMotionPreference(listener: () => void) {
   return () => media.removeEventListener("change", listener);
 }
 
-type PhotoReturn = { label: string; onBack(): void; holdWork?: boolean };
+type PhotoReturn = { label: string; onBack(): void };
 export type GalleryShowcaseHandle = { openPhoto(photo: GalleryShowcasePhoto, returnTo: PhotoReturn): boolean };
 
 export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, productPreview, onOpenPanel, onOpenBirthMonths, ref }: {
@@ -148,7 +148,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const trayImage = activeSample?.trayImage;
   const linkedProduct = activeEntry?.product;
   const canRequestProduct = linkedProduct?.galleryPlacementVerified === true && Boolean(linkedProduct.standImage);
-  const canChangeWork = !previewProduct && !table?.returnTo?.holdWork;
+  const canChangeWork = !previewProduct && !table?.returnTo;
   const autoAdvance = !reducedMotion && canChangeWork;
 
   useEffect(() => {

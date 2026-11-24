@@ -118,6 +118,23 @@ test("both signet faces extend above their stand in the corrected crops", () => 
   assert.equal(rings.some(({ number }) => number === "06"), false);
 });
 
+test("the violet and blue stones remain visible on the flower tray images", async () => {
+  for (const [number, centerX, centerY] of [["26", 81, 391], ["27", 81, 391], ["28", 80, 392]]) {
+    const sample = room.galleryRoomSamplesByCategory.pendants.find((photo) => photo.number === number);
+    const cutout = galleryTrayCutout(sample);
+    const source = fileURLToPath(new URL(`../public${cutout.src}`, import.meta.url));
+    const { data, info } = await sharp(source).raw().toBuffer({ resolveWithObject: true });
+    assert.equal(info.channels, 4);
+    for (let y = centerY - 15; y <= centerY + 15; y++) {
+      for (let x = centerX - 15; x <= centerX + 15; x++) {
+        if (Math.hypot(x - centerX, y - centerY) <= 15) {
+          assert.equal(data[4 * (y * info.width + x) + 3], 255, `photo ${number} at ${x},${y}`);
+        }
+      }
+    }
+  }
+});
+
 test("each transparent tray image retains the original RGB of every visible pixel", async () => {
   const asset = (src) => fileURLToPath(new URL(`../public${src}`, import.meta.url));
   for (const sample of room.galleryRoomSamples) {
