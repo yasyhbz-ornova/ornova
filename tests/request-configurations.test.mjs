@@ -99,6 +99,37 @@ test("browser storage helpers change quantity, note and removal only for the tar
   assert.equal(JSON.parse(serialized)[0].quantity,1);
 });
 
+test("reopening a gallery selection preserves quantities and other configurations", () => {
+  const sized = { ...identity, lineId: a, quantity: 2, preferences: size(54) };
+  let serialized = JSON.stringify([sized]);
+  let writes = 0;
+  const browser = {
+    localStorage: { getItem: () => serialized, setItem: (_key, value) => { writes++; serialized = value; } },
+    dispatchEvent: () => {},
+  };
+  const storage = load("components/commerce/RequestBasketButton.tsx", {
+    "@/lib/commerce/request-basket": basket,
+    "@/lib/commerce/product-preferences": prefs,
+    "@/lib/commerce/request-configurations": configs,
+  }, browser);
+
+  assert.equal(storage.addRequestItem(identity, { keepExistingQuantity: true }), true);
+  assert.equal(storage.addRequestItem(identity, { keepExistingQuantity: true }), true);
+  assert.equal(writes, 1);
+  let [first, second] = storage.readItems();
+  assert.deepEqual(first, sized);
+  assert.equal(second.quantity, 1);
+  assert.equal(storage.updateRequestItemQuantity(second.lineId, 3), true);
+  assert.equal(storage.addRequestItem(identity, { keepExistingQuantity: true }), true);
+  assert.equal(storage.readItems()[1].quantity, 3);
+  assert.equal(writes, 2);
+
+  assert.equal(storage.addRequestItem(identity), true);
+  [first, second] = storage.readItems();
+  assert.deepEqual(first, sized);
+  assert.equal(second.quantity, 4);
+});
+
 test("same-model line notes include preference labels so the persisted message cannot attach them to the wrong size",()=>{
   const message=basket.buildInquiryMessage("بررسی",[{...identity,lineId:a,quantity:1,preferences:size(54),note:"اول"},{...identity,lineId:b,quantity:1,preferences:size(56),note:"دوم"}]);
   assert.equal(message.success,true);

@@ -14,23 +14,86 @@ function load(file, dependencies = {}) {
 }
 
 const catalog = load("lib/constants/catalog.ts");
-const { galleryRenders } = load("lib/constants/gallery-renders.ts");
-const { draftCatalogFormFromPhoto } = load("lib/catalog/photo-draft.ts", { "../constants/catalog": catalog });
+const { galleryRenders, visibleGalleryRenders } = load("lib/constants/gallery-renders.ts");
+const trayCutouts = load("lib/constants/gallery-tray-cutouts.ts");
+const photoDraft = load("lib/catalog/photo-draft.ts", { "../constants/catalog": catalog, "../constants/gallery-tray-cutouts": trayCutouts });
+const { draftCatalogFormFromPhoto } = photoDraft;
 
-test("all supplied final photos can start a private review record with their exact source", () => {
+test("ready final photos start private review records, but the marked duplicate cannot", () => {
   assert.equal(galleryRenders.length, 53);
   const slugs = new Set();
   for (const photo of galleryRenders) {
     const draft = draftCatalogFormFromPhoto(photo);
+    if (photo.number === "06") {
+      assert.equal(draft, null);
+      continue;
+    }
     assert.ok(draft, `photo ${photo.number} needs a category`);
     assert.equal(draft.image_path, photo.src);
     assert.deepEqual(draft.gallery, [{ src: photo.src, alt: photo.title }]);
     assert.equal(draft.category_id, photo.categoryId);
     assert.equal(draft.status, "review");
     assert.equal(draft.gallery_placement_verified, false);
-    assert.equal(draft.stand_image_path, null);
+    assert.equal(draft.stand_image_path, ["04", "19"].includes(photo.number) ? null : photo.src.replace("/final-renders/", "/tray-cutouts/"));
     assert.equal(draft.description, "");
     assert.equal(slugs.has(draft.slug), false);
     slugs.add(draft.slug);
   }
+});
+
+test("review classifies exact photo claims across cover, stand and gallery without double counting a work", () => {
+  const photos = galleryRenders.filter((photo) => ["01", "02", "03", "06", "07"].includes(photo.number));
+  const byNumber = Object.fromEntries(photos.map((photo) => [photo.number, photo]));
+  const cover = { slug: "pin", name: "سنجاق", image_path: byNumber["01"].src, stand_image_path: null, gallery: [{ src: byNumber["01"].src }, { src: byNumber["07"].src }] };
+  const stand = { slug: "pendant", name: "آویز", image_path: null, stand_image_path: byNumber["02"].src, gallery: [{ src: byNumber["07"].src }] };
+  assert.equal(typeof photoDraft.reviewCatalogPhotos, "function");
+  const review = photoDraft.reviewCatalogPhotos(photos, [cover, stand]);
+  assert.deepEqual(review.available.map((photo) => photo.number), ["03"]);
+  assert.deepEqual(review.excluded.map((photo) => photo.number), ["06"]);
+  assert.deepEqual(review.assigned.map(({ photo, owners }) => [photo.number, owners.map(({ slug }) => slug)]),
+    [["01", ["pin"]], ["02", ["pendant"]], ["07", ["pin", "pendant"]]]);
+});
+
+test("a legacy claim of duplicate photo 06 also keeps its byte-identical original 04 out of the unassigned queue", () => {
+  const originals = galleryRenders.filter((photo) => ["04", "06"].includes(photo.number));
+  const old = { slug: "old-ring", name: "انگشتر", image_path: originals[1].src, stand_image_path: null, gallery: [] };
+  const review = photoDraft.reviewCatalogPhotos(originals, [old]);
+  assert.deepEqual(review.available, []);
+  assert.deepEqual(review.assigned.map(({ photo, owners }) => [photo.number, owners[0].slug]), [["04", "old-ring"]]);
+  assert.deepEqual(review.excluded.map(({ number }) => number), ["06"]);
+});
+
+test("photos with a cropped work stay out of the gallery and remain available in private drafts", () => {
+  const cropped = galleryRenders.filter((photo) => photo.needsCompleteView);
+  assert.deepEqual(cropped.map(({ number }) => number), ["04", "19"]);
+  const visible = new Set(visibleGalleryRenders.map(({ src }) => src));
+  for (const photo of cropped) {
+    assert.equal(visible.has(photo.src), false);
+    assert.equal(draftCatalogFormFromPhoto(photo).image_path, photo.src);
+    assert.equal(draftCatalogFormFromPhoto(photo).stand_image_path, null);
+  }
+});
+
+test("a claim on an exact tray derivative keeps the source photo out of the unassigned queue", () => {
+  const photo = galleryRenders.find(({ number }) => number === "02");
+  const owner = { slug: "pendant", name: "آویز", image_path: null, stand_image_path: trayCutouts.galleryTrayCutout(photo).src, gallery: [] };
+  const review = photoDraft.reviewCatalogPhotos([photo], [owner]);
+  assert.deepEqual(review.available, []);
+  assert.deepEqual(review.assigned.map(({ photo: assigned, owners }) => [assigned.src, owners[0].slug]), [[photo.src, owner.slug]]);
+});
+
+test("a compatible photo adds an extra view without changing the identity or review state", () => {
+  const [anchor, extra, unrelated, duplicate] = ["01", "07", "03", "06"].map((number) => galleryRenders.find((photo) => photo.number === number));
+  const input = { ...draftCatalogFormFromPhoto(anchor), name: "سنجاق‌سینهٔ نمونه" };
+  assert.equal(typeof photoDraft.appendCatalogPhotoView, "function");
+  const appended = photoDraft.appendCatalogPhotoView(input, extra);
+  assert.equal(appended.slug, input.slug);
+  assert.equal(appended.image_path, anchor.src);
+  assert.equal(appended.status, "review");
+  assert.deepEqual(appended.gallery.map((item) => item.src), [anchor.src, extra.src]);
+  assert.equal(input.gallery.length, 1);
+  assert.equal(photoDraft.appendCatalogPhotoView(appended, extra), null);
+  assert.equal(photoDraft.appendCatalogPhotoView(input, unrelated), null);
+  assert.equal(photoDraft.appendCatalogPhotoView(input, duplicate), null);
+  assert.equal(photoDraft.appendCatalogPhotoView({ ...input, gallery: Array(12).fill(input.gallery[0]) }, extra), null);
 });

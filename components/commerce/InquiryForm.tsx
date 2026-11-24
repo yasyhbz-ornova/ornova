@@ -209,8 +209,16 @@ function InquiryFormSession({ productContext, productSelectionKey, sourceContext
     try { return mergeRequestDraftItems(selectedItems, (JSON.parse(localDraftSnapshot ?? "null") as LocalDraft | null)?.items).omitted; } catch { return 0; }
   }, [selectedItems, localDraftSnapshot]);
   const reviewedItems = submissionState === "registered" ? receipt?.items ?? [] : requestItems;
+  const restoredSourceContext = useMemo(() => {
+    try {
+      const draft = JSON.parse(localDraftSnapshot ?? "null") as LocalDraft | null;
+      return draft?.sourceContext === "custom-design" || draft?.sourceContext === "ring-builder" ? draft.sourceContext : undefined;
+    } catch { return undefined; }
+  }, [localDraftSnapshot]);
+  const effectiveSourceContext = sourceContext ?? (productContext || requestBasketContext ? undefined : restoredSourceContext);
+  const isCustomDesign = effectiveSourceContext === "custom-design";
   const ringDesign = useMemo(() => {
-    if (!includeRingDraft) return null;
+    if (!includeRingDraft || isCustomDesign) return null;
     try {
       const value: unknown = JSON.parse(ringDraftSnapshot ?? "null");
       if (!value || typeof value !== "object") return null;
@@ -220,7 +228,7 @@ function InquiryFormSession({ productContext, productSelectionKey, sourceContext
         details: ["بدون جزئیات افزوده", "یک تأکید کوچک", "خط پیوسته", "جزئیات پیرامون سنگ"],
       });
     } catch { return null; }
-  }, [includeRingDraft, ringDraftSnapshot]);
+  }, [includeRingDraft, isCustomDesign, ringDraftSnapshot]);
   const hasLocalDraft = localDraftSnapshot !== null;
   const draftNeedsReselection = useMemo(() => {
     try {
@@ -228,15 +236,6 @@ function InquiryFormSession({ productContext, productSelectionKey, sourceContext
       return draft?.fileNeedsReselection === true;
     } catch { return false; }
   }, [localDraftSnapshot]);
-  const restoredSourceContext = useMemo(() => {
-    try {
-      const draft = JSON.parse(localDraftSnapshot ?? "null") as LocalDraft | null;
-      return draft?.sourceContext === "custom-design" || draft?.sourceContext === "ring-builder" ? draft.sourceContext : undefined;
-    } catch { return undefined; }
-  }, [localDraftSnapshot]);
-  const effectiveSourceContext = sourceContext ?? (productContext || requestBasketContext ? undefined : restoredSourceContext);
-  const isCustomDesign = effectiveSourceContext === "custom-design";
-
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; operation.current = null; };

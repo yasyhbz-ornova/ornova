@@ -69,7 +69,7 @@ export function RingDesignBuilder({ onContinueRequest, onContinueWithoutDraft, o
       <div className="ring-specimen">
         <div className="ring-specimen-top"><span>یک قطعه از آرشیو Ornova</span><small>انگشتر لاجورد شب</small></div>
         <div className="ring-reference-image"><Image src="/images/ornova/gallery/products/lajvard-shab-stand-cutout-preview-v1.webp" alt="انگشتر نقرهٔ لاجورد شب برای مشاهده در شناسنامهٔ گالری" fill sizes="(max-width: 800px) 100vw, 40vw" priority /></div>
-        <div className="ring-specimen-caption"><p>نمونهٔ تأییدشده از آرشیو</p><button type="button" onClick={onOpenProduct}>دیدن شناسنامهٔ انگشتر ←</button></div>
+        <div className="ring-specimen-caption"><p>نمونهٔ تأییدشده از آرشیو</p><button id="ring-builder-sample-product" type="button" onClick={onOpenProduct}>دیدن شناسنامهٔ انگشتر ←</button></div>
         <section className="ring-selection-summary" aria-live="polite" aria-atomic="true">
           <h2>یادداشت انتخاب شما</h2>
           <p>رکاب {selection.base}، فرم {selection.shape}، رنگ {selection.color}، {selection.ornament}{selection.ringSizeEu ? `، سایز اروپایی ${selection.ringSizeEu}` : ""}</p>

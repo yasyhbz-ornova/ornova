@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isOrnovaStaff, isSameOriginRequest } from "@/lib/auth/authorization";
 import { hasAllowedFileSignature } from "@/lib/security/file-signature";
+import { catalogImageMaxBytes as limit, isTransparentTrayImage, trayImageError } from "@/lib/catalog/tray-image";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const limit = 4 * 1024 * 1024;
 const contentTypes: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 const headers = { "Cache-Control": "no-store" };
-const failure = (status: number) => NextResponse.json({ error: status === 413 ? "حجم تصویر باید کمتر از ۴ مگابایت باشد." : status === 400 ? "فایل باید تصویر PNG، JPEG یا WebP معتبر باشد." : status === 503 ? "بارگذاری تصویر فعلاً در دسترس نیست." : "اجازهٔ بارگذاری تصویر ندارید." }, { status, headers });
+const failure = (status: number, error?: string) => NextResponse.json({ error: error ?? (status === 413 ? "حجم تصویر باید کمتر از ۴ مگابایت باشد." : status === 400 ? "فایل باید تصویر PNG، JPEG یا WebP معتبر باشد." : status === 503 ? "بارگذاری تصویر فعلاً در دسترس نیست." : "اجازهٔ بارگذاری تصویر ندارید.") }, { status, headers });
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return failure(403);
@@ -21,9 +21,12 @@ export async function POST(request: Request) {
     if (!isOrnovaStaff(user)) return failure(403);
     const body = await request.formData();
     const file = body.get("file");
+    const purpose = body.get("purpose");
+    if (purpose !== null && purpose !== "tray") return failure(400);
     if (!(file instanceof File) || !contentTypes[file.type] || !file.size) return failure(400);
     if (file.size > limit) return failure(413);
     if (!(await hasAllowedFileSignature(file))) return failure(400);
+    if (purpose === "tray" && !(await isTransparentTrayImage(file))) return failure(400, trayImageError);
     const name = `${crypto.randomUUID()}.${contentTypes[file.type]}`;
     const result = await client.storage.from("ornova-catalog").upload(name, file, { contentType: file.type, cacheControl: "31536000", upsert: false });
     if (result.error) return failure(503);

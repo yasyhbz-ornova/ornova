@@ -12,7 +12,9 @@ import { transferStudioInquiry } from "@/lib/studio/inquiry-handoff";
 const draftKey = (id: string) => `ornova:studio:${id}`;
 type Conversation = { answers: string[]; input: string; note: string };
 
-export function DesignStudio({ draftId, userId, imageMode = "offline", embedded = false, onOpenInquiry, onOpenAccountGallery, onRequestLogin }: { draftId: string | null; userId: string | null; imageMode?: "offline" | "preview"; embedded?: boolean; onOpenInquiry?: () => void; onOpenAccountGallery?: () => void; onRequestLogin?: (id: string) => void }) {
+export type StudioInquiryMode = "transferred" | "review-existing";
+
+export function DesignStudio({ draftId, userId, imageMode = "offline", embedded = false, active = true, onOpenInquiry, onReturnToInquiry, onOpenAccountGallery, onRequestLogin }: { draftId: string | null; userId: string | null; imageMode?: "offline" | "preview"; embedded?: boolean; active?: boolean; onOpenInquiry?: (mode: StudioInquiryMode) => void; onReturnToInquiry?: () => void; onOpenAccountGallery?: () => void; onRequestLogin?: (id: string) => void }) {
   const router = useRouter();
   const [conversation, setConversation] = useState<Conversation>({ answers: [], input: "", note: "" });
   const [currentUserId, setCurrentUserId] = useState(userId);
@@ -113,7 +115,7 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
       const { data: { user } } = await client.auth.getUser();
       if (!user) { setCurrentUserId(null); setConsent(false); setGate(true); setError("برای ادامه دوباره وارد همان حساب شو؛ مالکیت ایده تغییر نکرده است."); return; }
       if (user.id !== ideaOwnerId.current) { setError("حساب فعال تغییر کرده است. برای ادامهٔ امن، صفحه را دوباره باز کن."); setConsent(false); return; }
-      const response = await fetch("/api/studio/generations", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: requestId.current, accountId: ideaOwnerId.current, idea: brief, consent: true }), signal: AbortSignal.timeout(115000) });
+      const response = await fetch("/api/studio/generations", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: requestId.current, accountId: ideaOwnerId.current, idea: brief, consent: true }), signal: AbortSignal.timeout(118000) });
       const body = await response.json();
       if (!response.ok) {
         if (response.status === 401) { setCurrentUserId(null); setConsent(false); setGate(true); }
@@ -134,7 +136,7 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
     try {
       const transferred = transferStudioInquiry(answers, window.sessionStorage, window.localStorage);
       if (!transferred.success) { setError(transferred.error); return; }
-      if (embedded && onOpenInquiry) { onOpenInquiry(); return; }
+      if (embedded && onOpenInquiry) { onOpenInquiry("transferred"); return; }
       router.push("/contact?from=custom-design");
     } catch { setError("مرورگر اجازهٔ انتقال ایده را نداد. خلاصه را کپی کن و در فرم درخواست قرار بده."); }
   }
@@ -151,7 +153,7 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
 
   return <div className={`${styles.studio} ${embedded ? styles.embedded : ""}`}>
     <aside className={styles.intro}>
-      <p className={styles.eyebrow}>استودیو طراحی اختصاصی</p><h1 id={embedded ? "gallery-drawer-title" : undefined} tabIndex={embedded ? -1 : undefined}>از ایدهٔ تو{" "}<br />شروع کنیم.</h1>
+      <p className={styles.eyebrow}>استودیو طراحی اختصاصی</p><h1 id={embedded && active ? "gallery-drawer-title" : undefined} tabIndex={embedded ? -1 : undefined}>از ایدهٔ تو{" "}<br />شروع کنیم.</h1>
       <p>لازم نیست همه‌چیز را بدانی.<br />از فرم، رنگ یا حسی که در ذهن داری بگو.</p>
       <figure className={styles.reference}><div><Image src="/images/ornova/lajvard-shab-04.png" alt="انگشتر لاجورد شب کنار دست‌نوشته؛ نمونه‌ای از آرشیو Ornova" fill sizes="(max-width: 800px) 1px, 400px" className={styles.referencePhoto} /></div><figcaption>از آرشیو Ornova by Yas · لاجورد شب</figcaption></figure>
       {!embedded && <nav aria-label="مسیرهای دیگر استودیو"><Link href="/account/gallery">گالری من <span aria-hidden="true">↖</span></Link><Link href="/ring-builder">طراحی انگشتر <span aria-hidden="true">↖</span></Link></nav>}
@@ -169,9 +171,14 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
         <div className={styles.choices} aria-label="پاسخ‌های پیشنهادی">{question.choices.map((choice) => <button key={choice} type="button" onClick={() => answer(choice)}>{choice}</button>)}</div>
         <form onSubmit={submit} className={styles.composer}><label htmlFor="studio-answer">پاسخ تو</label><textarea id="studio-answer" ref={inputRef} rows={3} maxLength={450} value={input} onChange={(e) => setConversation({ ...conversation, input: e.target.value })} placeholder="اینجا بنویس…" required /><div><small>توضیح شخصی یا اطلاعات تماس لازم نیست.</small><button type="submit" disabled={!input.trim()}>ادامهٔ گفت‌وگو ←</button></div></form>
       </> : <div className={styles.review}>
-        <h2 ref={reviewRef} tabIndex={-1}>این، نقطهٔ شروع طراحی توست.</h2><p className={styles.brief}>{brief}</p>
-        <div className={styles.readyActions}><button type="button" className={styles.primary} disabled={busy} onClick={transferToInquiry}>انتقال خلاصه به فرم درخواست <span aria-hidden="true">←</span></button><button type="button" className={styles.copyAction} disabled={busy} onClick={copyBrief}>کپی خلاصهٔ ایده</button></div>
-        <p className={styles.disclosure}>با انتقال، همین خلاصه در این زبانه نگه داشته می‌شود. پیش از ارسال، آن را در فرم درخواست بررسی می‌کنی.</p>
+        <h2 ref={reviewRef} tabIndex={-1} data-studio-review>این، نقطهٔ شروع طراحی توست.</h2><p className={styles.brief}>{brief}</p>
+        <div className={styles.readyActions}>
+          {onReturnToInquiry
+            ? <button type="button" className={styles.primary} disabled={busy} onClick={onReturnToInquiry}>بازگشت به فرم درخواست <span aria-hidden="true">←</span></button>
+            : <button type="button" className={styles.primary} disabled={busy} onClick={transferToInquiry}>انتقال خلاصه به فرم درخواست <span aria-hidden="true">←</span></button>}
+          <button type="button" className={styles.copyAction} disabled={busy} onClick={copyBrief}>کپی خلاصهٔ ایده</button>
+        </div>
+        <p className={styles.disclosure}>{onReturnToInquiry ? "اگر پاسخ‌ها را اصلاح کردی، خلاصهٔ تازه را کپی کن و در فرم درخواست قرار بده." : "با انتقال، همین خلاصه در این زبانه نگه داشته می‌شود. پیش از ارسال، آن را در فرم درخواست بررسی می‌کنی."}</p>
         {copyState === "copied" && <p role="status" className={styles.notice}>خلاصهٔ ایده کپی شد.</p>}
         {copyState === "manual" && <label className={styles.manualCopy}>کپی خودکار انجام نشد؛ متن را انتخاب و کپی کن.<textarea readOnly value={brief ?? ""} rows={4} onFocus={(event) => event.currentTarget.select()} aria-label="خلاصهٔ ایده برای کپی دستی" /></label>}
         {imageMode === "offline" ? <p className={styles.offline}>ساخت تصویر فعلاً فعال نیست. می‌توانی همین ایده را برای بررسی طراحی ثبت کنی.</p> : <p className={styles.disclosure}>ساخت تصویر در آزمون محدود است. Ornova پیش‌طرح را از نظر جنس، سنگ، ابعاد و امکان ساخت بررسی می‌کند.</p>}
@@ -186,7 +193,7 @@ export function DesignStudio({ draftId, userId, imageMode = "offline", embedded 
           <p role="status">تصویر در گالری خصوصی تو ذخیره شد.</p>{embedded && onOpenAccountGallery ? <button type="button" className={styles.libraryAction} onClick={onOpenAccountGallery}>دیدن گالری من ←</button> : <Link href="/account/gallery">دیدن گالری من ←</Link>}<button type="button" onClick={() => edit(1)}>اصلاح ایده و ساخت نسخهٔ تازه</button>
         </div>}
       </div>}
-      {error && <div className={styles.error}><p role="alert">{error}</p>{embedded && onOpenInquiry ? <button type="button" onClick={onOpenInquiry}>بازکردن تلفن گالری <span aria-hidden="true">←</span></button> : <Link href="/contact?from=custom-design">بازکردن فرم درخواست و بررسی پیش‌نویس <span aria-hidden="true">←</span></Link>}</div>}
+      {error && <div className={styles.error}><p role="alert">{error}</p>{!onReturnToInquiry && (embedded && onOpenInquiry ? <button type="button" onClick={() => onOpenInquiry("review-existing")}>بازکردن تلفن گالری <span aria-hidden="true">←</span></button> : <Link href="/contact?from=custom-design">بازکردن فرم درخواست و بررسی پیش‌نویس <span aria-hidden="true">←</span></Link>)}</div>}
       <footer className={styles.chatFooter}><span>برای تعریف ایده، نیازی به ورود نیست.</span>{draftId && <button type="button" onClick={clearDeviceDraft} disabled={busy}>پاک‌کردن پیش‌نویس این دستگاه</button>}{!embedded && <a href="/custom-design">شروع یک ایدهٔ تازه</a>}</footer>
     </section>
   </div>;

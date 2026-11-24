@@ -1,7 +1,8 @@
 import type { CatalogCategoryId } from "./catalog";
 import type { Product } from "./products";
 import { findGalleryProduct } from "../catalog/gallery-product-link";
-import { galleryRenders } from "./gallery-renders";
+import { visibleGalleryRenders, type GalleryRender } from "./gallery-renders";
+import { galleryTrayCutout } from "./gallery-tray-cutouts";
 
 /** Measured blue stand silhouettes in the owner's final photographs (source pixels).
  * The original renders stay intact; the scene masks them to the matching empty stand.
@@ -35,19 +36,20 @@ const firstWork: Partial<Record<CatalogCategoryId, string>> = {
   "jewelry-sets": "40", pendants: "08", bracelets: "45",
 };
 
-export const galleryRoomSamples = galleryRenders
-  // The owner's original 04 and 19 ring photos end inside the jewelry itself.
-  // Keep their files intact, but do not rotate cropped pieces into the room display.
-  .filter((render) => render.status === "ready" && render.categoryId && measuredBounds[render.number]
-    && !(render.categoryId === "rings" && (render.number === "04" || render.number === "19")))
-  .map((render) => ({
-    number: render.number,
-    title: render.title,
-    categoryId: render.categoryId as CatalogCategoryId,
-    src: render.src,
-    image: [render.width, render.height] as const,
-    bounds: measuredBounds[render.number],
-  }));
+export const galleryRoomSamples = visibleGalleryRenders
+  .filter((render) => measuredBounds[render.number])
+  .map((render) => {
+    const cutout = galleryTrayCutout(render);
+    return {
+      number: render.number,
+      title: render.title,
+      categoryId: render.categoryId as CatalogCategoryId,
+      src: render.src,
+      ...(cutout && { trayImage: cutout.src }),
+      image: [render.width, render.height] as const,
+      bounds: measuredBounds[render.number],
+    };
+  });
 
 export type GalleryRoomSample = (typeof galleryRoomSamples)[number] & { productSlug?: string };
 
@@ -79,7 +81,10 @@ type GalleryShowcaseEntry =
   | { product: Product; sample?: GalleryRoomSample }
   | { product: null; sample: GalleryRoomSample };
 
-export function galleryShowcaseEntries(products: readonly Product[]): Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>> {
+type GalleryShowcaseEntries = Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>>;
+export type GalleryShowcasePhoto = Pick<GalleryRender, "number" | "src" | "categoryId">;
+
+export function galleryShowcaseEntries(products: readonly Product[]): GalleryShowcaseEntries {
   const entries: Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>> = {};
   const archive: Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>> = {};
   const selectedPhotos = new Map<string, GalleryRoomSample>();
@@ -101,4 +106,15 @@ export function galleryShowcaseEntries(products: readonly Product[]): Partial<Re
     (entries[category] ??= []).push(...(archive[category] ?? []));
   }
   return entries;
+}
+
+export function findGalleryShowcasePhoto(entries: GalleryShowcaseEntries, photo: GalleryShowcasePhoto) {
+  const sample = galleryRoomSamples.find((source) =>
+    source.number === photo.number && source.src === photo.src && source.categoryId === photo.categoryId,
+  );
+  if (!sample) return null;
+  const items = entries[sample.categoryId] ?? [];
+  const linked = findGalleryProduct(items.flatMap(({ product }) => product ? [product] : []), sample);
+  const index = items.findIndex((item) => item.sample?.src === sample.src || (linked && item.product?.slug === linked.slug));
+  return index < 0 ? null : { categoryId: sample.categoryId, index };
 }

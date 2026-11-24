@@ -95,7 +95,7 @@
 .sceneViewToggle span { font-size: .95rem; }
 .overlay { position: fixed; z-index: 70; inset: 0; display: flex; justify-content: flex-start; overflow: hidden; background: rgb(39 34 28 / 42%); backdrop-filter: blur(4px); animation: fadeIn 180ms ease-out; }
 .overlay[data-product-open="true"] { justify-content: center; background: rgb(39 34 28 / 54%); backdrop-filter: none; }
-.overlay[data-studio-open="true"] { justify-content: center; background: linear-gradient(105deg, rgb(245 241 234 / 84%), rgb(245 241 234 / 90%)), url("/images/ornova/gallery/ornova-gallery-entry-static-ivory-v1.webp") center / cover no-repeat; backdrop-filter: none; }
+.overlay[data-studio-open="true"] { justify-content: center; background: linear-gradient(105deg, rgb(245 241 234 / 84%), rgb(245 241 234 / 90%)); backdrop-filter: blur(12px); }
 .overlay[data-focused-display] { background: rgb(39 34 28 / 14%); backdrop-filter: none; direction: ltr; }
 .overlay[data-focused-display][data-focus-side="right"] { justify-content: flex-end; }
 .overlay[data-focused-display][data-focus-side="left"] { justify-content: flex-start; }
@@ -163,20 +163,16 @@
 .emptyState a, .primaryLink, .secondaryLink { display: inline-flex; min-height: 44px; align-items: center; gap: .65rem; color: #4d6278; font-size: .75rem; }
 .emptyState .primaryLink { padding: 0; font-family: inherit; text-align: start; cursor: pointer; }
 .emptyState .primaryLink:focus-visible { outline: 2px solid var(--sapphire); outline-offset: 4px; }
-.renderShelf { max-width: 600px; margin: 1.6rem auto 0; padding-top: 1.15rem; border-top: 1px solid #d8d4cc; }
-.renderShelfHeading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
-.renderShelfHeading h2 { margin: .15rem 0 0; color: #393832; font-family: var(--font-display); font-size: 1rem; font-weight: 400; }
-.renderShelfKicker { color: #77756e; font-size: .68rem; }
-.renderCount { color: #77756e; font-size: .68rem; white-space: nowrap; }
-.renderFigure { display: grid; justify-items: center; gap: .45rem; margin: 0; padding: .65rem; border: 1px solid #d8d4cc; background: linear-gradient(145deg, #f8f4ed, #eee9e0); }
-.renderFigure img { display: block; width: auto; max-width: 100%; max-height: min(60vh, 650px); height: auto; object-fit: contain; }
-.renderFigure figcaption { color: #5e5a52; font-size: .75rem; line-height: 1.8; text-align: center; }
-.renderControls { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .65rem; }
-.renderControls button { min-height: 42px; padding: .45rem .65rem; border: 1px solid #d2cec6; color: #455b70; background: rgb(255 255 255 / 35%); font: inherit; font-size: .72rem; cursor: pointer; }
-.renderControls button:hover { border-color: #72869a; background: #e9edf0; }
-.renderControls button:focus-visible { outline: 2px solid var(--sapphire); outline-offset: 2px; }
-.renderControls > span { color: #77756e; font-size: .68rem; }
-.renderNotice { margin: .75rem 0 0; color: #706b63; font-size: .7rem; line-height: 1.9; }
+.indexSection { margin-top: 1.35rem; }
+.indexSection h2 { margin: 0 0 .35rem; padding-bottom: .4rem; border-bottom: 1px solid #cfc3b2; color: #685c4e; font-family: var(--font-display); font-size: 1.08rem; font-weight: 400; }
+.indexWorks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); column-gap: 1.4rem; margin: 0; padding: 0; list-style: none; }
+.indexWorks li { min-width: 0; border-bottom: 1px solid #dbd2c4; }
+.indexWork { display: flex; width: 100%; min-height: 76px; align-items: center; gap: .75rem; padding: .45rem .1rem; border: 0; color: #3b342c; background: transparent; font: inherit; font-size: .84rem; line-height: 1.75; text-align: right; cursor: pointer; }
+.indexWork:hover { color: #294b66; background: #eee7dc; }
+.indexWork:focus-visible { outline: 2px solid #385a77; outline-offset: -2px; }
+.indexWork > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.indexWorkImage { position: relative; flex: 0 0 66px; height: 62px; background: #eae2d5; }
+.indexWorkImage img { padding: .35rem; object-fit: contain; }
 .magazineSpread { position: relative; isolation: isolate; margin-top: 1.35rem; padding: clamp(1rem, 2.4vw, 1.8rem); border: 1px solid #d8cdbd; color: #393832; background: linear-gradient(90deg, transparent calc(50% - .5px), rgb(160 147 128 / 34%) 50%, transparent calc(50% + .5px)), repeating-linear-gradient(0deg, rgb(91 75 55 / 2.5%) 0 1px, transparent 1px 7px), #f6f1e8; box-shadow: inset 0 0 0 4px rgb(255 255 255 / 34%), 0 10px 24px rgb(43 36 28 / 6%); }
 .magazineSpread::after { position: absolute; z-index: -1; inset: .4rem; border: 1px solid rgb(190 177 157 / 34%); content: ""; pointer-events: none; }
 .magazineFamilies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.15rem 1.4rem; }
@@ -192,11 +188,11 @@
 .birthMonthWork { display: grid; justify-items: center; gap: .25rem; padding: .85rem 0 1rem; border-bottom: 1px solid var(--silver); text-align: center; }
 .birthMonthWork .collectionReferenceNumber { font-size: .74rem; }
 .birthMonthWork strong { color: var(--ink); font-size: .9rem; font-weight: 500; line-height: 1.8; }
-.collectionImagePending { display: grid; width: min(100%, 340px); min-height: 18rem; place-items: center; border: 1px solid var(--silver); background: linear-gradient(145deg, #f7f1e8, #eee5d9); color: #746f67; }
-.collectionImagePending span { max-width: 15rem; padding: 1rem; border-block: 1px solid #c9c0b4; font-size: .8rem; line-height: 1.9; }
+.collectionImagePending { margin: .25rem 0 0; color: #706b63; font-size: .75rem; line-height: 1.8; }
 .birthMonthFigure { width: min(100%, 320px); margin: .45rem auto 0; }
+.birthMonthPhoto { display: block; width: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.birthMonthPhoto:focus-visible { outline: 2px solid #355a82; outline-offset: 3px; }
 .birthMonthFigure img { display: block; width: 100%; height: auto; border: 1px solid #d8d4cc; background: #f6f1e8; }
-.birthMonthFigure figcaption { margin-top: .35rem; color: #706b63; font-size: .7rem; line-height: 1.8; text-align: center; }
 .collectionNotice { margin-top: 1rem; padding: .8rem 1rem; border-right: 2px solid var(--sapphire); color: #635f58; font-size: .74rem; line-height: 2; }
 .birthMonthPicker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; margin-top: 1.2rem; }
 .birthMonthPicker button { min-height: 42px; padding: .35rem .25rem; border: 1px solid #d8d4cc; color: #514d46; background: rgb(255 255 255 / 24%); font: inherit; font-size: .76rem; cursor: pointer; }

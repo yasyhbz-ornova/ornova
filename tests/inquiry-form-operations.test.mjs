@@ -53,6 +53,24 @@ test("form context key changes across source/product/intent rather than reusing 
   const c=form();assert.notEqual(c.contextKey({sourceContext:"custom-design"}),c.contextKey({sourceContext:"ring-builder"}));assert.notEqual(c.contextKey({intent:"price"}),c.contextKey({intent:"question"}));
 });
 
+test("a restored studio inquiry excludes the separate ring draft and leaves it available", async () => {
+  const message = "آویز نقره با فرم بیضی";
+  const local = storage({ [ringKey]: ring });
+  const session = storage({ [draftKey]: JSON.stringify({ message, sourceContext: "custom-design" }) });
+  const inquiry = form({ local, session, props: { galleryMode: true } });
+
+  assert.equal(inquiry.fields.message.value, message);
+  assert.doesNotMatch(inquiry.text(), /پیش‌طرح مفهومی همراه درخواست/);
+  await inquiry.submit();
+
+  assert.equal(inquiry.calls.length, 1);
+  const payload = JSON.parse(inquiry.calls[0].options.body);
+  assert.match(payload.message, /آویز نقره با فرم بیضی/);
+  assert.match(payload.message, /مسیر درخواست: طراحی اختصاصی/);
+  assert.doesNotMatch(payload.message, /پهنای رکاب/);
+  assert.equal(local.getItem(ringKey), ring);
+});
+
 test("unavailable storage keeps the page gated and explains that persistence failed",async()=>{
   const session={getItem:()=>null,setItem(){throw Error("unavailable");},removeItem(){throw Error("unavailable");}};
   const c=form({session,run:async()=>{throw Error("lost");}});await c.submit();c.render();await c.submit();assert.equal(c.calls.length,1);assert.ok(c.text().includes("مرورگر پیش‌نویس را ذخیره نکرد"));

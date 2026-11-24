@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { toCatalogForm } from "../lib/catalog/editor-form.ts";
-import { displayDossierField, isDossierField, readDossierField, updateDossierField } from "../lib/catalog/dossier-fields.ts";
+import * as dossier from "../lib/catalog/dossier-fields.ts";
+
+const { displayDossierField, incompleteDossierFields, isDossierField, readDossierField, updateDossierField } = dossier;
 
 test("catalog editor strips database-only fields before another strict save", () => {
   const stored = {
@@ -42,4 +44,37 @@ test("fixed dossier inputs update legacy labels and preserve other catalog detai
   assert.equal(readDossierField(updateDossierField(details, "stone", ""), "stone"), "");
   assert.equal(displayDossierField([], "weight"), "");
   assert.equal(displayDossierField([{ label: "سنگ", value: "جزئیات پس از بررسی درخواست اعلام می‌شود" }], "stone"), "پس از بررسی");
+});
+
+test("a dossier review flags missing values, placeholders and measurements without units", () => {
+  assert.equal(typeof incompleteDossierFields, "function");
+  assert.deepEqual(incompleteDossierFields([
+    { label: "جنس فلز", value: "نقره" },
+    { label: "سنگ", value: "جزئیات پس از بررسی درخواست اعلام می‌شود" },
+    { label: "رنگ سنگ", value: "نیازمند تأیید" },
+    { label: "وزن", value: "۳٫۲" },
+    { label: "ابعاد", value: "۱۲ × ۸ میلی‌متر" },
+  ]), ["stone", "stoneColor", "weight"]);
+  assert.deepEqual(incompleteDossierFields([]), ["material", "stone", "stoneColor", "weight", "dimensions"]);
+});
+
+test("a documented stone-free work needs no color field and existing measurement units count", () => {
+  assert.equal(typeof incompleteDossierFields, "function");
+  assert.deepEqual(incompleteDossierFields([
+    { label: "جنس", value: "نقره" },
+    { label: "نوع سنگ", value: "بدون‌سنگ" },
+    { label: "وزن تقریبی", value: "3.2g" },
+    { label: "ابعاد تقریبی", value: "12 × 8mm" },
+  ]), []);
+});
+
+test("a stone-free dossier omits the saved color without changing the editable values", () => {
+  const details = [
+    { label: "نوع سنگ", value: "بدون‌سنگ" },
+    { label: "رنگ سنگ", value: "آبی" },
+  ];
+
+  assert.equal(readDossierField(details, "stoneColor"), "آبی");
+  assert.equal(displayDossierField(details, "stoneColor"), "");
+  assert.equal(displayDossierField(updateDossierField(details, "stone", "عقیق"), "stoneColor"), "آبی");
 });

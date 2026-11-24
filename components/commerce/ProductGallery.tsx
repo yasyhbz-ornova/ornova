@@ -17,16 +17,18 @@ function subscribeToMotionPreference(onChange: () => void) {
 function getMotionPreferenceSnapshot() { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
 
 export function ProductGallery({ images, name, allowOriginalImageOpen = true, standImage, turntableVideo, displayKind, galleryScene = false }: { images: GalleryImage[]; name: string; allowOriginalImageOpen?: boolean; standImage?: string; turntableVideo?: string; displayKind?: string; galleryScene?: boolean }) {
+  const canShowTurntable = !galleryScene && Boolean(turntableVideo);
+  const canOpenOriginal = allowOriginalImageOpen && !galleryScene;
   const [activeIndex, setActiveIndex] = useState(0);
-  const [showTurntable, setShowTurntable] = useState(Boolean(turntableVideo));
+  const [showTurntable, setShowTurntable] = useState(canShowTurntable);
   const [turntableUnavailable, setTurntableUnavailable] = useState(false);
   const [manualRotation, setManualRotation] = useState<boolean | null>(null);
   const prefersReducedMotion = useSyncExternalStore(subscribeToMotionPreference, getMotionPreferenceSnapshot, () => true);
-  const isRotating = manualRotation ?? (Boolean(turntableVideo) && !prefersReducedMotion);
+  const isRotating = manualRotation ?? (canShowTurntable && !prefersReducedMotion);
   const turntableRef = useRef<HTMLVideoElement>(null);
   const hydrated = useSyncExternalStore(subscribe, hydratedSnapshot, serverSnapshot);
   const activeImage = images[activeIndex] ?? images[0];
-  const displayTurntable = Boolean(turntableVideo && showTurntable && !turntableUnavailable);
+  const displayTurntable = canShowTurntable && showTurntable && !turntableUnavailable;
   const showImage = useCallback((index: number) => {
     if (images.length) setActiveIndex((index + images.length) % images.length);
   }, [images.length]);
@@ -55,7 +57,7 @@ export function ProductGallery({ images, name, allowOriginalImageOpen = true, st
     }
   }
 
-  if (!activeImage && !turntableVideo && !standImage) return <p className={styles.noImage}>تصویر مستقل و تأییدشدهٔ این اثر برای نمایش روی استند هنوز آماده نیست.</p>;
+  if (!activeImage && !canShowTurntable && !standImage) return <p className={styles.noImage}>تصویر مستقل و تأییدشدهٔ این اثر برای نمایش روی استند هنوز آماده نیست.</p>;
 
   return (
     <div className={styles.gallery} data-gallery-scene={galleryScene ? "true" : undefined} role="group" tabIndex={images.length > 1 ? 0 : undefined} aria-label={`گالری تصاویر ${name}`} onKeyDown={handleGalleryKeyDown}>
@@ -73,15 +75,15 @@ export function ProductGallery({ images, name, allowOriginalImageOpen = true, st
         )}
       </div>
       <div className={styles.caption}>
-        {turntableVideo && <div className="flex flex-wrap gap-2" role="group" aria-label="انتخاب نمای محصول"><button type="button" aria-pressed={displayTurntable} disabled={turntableUnavailable} onClick={() => setShowTurntable(true)} className="min-h-11 border-b border-silver px-2 text-sapphire disabled:cursor-not-allowed disabled:opacity-60">{turntableUnavailable ? "چرخش ۳۶۰ درجه آماده نیست" : "چرخش ۳۶۰ درجه"}</button>{standImage ? <button type="button" aria-pressed={!displayTurntable} onClick={() => setShowTurntable(false)} className="min-h-11 border-b border-silver px-2">نمای روی استند</button> : activeImage && <button type="button" aria-pressed={!displayTurntable} onClick={() => setShowTurntable(false)} className="min-h-11 border-b border-silver px-2">تصاویر محصول</button>}</div>}
-        {turntableUnavailable && <span className={styles.mediaStatus} role="status">فایل چرخش در دسترس نیست؛ نمای ثابت همین اثر نمایش داده شده است.</span>}
+        {canShowTurntable && <div className="flex flex-wrap gap-2" role="group" aria-label="انتخاب نمای محصول"><button type="button" aria-pressed={displayTurntable} disabled={turntableUnavailable} onClick={() => setShowTurntable(true)} className="min-h-11 border-b border-silver px-2 text-sapphire disabled:cursor-not-allowed disabled:opacity-60">{turntableUnavailable ? "چرخش ۳۶۰ درجه آماده نیست" : "چرخش ۳۶۰ درجه"}</button>{standImage ? <button type="button" aria-pressed={!displayTurntable} onClick={() => setShowTurntable(false)} className="min-h-11 border-b border-silver px-2">نمای روی استند</button> : activeImage && <button type="button" aria-pressed={!displayTurntable} onClick={() => setShowTurntable(false)} className="min-h-11 border-b border-silver px-2">تصاویر محصول</button>}</div>}
+        {canShowTurntable && turntableUnavailable && <span className={styles.mediaStatus} role="status">فایل چرخش در دسترس نیست؛ نمای ثابت همین اثر نمایش داده شده است.</span>}
         {!displayTurntable && standImage && !galleryScene && <span>نمای اثر روی استند اُرنوا</span>}
-        {!displayTurntable && !standImage && activeImage && <><span aria-live="polite" aria-atomic="true">تصویر {number.format(activeIndex + 1)} از {number.format(images.length)}</span>{allowOriginalImageOpen && <a href={activeImage.src} target="_blank" rel="noopener noreferrer">دیدن تصویر کامل <span aria-hidden="true">↗</span><span className="sr-only"> در زبانهٔ جدید</span></a>}</>}
+        {!displayTurntable && !standImage && activeImage && <><span aria-live="polite" aria-atomic="true">تصویر {number.format(activeIndex + 1)} از {number.format(images.length)}</span>{canOpenOriginal && <a href={activeImage.src} target="_blank" rel="noopener noreferrer">دیدن تصویر کامل <span aria-hidden="true">↗</span><span className="sr-only"> در زبانهٔ جدید</span></a>}</>}
       </div>
       {!displayTurntable && !standImage && images.length > 1 && (
         <div className={styles.rail} role="group" aria-label={`تصاویر ${name}`}>
           {images.map((image, index) => (
-            allowOriginalImageOpen ? <a
+            canOpenOriginal ? <a
               key={image.src}
               href={image.src}
               target="_blank"

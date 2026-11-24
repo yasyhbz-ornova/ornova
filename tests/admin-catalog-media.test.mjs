@@ -2,17 +2,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import test from "node:test";
+import sharp from "sharp";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
 function load(path, dependencies = {}) {
   const loaded = { exports: {} };
   const source = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-  new Function("require", "exports", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)((name) => dependencies[name] ?? require(name), loaded.exports);
+  new Function("require", "exports", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText)((name) => dependencies[name] ?? require(name), loaded.exports);
   return loaded.exports;
 }
 const auth = load("lib/auth/authorization.ts");
 const signatures = load("lib/security/file-signature.ts");
+const tray = load("lib/catalog/tray-image.ts");
 function fixture(user = { app_metadata: { ornova_role: "staff" } }, authError = null) {
   const uploads = [];
   const client = {
@@ -23,9 +25,11 @@ function fixture(user = { app_metadata: { ornova_role: "staff" } }, authError = 
     "@/lib/supabase/server": { createSupabaseServerClient: async () => client },
     "@/lib/auth/authorization": auth,
     "@/lib/security/file-signature": signatures,
+    "@/lib/catalog/tray-image": tray,
   });
-  function post(content = new Uint8Array([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]), mime = "image/png", origin = "http://localhost:3058") {
+  function post(content = new Uint8Array([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]), mime = "image/png", origin = "http://localhost:3058", purpose = null) {
     const body = new FormData(); body.set("file", new File([content], "sample.png", { type: mime }));
+    if (purpose !== null) body.set("purpose", purpose);
     return route.POST(new Request("http://localhost:3058/api/admin/catalog/media", { method: "POST", headers: { origin }, body }));
   }
   return { post, uploads };
@@ -56,6 +60,26 @@ test("catalog upload verifies file bytes, size and produces an immutable public 
   assert.match(path,/^\/images\/ornova\/catalog-media\/[0-9a-f-]{36}\.png$/);
   assert.equal(item.uploads[0].bucket,"ornova-catalog");
   assert.equal(item.uploads[0].args[2].upsert,false);
+});
+
+test("tray upload requires real transparency and a visible work without changing the uploaded pixels", async () => {
+  const item = fixture();
+  const source = Buffer.from([155, 174, 190, 255, 0, 0, 0, 0]);
+  const opaque = await sharp(Buffer.from([155, 174, 190, 255, 80, 70, 60, 255]), { raw: { width: 2, height: 1, channels: 4 } }).png().toBuffer();
+  const empty = await sharp(Buffer.alloc(8), { raw: { width: 2, height: 1, channels: 4 } }).png().toBuffer();
+  const photo = await sharp({ create: { width: 2, height: 2, channels: 3, background: "white" } }).jpeg().toBuffer();
+  assert.equal((await item.post(opaque, "image/png", undefined, "tray")).status, 400);
+  assert.equal((await item.post(empty, "image/png", undefined, "tray")).status, 400);
+  assert.equal((await item.post(photo, "image/jpeg", undefined, "tray")).status, 400);
+  assert.equal((await item.post(opaque.subarray(0, 8), "image/png", undefined, "tray")).status, 400);
+  assert.equal(item.uploads.length, 0);
+
+  for (const format of ["png", "webp"]) {
+    const bytes = await sharp(source, { raw: { width: 2, height: 1, channels: 4 } }).toFormat(format).toBuffer();
+    assert.equal((await item.post(bytes, `image/${format}`, undefined, "tray")).status, 201);
+    assert.deepEqual(Buffer.from(await item.uploads.at(-1).args[1].arrayBuffer()), bytes);
+  }
+  assert.equal((await item.post(photo, "image/jpeg")).status, 201);
 });
 
 test("catalog media route only fetches validated names from the configured storage host", async () => {

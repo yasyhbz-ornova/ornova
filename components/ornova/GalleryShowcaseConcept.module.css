@@ -16,11 +16,11 @@
   .architecture { object-fit: fill; }
 }
 .dossierBrand { display: grid; width: max-content; max-width: 100%; grid-template-columns: auto max-content; grid-template-rows: auto auto; align-items: center; justify-items: start; column-gap: .3rem; direction: ltr; text-align: left; }
-.door { position: absolute; z-index: 5; top: 29%; left: 40%; width: 18.2%; height: 33%; border-radius: 48% 48% 1% 1% / 30% 30% 1% 1%; color: #4a3325; text-decoration: none; }
+.door { position: absolute; z-index: 5; top: 28.7%; left: 39.7%; width: 17.8%; height: 33.8%; border-radius: 48% 48% 1% 1% / 30% 30% 1% 1%; color: #4a3325; text-decoration: none; }
 .doorTag {
   position: absolute;
-  top: 76.5%;
-  left: 53%;
+  top: 75.6%;
+  left: 56%;
   color: #45291b;
   font-family: "Segoe Script", "Brush Script MT", "URW Chancery L", Georgia, cursive;
   font-size: .77cqw;
@@ -29,12 +29,12 @@
   line-height: 1;
   transform: translate(-50%, -50%) rotate(72deg);
 }
-.shelf { position: absolute; z-index: 4; left: 83.4%; width: 14.6%; height: 8.8%; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.shelf { position: absolute; z-index: 4; left: 86%; width: 10.2%; height: 8.8%; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .shelf[aria-disabled="true"] { cursor: default; }
 .shelfGlow {
   position: absolute;
   top: 62%;
-  left: 47%;
+  left: 42%;
   width: 4.5cqw;
   height: 1.5cqw;
   border-radius: 50%;
@@ -95,15 +95,21 @@
 .register { top: 78%; left: 13%; width: 9%; height: 17%; }
 .door:focus-visible, .shelf:focus-visible, .book:focus-visible, .phone:focus-visible, .register:focus-visible { outline: 2px solid #355a82; outline-offset: -2px; }
 .tableView { position: absolute; z-index: 1; inset: 0; isolation: isolate; visibility: hidden; opacity: 0; transition: opacity 420ms ease, visibility 420ms; }
+.tableView, .staffTrayPreview {
+  --portrait-tray-art-height: max(100%, 225cqw);
+  --portrait-tray-floor: calc(50% - var(--portrait-tray-art-height) * .094) 11.5% calc(50% - var(--portrait-tray-art-height) * .063) 10.5%;
+}
 .scene[data-table-open] .tableView { visibility: visible; opacity: 1; transition: opacity 420ms ease 560ms; }
 .seatedPicture { position: absolute; z-index: -1; inset: 0; overflow: hidden; background: #68432f; }
 .seatedPicture .architecture { transform: scale(1.11); transform-origin: 50% 48%; }
 .backToGallery { position: absolute; z-index: 1; top: 4%; inset-inline-start: 4%; min-height: 44px; padding: .45rem .8rem; border: 1px solid #fff4dc85; border-radius: .25rem; color: #fff7e7; background: #3d2b24e6; font: inherit; font-size: .83rem; cursor: pointer; }
 .tableComposition {
   position: absolute;
+  /* Keep the grid within the velvet floor of the corresponding tray photo. */
   inset: 25% 18.5% 31%;
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   align-items: center;
   gap: 5%;
   direction: ltr;
@@ -111,33 +117,31 @@
 .tableDisplay, .tablePaper { display: grid; justify-items: center; min-width: 0; direction: rtl; }
 .tableDisplay { gap: .7rem; }
 .tableProduct { display: grid; width: 100%; min-height: 0; place-items: center; transform: translateY(clamp(-1.65rem, -2.5cqw, -.5rem)); }
-.trayRing { display: block; width: min(92%, 19rem); height: auto; overflow: hidden; filter: brightness(1.035) drop-shadow(1px 2px 1px #040912b0) drop-shadow(3px 3px 4px #050a1857); animation: work-on-table 320ms ease-out both; }
+.archiveCutout { position: relative; width: min(92%, 22rem); height: clamp(5rem, 22cqw, 18.5rem); filter: drop-shadow(1px 2px 1px #040912b0) drop-shadow(3px 3px 4px #050a1857); animation: work-on-table 320ms ease-out both; }
+.archiveCutout img { object-fit: contain; }
+.archiveCutout[data-gallery-product-number="21"] img { transform: scale(.65); }
+.archiveCutout[data-gallery-product-number="22"] img { transform: scale(.86); }
 .catalogCutout { position: relative; width: min(94%, 22rem); height: clamp(5rem, 20cqw, 17rem); filter: drop-shadow(1px 2px 1px #040912b0) drop-shadow(3px 3px 4px #050a1857); animation: work-on-table 320ms ease-out both; }
 .catalogCutout img { object-fit: contain; filter: brightness(1.055); pointer-events: none; }
 .catalogCutout[data-table-product="lajvard-shab-ring"] { height: clamp(6.7rem, 25cqw, 21rem); }
 .catalogCutout[data-table-product="lajvard-shab-ring"] img { transform: rotate(-72deg); filter: brightness(1.025); }
-.archivePhoto { width: min(100%, 25rem); margin: 0; }
-.archivePhoto img {
-  display: block;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: min(24cqw, 38svh, 21rem);
-  margin-inline: auto;
-  border: 2px solid #e9dcc3;
-  border-radius: 3px;
-  box-shadow: 2px 4px 6px #04091491;
-}
 @keyframes work-on-table {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.tablePaper { justify-self: center; width: min(100%, 20.5rem); filter: drop-shadow(1px 1px 1px #010813ac) drop-shadow(2px 4px 4px #020b1b67); }
+.tablePaper {
+  justify-self: center;
+  width: min(100%, 20.5rem);
+  max-height: 100%;
+  grid-template-rows: minmax(0, 1fr);
+  transform: translate(-1cqw, -1%);
+  filter: drop-shadow(1px 1px 1px #010813ac) drop-shadow(2px 4px 4px #020b1b67);
+}
 .magazine { padding: 1.2rem 1.3rem 1rem; border: 1px solid #a4977d; color: #302c27; background: repeating-linear-gradient(0deg, #fffefa18 0 1px, transparent 1px 5px), linear-gradient(135deg, #f5eee0, #dfd2b9); box-shadow: 0 16px 42px #281a1547; }
 .dossier {
   position: relative;
   width: 100%;
-  max-height: min(22cqw, 18rem);
+  max-height: min(100%, 18rem);
   padding: clamp(.65rem, 1.5cqw, 1.35rem);
   overflow: auto;
   border: 1px solid #d4c19d;
@@ -160,97 +164,121 @@
 .dossierBrand :global(.ornova-script-wordmark) { grid-column: 2; font-family: Georgia, serif; font-size: 1.2rem; font-style: italic; }
 .dossierBrand :global(.ornova-english-motto) { grid-column: 2; grid-row: 2; font-family: Georgia, serif; font-size: .43rem; font-style: italic; white-space: nowrap; }
 .magazine h1 { margin: 0; font-family: var(--font-display), serif; font-size: clamp(1rem, 1.65cqw, 1.4rem); font-weight: 500; line-height: 1.55; }
-.workName, .workDetails { margin: 0; font-size: clamp(.73rem, 1.05cqw, .92rem); line-height: 1.6; }
+.workDetails { margin: 0; font-size: clamp(.73rem, 1.05cqw, .92rem); line-height: 1.6; }
 .workDetails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .42rem .75rem; margin-top: .45rem; }
 .workDetails > div { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: .25rem; }
+.workDetails .dossierWideDetail { grid-column: 1 / -1; }
 .workDetails dt { color: #534635; white-space: nowrap; }
-.workName h1, .workDetails dd { margin: 0; padding: .12rem .15rem; border-bottom: 1px solid #ac9b82; overflow-wrap: anywhere; }
-.workName h1 { padding: .05rem .15rem .34rem; font-family: "Ornova Nastaliq", var(--font-display), serif; font-size: clamp(1rem, 1.55cqw, 1.35rem); font-weight: 400; line-height: 2; text-align: center; }
+.workTitle, .workDetails dd { margin: 0; padding: .12rem .15rem; border-bottom: 1px solid #ac9b82; overflow-wrap: anywhere; }
+.workTitle { padding: .05rem .15rem .34rem; font-family: "Ornova Nastaliq", var(--font-display), serif; font-size: clamp(1rem, 1.55cqw, 1.35rem); font-weight: 400; line-height: 2; text-align: center; }
 .pending { color: #645647; font-size: .72rem; line-height: 1.65; }
-.tableActions { position: absolute; bottom: 4%; inset-inline: 4%; display: flex; justify-content: center; align-items: end; gap: .65rem; }
-.reservation { display: grid; justify-items: center; min-width: 0; max-width: 47%; gap: .15rem; }
-.reservation button {
-  --bell: clamp(2.35rem, 4.1cqw, 3.4rem);
-  position: relative;
-  isolation: isolate;
-  width: 100%;
-  min-width: 5.1rem;
+.tableActions {
+  position: absolute;
+  top: min(calc(83% + .45rem), calc(100% - 3rem));
+  inset-inline: 10%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+  gap: .5rem;
+  align-items: start;
+  direction: ltr;
+}
+.orderAction { grid-area: 1 / 3; justify-self: end; min-width: 0; direction: rtl; }
+.orderAction button {
   min-height: 44px;
-  padding: calc(var(--bell) + .18rem) .42rem .17rem;
-  border: 0;
-  border-radius: 4px;
-  color: #30271e;
-  background: linear-gradient(120deg, #f9edda, #e3d1ad) bottom / 100% 1.34rem no-repeat;
-  font: inherit;
-  font-size: .7rem;
+  padding: .45rem .78rem;
+  border: 1px solid #a4a39c;
+  border-radius: 7px;
+  color: #f8f1e3;
+  background: #223a52;
+  box-shadow: 0 2px 5px #2c1b14a6;
+  font-size: .76rem;
   font-weight: 600;
   line-height: 1.42;
   text-align: center;
   cursor: pointer;
 }
-.reservation button::before {
-  position: absolute;
-  inset: 0 0 auto;
-  height: var(--bell);
-  background: url("/images/ornova/gallery/review/ornova-table-order-bell-v1.webp") center bottom / contain no-repeat;
-  filter: drop-shadow(2px 3px 2px #2214089c);
-  content: "";
-}
-.reservation button:enabled:hover { text-decoration: underline; text-underline-offset: 2px; }
-.reservation button:enabled:active::before { transform: translateY(1px); }
-.reservation button:focus-visible { outline: 2px solid #faf4e7; outline-offset: 3px; }
-.reservation button:disabled { color: #534738; cursor: default; }
-.reservation button:disabled::before { filter: saturate(.25) brightness(.82); }
-.reservation p { margin: 0; padding: .08rem .3rem; }
-.reservationStatus { justify-self: center; color: #3d332a; background: #eedfca; font-size: .69rem; }
-.navigation { display: flex; align-items: center; gap: .5rem; padding: 0 .45rem; border-radius: 3px; color: #423124; background: #f1e4cc; box-shadow: 2px 4px 10px #26160e59; font-size: .76rem; white-space: nowrap; }
+.orderAction button:hover { background: #304b63; }
+.orderAction button:focus-visible { outline: 2px solid #faf4e7; outline-offset: 3px; }
+.orderAction p { margin: 0; padding: .2rem .4rem; border-radius: 4px; color: #30271e; background: #f1e4cc; }
+.navigation { grid-area: 1 / 2; display: flex; align-items: center; gap: .5rem; padding: 0 .45rem; border-radius: 3px; color: #423124; background: #f1e4cc; box-shadow: 2px 4px 10px #26160e59; font-size: .76rem; white-space: nowrap; direction: rtl; }
+.navigation:not(:focus-within) { clip-path: inset(50%); pointer-events: none; }
 .navigation button { min-height: 44px; padding: .2rem .4rem; border: 0; color: #2c4c68; background: transparent; font: inherit; cursor: pointer; }
-.navigation button:last-child span { display: inline-block; min-width: 1.2rem; font-size: 1.05rem; }
+.navigation button:focus-visible { outline: 2px solid #355a82; outline-offset: -2px; }
+.navigation button span { display: inline-block; min-width: 1.2rem; font-size: 1.05rem; }
 .magazine { position: absolute; z-index: 10; top: 50%; left: 50%; width: min(760px, 85vw); max-height: 85svh; overflow: auto; border-radius: 17px; transform: translate(-50%, -50%); }
 .magazine > p { font-size: .82rem; line-height: 1.8; }
 .magazineCategories { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; margin: 1rem 0; }
 .magazineCategories button { display: flex; justify-content: space-between; gap: .4rem; padding: .65rem; border: 1px solid #b0a288; color: #2e3947; background: #f8f2e7b8; font: inherit; text-align: right; cursor: pointer; }
 .magazineCategories small { color: #6f6a60; font-size: .7rem; }
-.magazine > a { color: #315170; font-size: .83rem; }
+.magazineLinks { display: flex; flex-wrap: wrap; gap: .35rem 1rem; margin-top: .75rem; border-top: 1px solid #b0a288; }
+.magazineLinks :is(a, button) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 .25rem; border: 0; color: #315170; background: transparent; font: inherit; font-size: .84rem; text-decoration: underline; text-underline-offset: .24em; cursor: pointer; }
+.magazineLinks :is(a, button):focus-visible { outline: 2px solid #355a82; outline-offset: 2px; }
+.staffTrayPreview {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  width: min(100%, 31rem);
+  aspect-ratio: 5 / 4;
+  margin: 1rem 0 0;
+  overflow: hidden;
+  border-radius: .5rem;
+  background: #68432f;
+}
+.staffTrayPreview .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
+.staffTrayPreview .seatedPicture .architecture { object-fit: fill; transform: none; }
+.staffTrayPreview .tableComposition { inset: var(--portrait-tray-floor); grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: .45rem; }
+.staffTrayPreview .tablePaper { transform: none; }
+.staffTrayPreview .catalogCutout { animation: none; }
+.staffDossierText { width: min(100%, 31rem); margin-top: .5rem; }
+.staffDossierText > summary { padding-block: .35rem; color: #385a77; font-size: .83rem; cursor: pointer; }
+.staffDossierText > .dossier { max-height: none; margin-top: .4rem; padding: .7rem .8rem; overflow: visible; }
 @media (max-width: 700px) and (orientation: portrait) {
   .root { display: flex; flex-direction: column; justify-content: center; }
-  .root:has([data-table-open])::before { background: linear-gradient(180deg, #ac6a3b 22%, #513534 66%, #372124); filter: none; }
-  .scene { width: 100%; }
-  .scene[data-table-open] { aspect-ratio: 4 / 5; }
-  .seatedPicture .architecture { transform: scale(1.06); transform-origin: center; }
-  .roomView { bottom: auto; aspect-ratio: 1670 / 942; }
-  .shelf, .book { min-height: 24px; }
-  .shelf { margin-top: -2px; }
-  .book { margin-top: -4px; }
-  .tableComposition { inset: 35.5% 8.5% 36.5%; grid-template-columns: minmax(0, .89fr) minmax(0, 1.11fr); gap: .45rem; }
-  .trayRing { width: 94%; }
+  .scene { width: 100%; height: 100svh; height: 100dvh; aspect-ratio: auto; }
+  .roomView { top: 50%; bottom: auto; aspect-ratio: 1670 / 942; translate: 0 -50%; }
+  .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
+  .seatedPicture .architecture { object-fit: fill; transform: none; }
+  .backToGallery { top: max(4%, calc(env(safe-area-inset-top) + .55rem)); }
+  .shelf { left: 84.2%; width: 13%; }
+  .shelfGlow { left: 46.6%; }
+  .book { min-height: 24px; margin-top: -4px; }
+  .tableComposition {
+    /* Anchor the item and card to the velvet floor when the tall photo is cropped. */
+    inset: var(--portrait-tray-floor);
+    grid-template-columns: minmax(0, .83fr) minmax(0, 1.17fr);
+    gap: .45rem;
+  }
+  .tablePaper { transform: none; }
+  .archiveCutout { width: 98%; height: 28cqw; }
   .catalogCutout { width: 96%; height: 28cqw; }
   .catalogCutout[data-table-product="lajvard-shab-ring"] { height: 31cqw; }
-  .dossier { max-height: 37cqw; padding: .38rem .48rem; }
+  .dossier { padding: .31rem .45rem; }
   .dossier::before { top: .35rem; inset-inline-start: .34rem; width: .29rem; }
-  .dossierHeader { gap: .25rem; margin-bottom: .18rem; font-size: .65rem; }
-  .workDetails { gap: .22rem .4rem; margin-top: .24rem; font-size: .66rem; line-height: 1.45; }
-  .workName h1 { font-size: .85rem; line-height: 1.85; }
-  .workDetails dd { padding-block: .08rem; }
-  .tableActions { bottom: 12%; }
-  .archivePhoto img { max-height: 28cqw; }
-  .navigation { gap: .2rem; padding: 0 .2rem; font-size: clamp(.57rem, 2.9cqw, .73rem); }
+  .dossierHeader { gap: .25rem; margin-bottom: .08rem; font-size: .65rem; }
+  .dossierSymbol { width: 1.2rem; }
+  .workDetails { gap: .11rem .4rem; margin-top: .14rem; font-size: .66rem; line-height: 1.4; }
+  .workTitle { padding-bottom: .17rem; font-size: .85rem; line-height: 1.72; }
+  .workDetails dd { padding-block: .04rem; }
+  .tableActions { top: calc(50% + var(--portrait-tray-art-height) * .0875 + .45rem); inset-inline: 6.3%; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .orderAction { grid-column: 2; }
+  .navigation { grid-column: 1; justify-self: start; gap: .2rem; padding: 0 .2rem; font-size: clamp(.57rem, 2.9cqw, .73rem); }
   .navigation button { padding-inline: .15rem; }
   .magazine { width: calc(100% - 1.3rem); }
   .magazineCategories { grid-template-columns: 1fr; }
 }
 @media (max-width: 350px) and (orientation: portrait) {
-  .tableComposition { inset-block: 35.5% 36.3%; grid-template-columns: minmax(0, .76fr) minmax(0, 1.24fr); }
-  .dossier { max-height: 36.6cqw; padding-block: .25rem; }
-  .dossierHeader { margin-bottom: .15rem; }
-  .workName h1 { font-size: .79rem; line-height: 1.8; }
+  .tableComposition { grid-template-columns: minmax(0, .67fr) minmax(0, 1.33fr); }
+  .dossier { padding-block: .2rem; }
+  .dossierSymbol { width: 1rem; }
+  .workTitle { font-size: .79rem; line-height: 1.52; }
   .workDetails { font-size: .63rem; line-height: 1.2; }
   .workDetails > div { gap: .14rem; }
-  .workDetails dd { padding: .06rem .05rem; }
+  .workDetails dd { padding: .04rem .05rem; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .navigation:not(:focus-within) { clip-path: none; pointer-events: auto; }
   .roomView, .tableView, .scene[data-table-open] .tableView { transition: none; }
   .scene[data-table-open] .roomView { transform: none; }
-  .trayRing, .catalogCutout, .shelfGlow, .shelfGlow::after { animation: none; }
+  .archiveCutout, .catalogCutout, .shelfGlow, .shelfGlow::after { animation: none; }
   .shelfGlow { opacity: .72; }
 }

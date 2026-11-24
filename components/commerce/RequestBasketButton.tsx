@@ -34,11 +34,14 @@ function writeItems(items: RequestItem[]): boolean {
   }
 }
 
-export function addRequestItem(item: Omit<RequestItem, "quantity">) {
+export function addRequestItem(item: Omit<RequestItem, "quantity">, { keepExistingQuantity = false }: { keepExistingQuantity?: boolean } = {}) {
   const items = readItemsForWrite();
   if (!items) return false;
   const existing = items.find((entry) => productConfigurationKey(entry.slug, entry.preferences) === productConfigurationKey(item.slug, item.preferences));
-  if (existing) return writeItems(items.map((entry) => getRequestItemKey(entry) === getRequestItemKey(existing) ? { ...entry, quantity: Math.min(entry.quantity + 1, MAX_REQUEST_QUANTITY) } : entry));
+  if (existing) {
+    if (keepExistingQuantity) return true;
+    return writeItems(items.map((entry) => getRequestItemKey(entry) === getRequestItemKey(existing) ? { ...entry, quantity: Math.min(entry.quantity + 1, MAX_REQUEST_QUANTITY) } : entry));
+  }
   try {
     const result = applyProductConfiguration(items, item, item.preferences, crypto.randomUUID());
     return result.success && writeItems(result.items);
@@ -80,7 +83,7 @@ export function clearRequestItems() {
   try { window.localStorage.removeItem(LEGACY_REQUEST_BASKET_STORAGE_KEY); return true; } catch { return false; }
 }
 
-export function RequestBasketButton({ item, label = "افزودن به سبد درخواست", onAdded }: { item: Omit<RequestItem, "quantity">; label?: string; onAdded?: () => void }) {
+export function RequestBasketButton({ item, label = "افزودن به سبد درخواست", keepExistingQuantity = false, onAdded }: { item: Omit<RequestItem, "quantity">; label?: string; keepExistingQuantity?: boolean; onAdded?: () => void }) {
   const [added, setAdded] = useState(false);
   const [storageError, setStorageError] = useState(false);
 
@@ -98,10 +101,19 @@ export function RequestBasketButton({ item, label = "افزودن به سبد د
     };
   }, [item.slug, item.preferences]);
 
+  function addOrOpenBasket() {
+    const saved = addRequestItem(item, { keepExistingQuantity });
+    setAdded(saved || readItems().some((entry) => productConfigurationKey(entry.slug, entry.preferences) === productConfigurationKey(item.slug, item.preferences)));
+    setStorageError(!saved);
+    if (saved) onAdded?.();
+  }
+
+  const savedLabel = keepExistingQuantity ? "باز کردن صندوق" : "در سبد درخواست شما";
+
   return (
     <div className="grid justify-items-start gap-2">
-      <button type="button" onClick={() => { const saved = addRequestItem(item); setAdded(saved || readItems().some((entry) => productConfigurationKey(entry.slug, entry.preferences) === productConfigurationKey(item.slug, item.preferences))); setStorageError(!saved); if (saved) onAdded?.(); }} className="rounded-full border border-silver bg-ivory-soft px-4 py-2 text-sm text-graphite transition hover:border-sapphire">
-        {added ? "در سبد درخواست شما" : label}
+      <button type="button" onClick={addOrOpenBasket} className="rounded-full border border-silver bg-ivory-soft px-4 py-2 text-sm text-graphite transition hover:border-sapphire">
+        {added ? savedLabel : label}
       </button>
       {storageError && <p role="status" className="text-xs leading-6 text-graphite/65">ذخیره در این مرورگر در دسترس نیست؛ تنظیمات فضای ذخیره‌سازی را بررسی کنید.</p>}
     </div>

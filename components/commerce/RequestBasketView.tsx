@@ -19,15 +19,22 @@ function subscribe(onChange: () => void) {
 function snapshot() { try { return readRequestBasketSnapshot(window.localStorage); } catch { return "null"; } }
 const serverSnapshot = () => null;
 
-function BasketProductVisual({ product, onSelect }: { product: Product; onSelect?: () => void }) {
+function BasketProductVisual({ product, trayImage, actionId, onSelect }: { product: Product; trayImage?: string; actionId: string; onSelect?: () => void }) {
   const images = product.packagingGallery ?? [];
   const [slide, setSlide] = useState(0);
   const current = images[slide % Math.max(images.length, 1)];
   const move = (step: number) => setSlide((index) => (index + step + images.length) % images.length);
+  const image = current ?? (trayImage ? { src: trayImage, alt: product.name } : null);
+  if (!image) return null;
 
-  return <div className={`${styles.itemImage} ${styles.packageCarousel}`} role="group" aria-label={`تصاویر بسته‌بندی ${product.name}`}>
-    {current ? <Image key={current.src} src={current.src} alt={current.alt} fill sizes="(max-width: 760px) 82px, 120px" className="object-cover" /> : <span className={styles.packageUnavailable}>تصویر بسته‌بندی این اثر هنوز آماده نیست</span>}
-    <button type="button" className={styles.packageImageAction} onClick={onSelect} aria-label={`بازکردن شناسنامهٔ ${product.name} در گالری`} />
+  return <div
+    className={`${styles.itemImage} ${current ? styles.packageCarousel : styles.basketCutout}`}
+    role="group"
+    aria-label={current ? `تصاویر بسته‌بندی ${product.name}` : `تصویر اثر ${product.name}`}
+    data-basket-cutout={current ? undefined : product.slug}
+  >
+    <Image key={image.src} src={image.src} alt={image.alt} fill sizes="(max-width: 760px) 82px, 120px" unoptimized={!current} className={current ? "object-cover" : styles.cutoutImage} />
+    {onSelect && <button id={actionId} type="button" className={styles.packageImageAction} onClick={onSelect} aria-label={`بازکردن شناسنامهٔ ${product.name} در گالری`} />}
     {current?.label && <span className={styles.packageLabel}>{current.label}</span>}
     {images.length > 1 && <>
       <button type="button" className={styles.packagePrevious} onClick={() => move(-1)} aria-label={`تصویر بسته‌بندی قبلی ${product.name}`}>‹</button>
@@ -37,7 +44,7 @@ function BasketProductVisual({ product, onSelect }: { product: Product; onSelect
   </div>;
 }
 
-export function RequestBasketView({ galleryMode = false, products = [], onBrowseCatalog, onContinueRequest, continuePending = false, continueError = "", onSelectProduct }: { galleryMode?: boolean; products?: Product[]; onBrowseCatalog?: () => void; onContinueRequest?: () => void; continuePending?: boolean; continueError?: string; onSelectProduct?: (slug: string) => void }) {
+export function RequestBasketView({ galleryMode = false, products = [], onBrowseCatalog, onContinueRequest, continuePending = false, continueError = "", onSelectProduct }: { galleryMode?: boolean; products?: Product[]; onBrowseCatalog?: () => void; onContinueRequest?: () => void; continuePending?: boolean; continueError?: string; onSelectProduct?: (slug: string, focusId: string) => void }) {
   const serialized = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
   const review = serialized === null ? null : parseRequestBasketReview(serialized);
   const items = review?.items ?? [];
@@ -94,14 +101,21 @@ export function RequestBasketView({ galleryMode = false, products = [], onBrowse
       <div className={styles.basketLayout}><section aria-label={`انتخاب‌های ${galleryMode ? "صندوق" : "سبد"}`}>
         {items.map((item, index) => {
           const product = products.find((entry) => entry.slug === item.slug);
-          const editHref = product ? `/shop/${product.slug}?selection=${encodeURIComponent(getRequestItemKey(item))}#product-request` : null;
-          return <article key={getRequestItemKey(item)} aria-label={`انتخاب ${number.format(index + 1)}، ${item.name}`} className={styles.item}>
+          const lineKey = getRequestItemKey(item);
+          const productActionId = `gallery-basket-product-${lineKey}`;
+          const imageActionId = `${productActionId}-image`;
+          const trayImage = product?.publicationStatus === "published" && product.galleryPlacementVerified === true ? product.standImage : undefined;
+          const openTray = trayImage && onSelectProduct ? (focusId: string) => onSelectProduct(item.slug, focusId) : undefined;
+          const editHref = product ? `/shop/${product.slug}?selection=${encodeURIComponent(lineKey)}#product-request` : null;
+          return <article key={lineKey} aria-label={`انتخاب ${number.format(index + 1)}، ${item.name}`} className={styles.item}>
             <div className={styles.itemTop}>
-              {product && (galleryMode ? <BasketProductVisual product={product} onSelect={() => onSelectProduct?.(product.slug)} /> : <Link href={`/shop/${product.slug}`} className={styles.itemImage}><Image src={product.image} alt={product.name} fill sizes="(max-width: 760px) 82px, 120px" className="object-cover" /></Link>)}
+              {product && (galleryMode
+                ? <BasketProductVisual product={product} trayImage={trayImage} actionId={imageActionId} onSelect={openTray ? () => openTray(imageActionId) : undefined} />
+                : <Link href={`/shop/${product.slug}`} className={styles.itemImage}><Image src={product.image} alt={product.name} fill sizes="(max-width: 760px) 82px, 120px" className="object-cover" /></Link>)}
               <div className={styles.itemIdentity}><p className={styles.label}>{item.category} · انتخاب {number.format(index + 1)}</p><h2>{item.name}</h2>
                 <ProductPreferencesSummary value={item.preferences} />
                 {editHref && product && (galleryMode
-                  ? <button type="button" onClick={() => onSelectProduct?.(product.slug)} className={`${styles.textLink} ${styles.textLinkButton}`}>دیدن شناسنامه در گالری <span aria-hidden="true">↖</span></button>
+                  ? openTray && <button id={productActionId} type="button" onClick={() => openTray(productActionId)} className={`${styles.textLink} ${styles.textLinkButton}`}>دیدن شناسنامه در گالری <span aria-hidden="true">↖</span></button>
                   : <a href={editHref} className={styles.textLink}>ویرایش همین انتخاب <span aria-hidden="true">↖</span></a>)}
                 {!product && <p className={styles.label}>این مدل در فهرست فعلی فروشگاه نیست؛ نام ذخیره‌شده در همین مرورگر نمایش داده می‌شود.</p>}
               </div>
