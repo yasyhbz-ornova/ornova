@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { galleryRenders, type GalleryRender } from "@/lib/constants/gallery-renders";
+import { galleryRenders, isReferenceOnlyGalleryPhoto, type GalleryRender } from "@/lib/constants/gallery-renders";
 import { galleryTrayCutout } from "@/lib/constants/gallery-tray-cutouts";
 import { catalogCategories, resolveCatalogSelection } from "@/lib/constants/catalog";
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
@@ -74,7 +74,8 @@ export function CatalogEditor() {
   const incompleteRows = rows.filter((row) => row.status !== "archived" && (dossierGaps.get(row.slug) ?? 0) > 0);
   const visibleRows = onlyIncompleteDossiers ? incompleteRows : rows;
   const formGaps = incompleteDossierFields(form.details);
-  const trayPath = form.stand_image_path?.startsWith("/images/ornova/") ? form.stand_image_path : null;
+  const referenceCover = isReferenceOnlyGalleryPhoto(form.image_path);
+  const trayPath = form.stand_image_path?.startsWith("/images/ornova/") && !isReferenceOnlyGalleryPhoto(form.stand_image_path) ? form.stand_image_path : null;
   const trayReady = trayPath && trayPath === trayPreview?.path ? trayPreview.transparent : null;
   const previewName = form.name.trim() || "نام اثر";
   const missingLabels = dossierFields.filter(({ id }) => formGaps.includes(id)).map(({ label }) => label).join("، ");
@@ -142,6 +143,10 @@ export function CatalogEditor() {
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (operationInProgress.current) return;
+    if (form.status === "published" && referenceCover) {
+      setError("برای انتشار، نمای کامل اثر را به‌عنوان تصویر اصلی انتخاب کنید.");
+      return;
+    }
     if (form.status !== "archived" && form.gallery_placement_verified && trayReady !== true) {
       setError("پیش از ذخیرهٔ جای‌گذاری، یک برش شفاف و خوانا برای سینی انتخاب کنید.");
       return;
@@ -233,7 +238,12 @@ export function CatalogEditor() {
       </div>
       <label className={labelClass}>توضیح تأییدشده<textarea required rows={3} maxLength={2000} className={fieldClass} value={form.description} onChange={(event) => update("description", event.target.value)} /></label>
       <div className="grid gap-4 md:grid-cols-2">
-        <div><label className={labelClass}>تصویر اصلی<input className={fieldClass} dir="ltr" value={form.image_path ?? ""} onChange={(event) => update("image_path", event.target.value || null)} placeholder="مسیر کامل فایل تصویر" /></label><label className="mt-2 inline-block cursor-pointer text-sm text-sapphire underline underline-offset-4">بارگذاری تصویر اصلی<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading || saving} className="sr-only" onChange={(event) => { void uploadImage(event.target.files?.[0], "image_path"); event.target.value = ""; }} /></label></div>
+        <div>
+          <label className={labelClass}>تصویر اصلی<input className={fieldClass} dir="ltr" value={form.image_path ?? ""} onChange={(event) => update("image_path", event.target.value || null)} placeholder="مسیر کامل فایل تصویر" /></label>
+          <label className="mt-2 inline-block cursor-pointer text-sm text-sapphire underline underline-offset-4">بارگذاری تصویر اصلی<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading || saving} className="sr-only" onChange={(event) => { void uploadImage(event.target.files?.[0], "image_path"); event.target.value = ""; }} /></label>
+          {referenceCover && <p className="mt-2 text-xs leading-6 text-sapphire">این عکس برای تطبیق اثر است. برای انتشار، نمای کامل را جایگزین کنید.</p>}
+          {trayReady && trayPath && (!form.image_path || referenceCover) && <button type="button" onClick={() => update("image_path", trayPath)} className="mt-2 block min-h-9 text-sm text-sapphire underline underline-offset-4">استفاده از برش سینی برای تصویر اصلی</button>}
+        </div>
         <div>
           <label className={labelClass}>تصویر اثر روی سینی<input className={fieldClass} dir="ltr" value={form.stand_image_path ?? ""} onChange={(event) => { update("stand_image_path", event.target.value || null); update("gallery_placement_verified", false); }} placeholder="مسیر کامل فایل تصویر" /></label>
           <label className="mt-2 inline-block cursor-pointer text-sm text-sapphire underline underline-offset-4">بارگذاری برش سینی<input type="file" accept="image/png,image/webp" disabled={uploading || saving} className="sr-only" onChange={(event) => { void uploadImage(event.target.files?.[0], "stand_image_path"); event.target.value = ""; }} /></label>
@@ -261,6 +271,7 @@ export function CatalogEditor() {
           return <div key={photo.number} className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-ivory-muted p-2 text-xs">
             <Image src={photo.src} alt={photo.title} width={44} height={60} className="h-14 w-11 object-contain" />
             <span>عکس شمارهٔ {new Intl.NumberFormat("fa-IR").format(Number(photo.number))} به شناسنامه پیوند دارد.</span>
+            {photo.needsCompleteView && <span className="text-sapphire">مرجع تطبیق اثر</span>}
             {canUse && <button type="button" disabled={busy} onClick={() => selectTrayPhoto(photo)} className="min-h-9 text-sapphire underline underline-offset-4 disabled:opacity-50">استفاده روی سینی</button>}
           </div>;
         })}

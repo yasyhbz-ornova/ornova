@@ -538,4 +538,13 @@ export const galleryRenders: readonly GalleryRender[] = [
   }
 ];
 
-export const visibleGalleryRenders = galleryRenders.filter((render) => render.status === "ready" && render.categoryId && !render.needsCompleteView);
+function isVisiblePhoto(render: GalleryRender) {
+  return render.status === "ready" && Boolean(render.categoryId) && !render.needsCompleteView;
+}
+
+export const visibleGalleryRenders = galleryRenders.filter(isVisiblePhoto);
+const referenceOnlyPaths = new Set(galleryRenders.filter((render) => !isVisiblePhoto(render)).map(({ src }) => src));
+
+export function isReferenceOnlyGalleryPhoto(path: string | null | undefined): boolean {
+  return Boolean(path && referenceOnlyPaths.has(path));
+}

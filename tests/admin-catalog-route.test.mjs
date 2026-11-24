@@ -6,10 +6,10 @@ import sharp from "sharp";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
-function load(path, dependencies = {}, network = globalThis.fetch) {
+function load(path, dependencies = {}, network = globalThis.fetch, runtime = process) {
   const loaded = { exports: {} };
   const source = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-  new Function("require", "exports", "fetch", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText)((name) => dependencies[name] ?? require(name), loaded.exports, network);
+  new Function("require", "exports", "fetch", "process", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText)((name) => dependencies[name] ?? require(name), loaded.exports, network, runtime);
   return loaded.exports;
 }
 const catalog = load("lib/constants/catalog.ts");
@@ -17,6 +17,7 @@ const schema = load("lib/catalog/product-input.ts", { "@/lib/constants/catalog":
 const authorization = load("lib/auth/authorization.ts");
 const requestBody = load("lib/commerce/quote-request.ts");
 const tray = load("lib/catalog/tray-image.ts");
+const renders = load("lib/constants/gallery-renders.ts");
 const product = {
   slug: "new-silver-ring", revision: 0, name: "انگشتر نمونه", category_id: "rings", category_label: "انگشتر", subtype_id: null,
   description: "شرح بررسی‌شده", image_path: "/images/ornova/ring.webp", stand_image_path: "/images/ornova/ring.webp",
@@ -38,6 +39,7 @@ function fixture({ user = { app_metadata: { ornova_role: "staff" } }, authError 
     "@/lib/commerce/quote-request": requestBody,
     "@/lib/catalog/product-input": schema,
     "@/lib/catalog/tray-image": tray,
+    "@/lib/constants/gallery-renders": renders,
   }, async (url, options) => { mediaReads.push({ url, options }); return new Response(media, { status: mediaStatus }); });
   const post = (value = product, origin = "http://localhost:3058") => route.POST(new Request("http://localhost:3058/api/admin/catalog", { method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(value) }));
   return { ...route, post, writes, mediaReads };
@@ -66,6 +68,53 @@ test("catalog validation prevents unverified publication and database conflict i
   assert.equal(ready.writes[0][0], "save_catalog_product");
   assert.equal(ready.writes[0][1].p_product.status, "published");
   assert.equal(ready.writes[0][1].p_product.slug, undefined);
+});
+
+test("a cropped archive reference stays linked during review and publication but cannot be the public cover or tray", async () => {
+  const reference = fixture();
+  for (const number of ["04", "06", "19"]) {
+    const cropped = renders.galleryRenders.find((photo) => photo.number === number).src;
+    assert.equal((await reference.post({ ...product, image_path: cropped })).status, 400);
+    assert.equal((await reference.post({ ...product, stand_image_path: cropped })).status, 400);
+    assert.equal(reference.writes.length, 0);
+  }
+  const cropped = renders.galleryRenders.find(({ number }) => number === "04").src;
+  const gallery = [{ src: cropped, alt: "مرجع بررسی" }];
+  assert.equal((await reference.post({ ...product, status: "review", image_path: cropped, stand_image_path: null, gallery, gallery_placement_verified: false })).status, 201);
+  assert.equal((await reference.post({ ...product, gallery })).status, 201);
+  assert.deepEqual(reference.writes.map(([, args]) => args.p_product.gallery), [gallery, gallery]);
+});
+
+test("public catalog filters cropped archive imagery and resolves a usable cover for older products", async () => {
+  const cropped = renders.galleryRenders.find(({ number }) => number === "04").src;
+  const reference = { src: cropped, alt: "مرجع بررسی" };
+  const full = { src: "/images/ornova/full-ring.jpg", alt: "نمای کامل" };
+  const rows = [
+    { ...product, slug: "legacy", image_path: cropped, gallery: [reference, full], packaging_gallery: [reference, full] },
+    { ...product, slug: "tray-only", image_path: cropped, gallery: [reference] },
+    { ...product, slug: "missing-tray", stand_image_path: cropped },
+    { ...product, slug: "reference-only", image_path: cropped, stand_image_path: cropped, gallery: [reference] },
+    product,
+  ];
+  const client = { from: () => ({ select: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: rows, error: null }) }) }) }) }) };
+  const { getPublishedProducts } = load("lib/catalog/public-products.ts", {
+    "@/lib/supabase/server": { createSupabaseServerClient: async () => client },
+    "@/lib/constants/catalog": catalog,
+    "@/lib/constants/gallery-renders": renders,
+    "@/lib/constants/products": { products: [] },
+    "@/lib/catalog/room-placement": load("lib/catalog/room-placement.ts"),
+  }, globalThis.fetch, { env: { NEXT_PUBLIC_SUPABASE_URL: "https://fixture.invalid", NEXT_PUBLIC_SUPABASE_ANON_KEY: "test" } });
+  const [legacy, trayOnly, missingTray, ordinary] = await getPublishedProducts();
+  assert.equal(legacy.image, full.src);
+  assert.deepEqual(legacy.gallery, [full]);
+  assert.deepEqual(legacy.packagingGallery, [full]);
+  assert.equal(trayOnly.image, product.stand_image_path);
+  assert.deepEqual(trayOnly.gallery, []);
+  assert.equal(missingTray.standImage, undefined);
+  assert.equal(missingTray.galleryPlacementVerified, false);
+  assert.equal(ordinary.slug, product.slug);
+  assert.equal(ordinary.image, product.image_path);
+  assert.deepEqual(ordinary.gallery, product.gallery);
 });
 
 test("marking an uploaded image as tray verified checks the stored file before writing", async () => {

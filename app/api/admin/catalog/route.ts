@@ -4,6 +4,7 @@ import { isOrnovaStaff, isSameOriginRequest } from "@/lib/auth/authorization";
 import { readQuoteBody } from "@/lib/commerce/quote-request";
 import { catalogProductInput } from "@/lib/catalog/product-input";
 import { catalogImageMaxBytes, isTransparentTrayImage, trayImageError } from "@/lib/catalog/tray-image";
+import { isReferenceOnlyGalleryPhoto } from "@/lib/constants/gallery-renders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +38,11 @@ export async function POST(request: Request) {
     if (!parsed.success) return failure(400);
     const { slug, revision, ...product } = parsed.data;
     const standPath = product.stand_image_path;
+    if (product.status === "published" && isReferenceOnlyGalleryPhoto(product.image_path)) {
+      return failure(400, "برای انتشار، نمای کامل اثر را به‌عنوان تصویر اصلی انتخاب کنید.");
+    }
     if (product.status !== "archived" && product.gallery_placement_verified) {
+      if (isReferenceOnlyGalleryPhoto(standPath)) return failure(400, "برای سینی، برش شفافِ نمای کامل اثر را انتخاب کنید.");
       if (!standPath || !/\.(png|webp)$/.test(standPath)) return failure(400, trayImageError);
       const uploadedImage = uploadedImagePath.exec(standPath);
       if (uploadedImage) {
