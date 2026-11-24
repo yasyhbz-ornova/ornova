@@ -160,6 +160,24 @@ test("each transparent tray image retains the original RGB of every visible pixe
   }
 });
 
+test("tray masks retain the pictured stone facets and chain while removing the blue stand edge", async () => {
+  const checks = [
+    { number: "08", transparent: [[43, 68], [40, 74]], visible: [[110, 503], [81, 392]] },
+    { number: "21", transparent: [[125, 35]], visible: [[25, 44], [260, 47]] },
+    { number: "40", transparent: [[490, 210]], visible: [[145, 283], [405, 284], [475, 221]] },
+  ];
+  for (const { number, transparent, visible } of checks) {
+    const sample = room.galleryRoomSamples.find((photo) => photo.number === number);
+    const cutout = galleryTrayCutout(sample);
+    const image = fileURLToPath(new URL(`../public${cutout.src}`, import.meta.url));
+    const { data, info } = await sharp(image).raw().toBuffer({ resolveWithObject: true });
+    assert.equal(info.channels, 4);
+    const alpha = (x, y) => data[4 * (y * info.width + x) + 3];
+    for (const [x, y] of transparent) assert.equal(alpha(x, y), 0, number);
+    for (const [x, y] of visible) assert.ok(alpha(x, y) >= 230, number);
+  }
+});
+
 test("the photographed earring pair and constellation sets rotate on their matching displays", () => {
   assert.ok(room.galleryRoomSamplesByCategory.earrings.some(({ number }) => number === "32"));
   assert.ok(room.galleryRoomSamplesByCategory.pendants.some(({ number }) => number === "13"));
