@@ -12,7 +12,7 @@ const persianFont = localFont({
   display: "swap",
 });
 
-const displayFont = localFont({ src: "./fonts/Gandom.woff2", variable: "--font-ornova-display", weight: "400", style: "normal", display: "swap" });
+const displayFont = localFont({ src: "./fonts/Gandom.woff2", variable: "--font-ornova-display", weight: "400", style: "normal", display: "swap", preload: false });
 
 export const metadata: Metadata = {
   title: "Ornova by Yas",

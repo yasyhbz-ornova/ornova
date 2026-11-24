@@ -64,8 +64,8 @@ export async function saveProfile(
   if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) {
     return { status: "error", message: "شماره تماس را با پیش‌شماره کشور وارد کنید؛ برای ایران از ۰۹ یا ۹۸ استفاده کنید." };
   }
-  if (formData.get("requireAddress") === "true" && (!phone || !parsed.data.province || !parsed.data.city || !parsed.data.addressLine)) {
-    return { status: "error", message: "شماره تماس، استان، شهر و نشانی کامل را برای ادامهٔ درخواست وارد کنید." };
+  if (formData.get("requireAddress") === "true" && (!parsed.data.displayName || !phone || !parsed.data.province || !parsed.data.city || !parsed.data.addressLine)) {
+    return { status: "error", message: "نام، شمارهٔ تماس، استان، شهر و نشانی کامل را برای ادامهٔ درخواست وارد کنید." };
   }
 
   try {

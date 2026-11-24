@@ -167,14 +167,14 @@ function readDraftValue(snapshot: string | null): unknown {
   try { return JSON.parse(snapshot ?? "null"); } catch { return null; }
 }
 
-type InquiryFormProps = { productContext?: Omit<SelectedItem, "quantity">; productSelectionKey?: string; sourceContext?: InquirySourceContext; requestBasketContext?: boolean; intent?: ProductIntent; includeRingDraft?: boolean; loginNextPath?: string; galleryMode?: boolean; archiveOrder?: { number: string; title: string } };
+type InquiryFormProps = { productContext?: Omit<SelectedItem, "quantity">; productSelectionKey?: string; sourceContext?: InquirySourceContext; requestBasketContext?: boolean; intent?: ProductIntent; includeRingDraft?: boolean; loginNextPath?: string; galleryMode?: boolean; archiveOrder?: { number: string; title: string }; onOpenReceipt?: (id: string) => void };
 
 export function InquiryForm(props: InquiryFormProps) {
   const key = JSON.stringify([props.productContext, props.productSelectionKey, props.sourceContext, props.requestBasketContext, props.intent, props.includeRingDraft, props.loginNextPath, props.galleryMode, props.archiveOrder?.number]);
   return <InquiryFormSession key={key} {...props} />;
 }
 
-function InquiryFormSession({ productContext, productSelectionKey, sourceContext, requestBasketContext = false, intent, includeRingDraft = true, loginNextPath = "/contact", galleryMode = false, archiveOrder }: InquiryFormProps) {
+function InquiryFormSession({ productContext, productSelectionKey, sourceContext, requestBasketContext = false, intent, includeRingDraft = true, loginNextPath = "/contact", galleryMode = false, archiveOrder, onOpenReceipt }: InquiryFormProps) {
   const draftKey = archiveOrder ? `${DRAFT_KEY}:archive:${archiveOrder.number}` : DRAFT_KEY;
   const formRef = useRef<HTMLFormElement>(null);
   const mounted = useRef(false);
@@ -347,7 +347,8 @@ function InquiryFormSession({ productContext, productSelectionKey, sourceContext
       ? `پیش‌طرح مفهومی انگشتر برای بررسی:\n- پهنای رکاب: ${currentRingDesign.base}\n- فرم سنگ: ${currentRingDesign.shape}\n- رنگ سنگ: ${currentRingDesign.color}\n- جزئیات انتخابی: ${currentRingDesign.ornament}${currentRingDesign.ringSizeEu ? `\n- سایز اروپایی انگشتر: ${currentRingDesign.ringSizeEu}` : ""}`
       : "";
     const contextNotes = [sourceNote, designNote, customDesignBrief.value].filter(Boolean).join("\n\n");
-    const messageBase = [customerMessage, contextNotes].filter(Boolean).join("\n\n");
+    const orderMessage = requestBasketContext && !customerMessage ? "درخواست سفارش قطعات انتخاب‌شده." : customerMessage;
+    const messageBase = [orderMessage, contextNotes].filter(Boolean).join("\n\n");
     const currentBasket = parseRequestBasketReview(getBasketSnapshot());
     if ((requestBasketContext || productContext) && !currentBasket.valid) {
       setSubmissionNote("سبد این مرورگر کامل خوانده نشد. پیش از ارسال، انتخاب‌ها را در سبد بررسی کنید.");
@@ -540,7 +541,7 @@ function InquiryFormSession({ productContext, productSelectionKey, sourceContext
         <label className="grid gap-2 text-sm text-graphite"><span>نام</span><input required name="name" disabled={fieldsLocked} autoComplete="name" className="rounded-[16px] border border-silver bg-ivory px-4 py-3 outline-none focus:border-sapphire" /></label>
         <label className="grid gap-2 text-sm text-graphite"><span>راه ارتباطی</span><input required name="contact" disabled={fieldsLocked} autoComplete="email tel" className="rounded-[16px] border border-silver bg-ivory px-4 py-3 outline-none focus:border-sapphire" placeholder="ایمیل یا شماره تماس" /></label>
         </>}
-        <label className="grid gap-2 text-sm text-graphite"><span>{isCustomDesign ? "چه چیزی می‌خواهی طراحی شود؟ (اختیاری)" : archiveOrder || intent === "price" ? "یادداشت تکمیلی (اختیاری)" : intent === "question" ? "پرسش شما" : requestBasketContext ? "پرسش یا توضیح تکمیلی" : "ایده یا پرسش"}</span><textarea required={!archiveOrder && (intent === "question" || (!intent && !effectiveSourceContext))} maxLength={archiveOrder ? 4800 : undefined} name="message" disabled={fieldsLocked} rows={isCustomDesign ? 4 : 5} placeholder={isCustomDesign ? "مثلاً یک انگشتر نقره با فرم نرم و سنگ آبی؛ برای استفادهٔ روزمره." : undefined} className="resize-y rounded-[16px] border border-silver bg-ivory px-4 py-3 leading-7 outline-none placeholder:text-graphite/65 focus:border-sapphire" /></label>
+        <label className="grid gap-2 text-sm text-graphite"><span>{isCustomDesign ? "چه چیزی می‌خواهی طراحی شود؟ (اختیاری)" : intent === "question" ? "پرسش شما" : archiveOrder || intent === "price" || requestBasketContext ? "یادداشت تکمیلی (اختیاری)" : "ایده یا پرسش"}</span><textarea required={!archiveOrder && (intent === "question" || (!requestBasketContext && !intent && !effectiveSourceContext))} maxLength={archiveOrder ? 4800 : undefined} name="message" disabled={fieldsLocked} rows={isCustomDesign ? 4 : 5} placeholder={isCustomDesign ? "مثلاً یک انگشتر نقره با فرم نرم و سنگ آبی؛ برای استفادهٔ روزمره." : undefined} className="resize-y rounded-[16px] border border-silver bg-ivory px-4 py-3 leading-7 outline-none placeholder:text-graphite/65 focus:border-sapphire" /></label>
         <div className="grid gap-2 text-sm text-graphite"><label htmlFor="reference-file">{isCustomDesign ? "تصویر مرجع (اختیاری)" : "تصویر یا فایل مرجع (اختیاری، حداکثر ۱۰ مگابایت)"}</label><div className="flex min-h-12 items-center justify-between gap-4 rounded-[16px] border border-silver bg-ivory px-4 py-2"><input ref={referenceFileRef} id="reference-file" name="file" disabled={fileLocked} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => setReferenceFileName(event.target.files?.[0]?.name ?? "")} className="hidden" /><span aria-live="polite" className="min-w-0 truncate text-sm text-graphite/65"><bdi dir="auto">{referenceFileName || "فایلی انتخاب نشده"}</bdi></span><button type="button" disabled={fileLocked} onClick={() => { if (!fileLocked) referenceFileRef.current?.click(); }} className="shrink-0 border-r border-silver pr-4 text-xs text-sapphire transition-colors hover:text-graphite focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sapphire">انتخاب فایل</button></div>{isCustomDesign && <p className="text-xs leading-6 text-graphite/65">تصویر یا پی‌دی‌اف، تا ۱۰ مگابایت. فایل پس از ثبت، در پروندهٔ خصوصی تو نگه‌داری می‌شود.</p>}</div>
         {isCustomDesign && <>
           <details data-design-preferences className="border-y border-silver py-4">
@@ -579,6 +580,7 @@ function InquiryFormSession({ productContext, productSelectionKey, sourceContext
             : <p className="mt-2">توضیحات و پیش‌طرح همراه همین پرونده ثبت شده‌اند.</p>}
           <p className="mt-3 text-xs leading-6 text-graphite/55">این ثبت، درخواست برای بررسی است؛ قیمت یا سفارش قطعی محسوب نمی‌شود.</p>
         </> : <p className="mt-2">برای دیدن وضعیت، پرونده‌های حساب را بررسی کنید و برای جلوگیری از ثبت تکراری، درخواست را دوباره نفرستید.</p>}
+        {receipt && onOpenReceipt && <button type="button" disabled={working} onClick={() => onOpenReceipt(receipt.id)} className="mt-3 block min-h-11 text-sm text-sapphire underline decoration-silver underline-offset-4">دیدن رسید در صندوق ←</button>}
         <Link href="/account" className="mt-3 inline-flex text-sm text-sapphire underline decoration-silver underline-offset-4">دیدن پرونده در حساب Ornova ←</Link>
       </section>}
       {pendingUploadInquiryId && <p role="status" className="mt-4 text-sm leading-7 text-graphite/70">برای این پرونده، تأیید پیوست فایل دریافت نشده است. پیش از تلاش دوباره، فایل‌های پرونده را در حساب بررسی کنید.</p>}

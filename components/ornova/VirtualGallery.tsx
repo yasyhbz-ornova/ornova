@@ -1,27 +1,34 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { InquiryForm } from "@/components/commerce/InquiryForm";
-import { RingDesignBuilder } from "@/components/commerce/RingDesignBuilder";
-import { RequestBasketView } from "@/components/commerce/RequestBasketView";
-import { GalleryAccountPanel, type WorkshopBookPage } from "@/components/ornova/GalleryAccountPanel";
-import { GalleryGuidePanel, type GuideChapter } from "@/components/ornova/GalleryGuidePanel";
-import { GalleryLibraryPanel } from "@/components/ornova/GalleryLibraryPanel";
-import { GalleryPhoneNotebook } from "@/components/ornova/GalleryPhoneNotebook";
-import { DesignStudio, type StudioInquiryMode } from "@/components/studio/DesignStudio";
+import type { WorkshopBookPage } from "@/components/ornova/GalleryAccountPanel";
+import type { GuideChapter } from "@/components/ornova/GalleryGuidePanel";
+import type { StudioInquiryMode } from "@/components/studio/DesignStudio";
 import { GalleryShowcaseConcept, type GalleryShowcaseHandle } from "./GalleryShowcaseConcept";
 import { OrnovaSymbol } from "./OrnovaBrandMark";
 import { galleryRoomSamples, galleryRoomSamplesByCategory, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
 import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
+import { buildMagazineIndex, emptyMagazineFilters, findMagazineWorks, type MagazineFilters } from "@/lib/catalog/magazine-index";
 import { catalogCategories, catalogFamilies } from "@/lib/constants/catalog";
 import { galleryCollections } from "@/lib/constants/collections";
-import { products as legacyProducts, type Product } from "@/lib/constants/products";
+import type { Product } from "@/lib/constants/products";
 import { REQUEST_LINE_ID_PATTERN } from "@/lib/commerce/request-basket";
 import { getAuthCallbackErrorMessage } from "@/lib/auth/inputs";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isStudioId } from "@/lib/studio/conversation";
 import styles from "./VirtualGallery.module.css";
+
+function LoadingLeaf() { return <p role="status" className={styles.intro}>در حال بازکردن صفحه…</p>; }
+const InquiryForm = dynamic(() => import("@/components/commerce/InquiryForm").then((mod) => mod.InquiryForm), { loading: LoadingLeaf });
+const RingDesignBuilder = dynamic(() => import("@/components/commerce/RingDesignBuilder").then((mod) => mod.RingDesignBuilder), { loading: LoadingLeaf });
+const RequestBasketView = dynamic(() => import("@/components/commerce/RequestBasketView").then((mod) => mod.RequestBasketView), { loading: LoadingLeaf });
+const GalleryCashierReceipts = dynamic(() => import("@/components/commerce/GalleryCashierReceipts").then((mod) => mod.GalleryCashierReceipts), { loading: LoadingLeaf });
+const GalleryAccountPanel = dynamic(() => import("@/components/ornova/GalleryAccountPanel").then((mod) => mod.GalleryAccountPanel), { loading: LoadingLeaf });
+const GalleryGuidePanel = dynamic(() => import("@/components/ornova/GalleryGuidePanel").then((mod) => mod.GalleryGuidePanel), { loading: LoadingLeaf });
+const GalleryLibraryPanel = dynamic(() => import("@/components/ornova/GalleryLibraryPanel").then((mod) => mod.GalleryLibraryPanel), { loading: LoadingLeaf });
+const GalleryPhoneNotebook = dynamic(() => import("@/components/ornova/GalleryPhoneNotebook").then((mod) => mod.GalleryPhoneNotebook), { loading: LoadingLeaf });
+const DesignStudio = dynamic(() => import("@/components/studio/DesignStudio").then((mod) => mod.DesignStudio), { loading: LoadingLeaf });
 
 const number = new Intl.NumberFormat("fa-IR");
 function isPublicGalleryProduct(product: Product) {
@@ -80,6 +87,14 @@ function getWorkshopBookSnapshot(): WorkshopBookPage | null {
   return isStudioId(params.get("draft")) ? "idea" : null;
 }
 function getGalleryCompletionSnapshot() { return new URLSearchParams(window.location.search).get("complete") === "1"; }
+function getCheckoutArchiveSnapshot() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("galleryPanel") === "account" && params.get("complete") === "1" ? params.get("archive") : null;
+}
+function getCashierViewSnapshot() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("galleryPanel") === "basket" && params.get("view") === "receipts" ? params.get("receipt") ?? "" : null;
+}
 function getGalleryAuthErrorSnapshot() {
   const params = new URLSearchParams(window.location.search);
   return params.get("galleryPanel") === "account" ? getAuthCallbackErrorMessage(params.get("error")) : null;
@@ -104,8 +119,7 @@ function getGalleryContactSnapshot(): string | null {
   return JSON.stringify(context);
 }
 
-export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = null }: { imageMode: "offline" | "preview"; galleryProducts?: Product[]; studioDraftOwner?: string | null }) {
-  const products = galleryProducts ?? legacyProducts;
+export function VirtualGallery({ imageMode, galleryProducts: products, studioDraftOwner = null }: { imageMode: "offline" | "preview"; galleryProducts: Product[]; studioDraftOwner?: string | null }) {
   const showcaseRef = useRef<GalleryShowcaseHandle>(null);
   const drawerRef = useRef<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -116,6 +130,8 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
   const studioDraftId = useSyncExternalStore(subscribeToGalleryPanel, getGalleryStudioDraftSnapshot, () => null);
   const workshopBookPage = useSyncExternalStore(subscribeToGalleryPanel, getWorkshopBookSnapshot, () => null);
   const accountCompletionMode = useSyncExternalStore(subscribeToGalleryPanel, getGalleryCompletionSnapshot, () => false);
+  const checkoutArchive = useSyncExternalStore(subscribeToGalleryPanel, getCheckoutArchiveSnapshot, () => null);
+  const receiptSelection = useSyncExternalStore(subscribeToGalleryPanel, getCashierViewSnapshot, () => null);
   const accountInitialError = useSyncExternalStore(subscribeToGalleryPanel, getGalleryAuthErrorSnapshot, () => null);
   const accountSignOutFailed = useSyncExternalStore(subscribeToGalleryPanel, getGallerySignOutFailureSnapshot, () => false);
   const guideChapter = useSyncExternalStore(subscribeToGalleryPanel, getGalleryGuideChapterSnapshot, (): GuideChapter => "overview");
@@ -124,8 +140,10 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
   const [productTray, setProductTray] = useState<ProductTraySelection | null>(null);
   const [studioContact, setStudioContact] = useState<{ mode: StudioInquiryMode; studioDraftId: string | null } | null>(null);
   const [accountReturnDestination, setAccountReturnDestination] = useState<string | undefined>();
-  const [checkoutPending, setCheckoutPending] = useState(false);
-  const [checkoutError, setCheckoutError] = useState("");
+  const [magazineFilters, setMagazineFilters] = useState<MagazineFilters>(emptyMagazineFilters);
+  const magazineSearchInput = useRef<HTMLInputElement>(null);
+  const checkoutPhoto = checkoutArchive ? galleryRoomSamples.find((photo) => photo.number === checkoutArchive && photo.trayImage) : undefined;
+  const checkoutLoginPath = `/?galleryPanel=account&complete=1${checkoutPhoto ? `&archive=${checkoutPhoto.number}` : ""}`;
   const contactContext = useMemo(() => {
     if (!contactContextSnapshot) return null;
     try {
@@ -158,6 +176,10 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
   const [selectedBirthMonthId, setSelectedBirthMonthId] = useState("farvardin");
   const [subtypeId, setSubtypeId] = useState<string | null>(null);
   const category = drawer?.kind === "category" ? catalogCategories.find((item) => item.id === drawer.id) : null;
+  const magazineOpen = drawer?.kind === "magazine";
+  const magazineIndex = useMemo(() => magazineOpen ? buildMagazineIndex(products) : [], [magazineOpen, products]);
+  const searchingMagazine = Boolean(magazineFilters.query.trim() || magazineFilters.category || magazineFilters.collection);
+  const magazineWorks = useMemo(() => searchingMagazine ? findMagazineWorks(magazineIndex, magazineFilters) : [], [magazineIndex, magazineFilters, searchingMagazine]);
   const categoryProducts = useMemo(() => products.filter((product) => product.categoryId === category?.id && isPublicGalleryProduct(product)), [category?.id, products]);
   const filteredProducts = subtypeId ? categoryProducts.filter((product) => product.subtypeId === subtypeId) : categoryProducts;
   const archiveWorks = category && !subtypeId ? (galleryRoomSamplesByCategory[category.id] ?? []).flatMap((photo) =>
@@ -171,7 +193,8 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
     if (!getGalleryPanelSnapshot() && activePanel !== "product") return;
     url.searchParams.delete("galleryPanel");
     if (activePanel === "product") url.searchParams.delete("product");
-    if (activePanel === "account") for (const key of ["complete", "next", "error", "signout"]) url.searchParams.delete(key);
+    if (activePanel === "account") for (const key of ["complete", "archive", "next", "error", "signout"]) url.searchParams.delete(key);
+    if (activePanel === "basket") for (const key of ["view", "receipt"]) url.searchParams.delete(key);
     if (activePanel === "contact") for (const key of ["draftTransfer", "product", "archive", "selection", "from", "intent", "withoutDraft"]) url.searchParams.delete(key);
     if (activePanel === "studio") for (const key of ["draft", "customerPage"]) url.searchParams.delete(key);
     if (activePanel === "guide") url.searchParams.delete("chapter");
@@ -203,7 +226,7 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
       } else {
         const review = drawer.kind === "studio" && studioContact ? drawerRef.current?.querySelector<HTMLElement>("[data-studio-review]") : null;
         const heading = review ?? document.getElementById("gallery-drawer-title");
-        heading?.focus({ preventScroll: true });
+        (heading ?? drawerRef.current)?.focus({ preventScroll: true });
         review?.scrollIntoView({ block: "center" });
       }
     });
@@ -302,38 +325,23 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
     setDrawer(null);
   }
   function openLibraryAccount() { setAccountReturnDestination("/?galleryPanel=library"); openDrawer({ kind: "account" }); }
-  function beginCheckoutLogin() {
-    setCheckoutError("");
+  function continueCheckout() {
     setDrawer({ kind: "account" });
     window.history.pushState(window.history.state, "", "/?galleryPanel=account&complete=1");
     window.dispatchEvent(new Event(galleryPanelEvent));
   }
-  async function continueCheckout() {
-    if (checkoutPending) return;
-    setCheckoutPending(true);
-    setCheckoutError("");
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError && authError.name !== "AuthSessionMissingError") throw authError;
-      if (!user) { beginCheckoutLogin(); return; }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("phone,province,city,address_line")
-        .maybeSingle();
-      if (profileError) throw profileError;
-      const addressReady = Boolean(profile?.phone?.trim() && profile?.province?.trim() && profile?.city?.trim() && profile?.address_line?.trim());
-      if (!addressReady) { beginCheckoutLogin(); return; }
-
-      setDrawer({ kind: "contact" });
-      window.history.pushState(window.history.state, "", "/?galleryPanel=contact&from=request-basket");
-      window.dispatchEvent(new Event(galleryPanelEvent));
-    } catch {
-      setCheckoutError("حساب یا نشانی امن بررسی نشد؛ انتخاب‌ها در صندوق مانده‌اند. کمی بعد دوباره تلاش کن.");
-    } finally {
-      setCheckoutPending(false);
-    }
+  function reviewCheckout() {
+    if (checkoutArchive !== null && !checkoutPhoto) return;
+    const target = checkoutPhoto ? `archive=${checkoutPhoto.number}` : "from=request-basket";
+    setDrawer({ kind: "contact" });
+    window.history.pushState(window.history.state, "", `/?galleryPanel=contact&${target}`);
+    window.dispatchEvent(new Event(galleryPanelEvent));
+  }
+  function showCashier(receipts = false, id?: string) {
+    setDrawer({ kind: "basket" });
+    const selection = id ? `&receipt=${encodeURIComponent(id)}` : "";
+    window.history.pushState(window.history.state, "", `/?galleryPanel=basket${receipts ? `&view=receipts${selection}` : ""}`);
+    window.dispatchEvent(new Event(galleryPanelEvent));
   }
   function openCategory(id: string) {
     setSubtypeId(null);
@@ -397,7 +405,7 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
   />
 
     {drawer && <div className={styles.overlay} data-studio-open={drawer.kind === "studio" ? "true" : "false"} data-basket-open={drawer.kind === "basket" ? "true" : undefined} data-book-open={drawer.kind === "magazine" || drawer.kind === "category" || drawer.kind === "collection" || drawer.kind === "guide" || drawer.kind === "about" || drawer.kind === "size-guide" || undefined} data-phone-open={drawer.kind === "phone" ? "true" : undefined} data-account-open={drawer.kind === "account" || undefined} role="dialog" aria-modal="true" aria-labelledby="gallery-drawer-title" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDrawer(); }}>
-      <aside className={styles.drawer} ref={drawerRef}>
+      <aside className={styles.drawer} ref={drawerRef} tabIndex={-1}>
         <div className={styles.drawerTop}>
           <button type="button" onClick={handleDrawerBack} className={styles.backButton}>{drawer.kind === "category" || drawer.kind === "collection" ? "بازگشت به فهرست" : drawer.kind === "contact" && studioContact ? "بازگشت به کارگاه" : (drawer.kind === "contact" && contactContext?.sourceContext === "ring-builder") || (drawer.kind === "size-guide" && sizeGuideFromBuilder) ? "بازگشت به طراحی انگشتر" : "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
           <button type="button" onClick={closeDrawer} className={styles.closeButton} aria-label="بستن پنل">×</button>
@@ -433,12 +441,43 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
           </div>}
           </div>
         </>}
-        {drawer.kind === "basket" && <><span id="gallery-drawer-title" tabIndex={-1} className="sr-only">صندوق درخواست</span><div className={styles.basketView}><RequestBasketView galleryMode products={products} onBrowseCatalog={() => openDrawer({ kind: "magazine" })} onContinueRequest={continueCheckout} continuePending={checkoutPending} continueError={checkoutError} onSelectProduct={openBasketProduct} /></div></>}
+        {drawer.kind === "basket" && <>
+          <span id="gallery-drawer-title" tabIndex={-1} className="sr-only">صندوق سفارش‌ها</span>
+          <nav className={styles.cashierNav} aria-label="برگه‌های صندوق"><button type="button" aria-pressed={receiptSelection === null} onClick={() => showCashier()}>انتخاب‌های فعلی</button><button type="button" aria-pressed={receiptSelection !== null} onClick={() => showCashier(true)}>رسیدها و برگه‌های مبلغ</button></nav>
+          <div className={styles.basketView}>{receiptSelection === null
+            ? <RequestBasketView galleryMode products={products} onBrowseCatalog={() => openDrawer({ kind: "magazine" })} onContinueRequest={continueCheckout} onSelectProduct={openBasketProduct} />
+            : <GalleryCashierReceipts key={receiptSelection} initialReceiptId={receiptSelection || undefined} onOpenAccount={() => { setAccountReturnDestination(`/?galleryPanel=basket&view=receipts${receiptSelection ? `&receipt=${encodeURIComponent(receiptSelection)}` : ""}`); openDrawer({ kind: "account" }); }} />}</div>
+        </>}
         {drawer.kind === "magazine" && <>
           <header className={styles.magazineCover}>
             <div><p className={styles.eyebrow}>مجلهٔ اُرنوا</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>فهرست آثار</h1></div>
             <OrnovaSymbol className={styles.magazineFeature} />
           </header>
+          <section className={styles.magazineSearch} aria-label="جست‌وجوی آثار">
+            <div className={styles.magazineSearchFields}>
+              <label>نام اثر<input ref={magazineSearchInput} type="search" value={magazineFilters.query} onChange={(event) => setMagazineFilters({ ...magazineFilters, query: event.target.value })} placeholder="جست‌وجو در آثار" maxLength={160} /></label>
+              <label>دسته<select value={magazineFilters.category} onChange={(event) => setMagazineFilters({ ...magazineFilters, category: event.target.value })}>
+                <option value="">همهٔ دسته‌ها</option>
+                {catalogCategories.filter((category) => magazineIndex.some((work) => work.categoryId === category.id)).map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+              </select></label>
+              <label>مجموعه<select value={magazineFilters.collection} onChange={(event) => setMagazineFilters({ ...magazineFilters, collection: event.target.value })}>
+                <option value="">همهٔ مجموعه‌ها</option>
+                {galleryCollections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
+              </select></label>
+            </div>
+            {searchingMagazine && <div className={styles.magazineSearchResults}>
+              <div><p role="status">{magazineWorks.length ? `${number.format(magazineWorks.length)} اثر پیدا شد` : "اثری با این جست‌وجو پیدا نشد."}</p><button type="button" onClick={() => { setMagazineFilters(emptyMagazineFilters); magazineSearchInput.current?.focus(); }}>پاک‌کردن فیلترها</button></div>
+              {magazineWorks.length > 0 && <ul className={styles.indexWorks} aria-label="نتیجهٔ جست‌وجوی آثار">
+                {magazineWorks.map(({ id, name, image, product, archive }) => {
+                  const focusId = `gallery-search-work-${id}`;
+                  return <GalleryIndexWork key={id} id={focusId} name={name} image={image} onOpen={() => {
+                    if (product) openProductOnTray(product, "بازگشت به نتایج", focusId);
+                    else if (archive) openGalleryPhoto(archive, focusId, "بازگشت به نتایج");
+                  }} />;
+                })}
+              </ul>}
+            </div>}
+          </section>
           <div className={styles.magazineSpread} role="group" aria-label="صفحه‌های مجلهٔ دسته‌ها و مجموعه‌ها">
           <div className={styles.magazineFamilies}>{catalogFamilies.map((family) => <section className={styles.magazineFamily} key={family.id} aria-labelledby={`magazine-family-${family.id}`}>
             <h2 id={`magazine-family-${family.id}`}>{family.label}</h2>
@@ -485,13 +524,15 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
             </>}
             </div>
           </> : <div className={styles.emptyState}><p>این صفحه از مجموعه در دسترس نیست.</p></div>)}
-        {drawer.kind === "account" && <>
+        {drawer.kind === "account" && <section className={styles.accountPage} aria-labelledby="gallery-drawer-title">
           <header className={styles.accountHeading}>
             <OrnovaSymbol className={styles.accountSymbol} />
-            <h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{accountCompletionMode ? "تماس و نشانی" : "حساب من"}</h1>
+            <h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>دفتر شخصی اُرنوا</h1>
           </header>
-          <GalleryAccountPanel completionMode={accountCompletionMode} initialError={accountInitialError} signOutFailed={accountSignOutFailed} onReturnToBasket={() => openDrawer({ kind: "basket" })} nextDestination={accountReturnDestination} />
-        </>}
+          {accountCompletionMode && checkoutArchive !== null && !checkoutPhoto
+            ? <p role="alert" className={styles.intro}>این اثر پیدا نشد. دوباره از روی سینی انتخابش کن.</p>
+            : <GalleryAccountPanel completionMode={accountCompletionMode} initialError={accountInitialError} signOutFailed={accountSignOutFailed} onContinueCheckout={reviewCheckout} checkoutTitle={checkoutPhoto?.title} nextDestination={accountCompletionMode ? checkoutLoginPath : accountReturnDestination} />}
+        </section>}
         {drawer.kind === "library" && <><span id="gallery-drawer-title" className="sr-only">گالری من</span><GalleryLibraryPanel onOpenAccount={openLibraryAccount} /></>}
         {drawer.kind === "guide" && <>
           <p className={styles.eyebrow}>دفتر همراهی اُرنوا</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>راهنمای گالری</h1>
@@ -509,10 +550,10 @@ export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = 
         {(drawer.kind === "contact" || (drawer.kind === "studio" && studioContact)) && <div className="pt-3.5" hidden={drawer.kind !== "contact"} inert={drawer.kind !== "contact"}>
           <h1 id={drawer.kind === "contact" ? "gallery-drawer-title" : undefined} tabIndex={-1} className={styles.title}>{studioContact || contactContext?.studioReview || contactSourceContext === "custom-design" ? "ثبت ایده در کارگاه" : contactContext?.intent === "question" && !archiveOrder ? "پرسش دربارهٔ اثر" : "ثبت سفارش"}</h1>
           {studioContact?.mode === "transferred" && <p className={styles.intro}>خلاصهٔ ایدهٔ کارگاه را پیش از ارسال بازبینی کن.</p>}
-          {invalidArchiveOrder ? <p role="alert" className={styles.intro}>این اثر در آرشیو گالری پیدا نشد. دوباره از روی سینی انتخابش کن.</p> : <div className={styles.basketView}><InquiryForm galleryMode archiveOrder={archiveOrder ?? undefined} productContext={!archiveOrder && contactProduct ? { slug: contactProduct.slug, name: contactProduct.name, category: contactProduct.category } : undefined} productSelectionKey={archiveOrder ? undefined : contactProductSelectionKey} sourceContext={archiveOrder ? undefined : contactSourceContext} requestBasketContext={!archiveOrder && contactContext?.requestBasketContext} intent={!archiveOrder && contactProduct ? contactContext?.intent : undefined} includeRingDraft={!archiveOrder && !contactContext?.withoutDraft} loginNextPath={contactLoginNextPath} /></div>}
+          {invalidArchiveOrder ? <p role="alert" className={styles.intro}>این اثر در آرشیو گالری پیدا نشد. دوباره از روی سینی انتخابش کن.</p> : <div className={styles.basketView}><InquiryForm galleryMode archiveOrder={archiveOrder ?? undefined} productContext={!archiveOrder && contactProduct ? { slug: contactProduct.slug, name: contactProduct.name, category: contactProduct.category } : undefined} productSelectionKey={archiveOrder ? undefined : contactProductSelectionKey} sourceContext={archiveOrder ? undefined : contactSourceContext} requestBasketContext={!archiveOrder && contactContext?.requestBasketContext} intent={!archiveOrder && contactProduct ? contactContext?.intent : undefined} includeRingDraft={!archiveOrder && !contactContext?.withoutDraft} loginNextPath={contactLoginNextPath} onOpenReceipt={(id) => showCashier(true, id)} /></div>}
           {!studioContact && !contactContext?.studioReview && contactSourceContext !== "custom-design" && !archiveOrder && <button type="button" className={styles.secondaryLink} onClick={() => openDrawer({ kind: "basket" })}>دیدن صندوق درخواست <span aria-hidden="true">←</span></button>}
         </div>}
-        {(drawer.kind === "studio" || (drawer.kind === "contact" && studioContact)) && <div hidden={drawer.kind !== "studio"} inert={drawer.kind !== "studio"}>
+        {(drawer.kind === "studio" || (drawer.kind === "contact" && studioContact)) && <div className={styles.studioSurface} hidden={drawer.kind !== "studio"} inert={drawer.kind !== "studio"}>
           <DesignStudio
             initialBookPage={workshopBookPage}
             draftId={studioContact ? studioContact.studioDraftId : studioDraftId}

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { isAuthSessionMissingError } from "@supabase/supabase-js";
 import { signOutCurrentSession } from "@/app/account/actions";
 import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
@@ -39,7 +39,7 @@ const bookPages = [
 ] as const;
 type WorkshopBook = { page: WorkshopBookPage; onPageChange(page: WorkshopBookPage): void; authorizeIdea(accountId: string): boolean; idea: ReactNode; hasDraft: boolean; busy: boolean };
 
-export function GalleryAccountPanel({ completionMode, initialError, signOutFailed = false, onReturnToBasket, nextDestination, prepareEmailDestination, workshopBook }: { completionMode: boolean; initialError?: string | null; signOutFailed?: boolean; onReturnToBasket?: () => void; nextDestination?: string; prepareEmailDestination?: () => string | null; workshopBook?: WorkshopBook }) {
+export function GalleryAccountPanel({ completionMode, initialError, signOutFailed = false, onContinueCheckout, checkoutTitle, nextDestination, prepareEmailDestination, workshopBook }: { completionMode: boolean; initialError?: string | null; signOutFailed?: boolean; onContinueCheckout?: () => void; checkoutTitle?: string; nextDestination?: string; prepareEmailDestination?: () => string | null; workshopBook?: WorkshopBook }) {
   const [state, setState] = useState<PanelState>("checking");
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [identity, setIdentity] = useState<AccountIdentity | null>(null);
@@ -48,6 +48,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
   const [historyError, setHistoryError] = useState(false);
   const [activeQuote, setActiveQuote] = useState<ActiveQuote | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [editingCheckoutProfile, setEditingCheckoutProfile] = useState(false);
   const bookNav = useRef<HTMLElement>(null);
   const bookPageIndex = bookPages.findIndex((page) => page.id === workshopBook?.page);
   const authorizeIdea = workshopBook?.authorizeIdea;
@@ -86,11 +87,12 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
         const { data, error } = await client
           .from("profiles")
           .select("display_name,phone,design_note,province,city,postal_code,address_line")
+          .eq("id", user.id)
           .maybeSingle();
         if (!active) return;
         setIdentity({
           phone: user.phone ?? "",
-          displayName: typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "",
+          displayName: typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "",
           canOpenIdea: authorizeIdea?.(user.id) ?? false,
         });
         setProfileUnavailable(Boolean(error));
@@ -114,6 +116,14 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     return () => { active = false; subscription?.unsubscribe(); };
   }, [attempt, authorizeIdea, completionMode]);
 
+  const profileReady = Boolean(profile?.display_name?.trim() && profile.phone?.trim() && profile.province?.trim() && profile.city?.trim() && profile.address_line?.trim());
+  const checkoutSummary = state === "ready" && completionMode && profileReady && !editingCheckoutProfile;
+  const profileBook = workshopBook || completionMode;
+  const saveBookProfile = useCallback((saved: AccountProfile) => {
+    setProfile(saved);
+    setProfileUnavailable(false);
+    setEditingCheckoutProfile(false);
+  }, []);
   const profileForm = <ProfileForm
     displayName={profile?.display_name ?? identity?.displayName ?? ""}
     phone={profile?.phone ?? identity?.phone ?? ""}
@@ -124,8 +134,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     addressLine={profile?.address_line ?? ""}
     requireAddress={completionMode}
     galleryMode
-    onReturnToGallery={completionMode ? onReturnToBasket : undefined}
-    onSaved={setProfile}
+    onSaved={saveBookProfile}
   />;
 
   let content;
@@ -133,9 +142,9 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
   else if (state === "unavailable") content = <div className="grid gap-3 text-sm leading-7 text-graphite/70" role="alert"><p>{workshopBook ? "حساب فعلاً در دسترس نیست. برای بازکردن دفتر دوباره تلاش کن." : "اتصال امن حساب فعلاً پاسخ نداد؛ انتخاب‌های صندوق در همین مرورگر محفوظ‌اند."}</p><button type="button" className="w-fit border-b border-silver pb-1 text-sapphire" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>;
   else if (state === "guest") content = <>
     <div className={styles.accountLogin}>
-      <p className={styles.accountLoginHeading}>{completionMode ? "برای ادامهٔ درخواست، ابتدا با ایمیل وارد شو." : prepareEmailDestination ? "برای ورود یا ثبت‌نام، ایمیلت را وارد کن. لینک یک‌بارمصرف تو را به همین کارگاه برمی‌گرداند." : "لینک ورود یک‌بارمصرف به ایمیلت فرستاده می‌شود."}</p>
+      <p className={styles.accountLoginHeading}>{completionMode ? "برای ادامهٔ سفارش، وارد دفتر شخصی‌ات شو." : prepareEmailDestination ? "برای ورود یا ثبت‌نام، ایمیلت را وارد کن. لینک یک‌بارمصرف تو را به همین کارگاه برمی‌گرداند." : "لینک ورود یک‌بارمصرف به ایمیلت فرستاده می‌شود."}</p>
       {workshopBook?.hasDraft && <p className={styles.accountLoginHeading}>برای ادامه بعد از ورود، پیش‌نویس تا ۳۰ دقیقه در همین مرورگر می‌ماند.</p>}
-      <MagicLinkForm compact initialError={initialError} nextDestination={completionMode ? "/?galleryPanel=account&complete=1" : nextDestination} prepareEmailDestination={prepareEmailDestination} />
+      <MagicLinkForm compact initialError={initialError} nextDestination={nextDestination ?? (completionMode ? "/?galleryPanel=account&complete=1" : undefined)} prepareEmailDestination={prepareEmailDestination} />
     </div>
   </>;
   else if (state === "signed-in" && !workshopBook) content = <details className={styles.accountProfile} open={profileUnavailable || undefined}>
@@ -143,6 +152,14 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     {profileUnavailable && <p className="text-sm leading-7" role="status">اطلاعات قبلی در دسترس نیست. قبل از ثبت درخواست، تماس و نشانی را بررسی کن.</p>}
     {profileForm}
   </details>;
+  else if (checkoutSummary && profile) content = <div className={styles.checkoutLeaf}>
+      <h2>اطلاعات سفارش</h2>
+      <p>{profile.display_name}</p>
+      <p><bdi dir="ltr">{profile.phone}</bdi></p>
+      <p>{[profile.province, profile.city, profile.address_line, profile.postal_code].filter(Boolean).join("، ")}</p>
+      <button type="button" className={styles.primaryLink} onClick={onContinueCheckout}>بازبینی و ثبت سفارش <span aria-hidden="true">←</span></button>
+      <button type="button" className={styles.secondaryLink} onClick={() => setEditingCheckoutProfile(true)}>ویرایش اطلاعات</button>
+    </div>;
   else content = <div className="grid gap-4">
       {profileUnavailable && <p className="text-sm leading-7" role="status">نشانی قبلی در دسترس نیست. برای ادامهٔ درخواست، شمارهٔ تماس و نشانی را وارد کن.</p>}
       {profileForm}
@@ -181,7 +198,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
   return <div className={styles.accountWorkflow}>
     {activeQuote && state === "signed-in" ? <CustomerQuoteDocument quote={activeQuote.quote} isPreviousVersion={activeQuote.isPreviousVersion} checkedAt={activeQuote.checkedAt} embedded onBack={() => setActiveQuote(null)} onAccepted={(acceptedAt) => { setActiveQuote(current => current && { ...current, quote: { ...current.quote, accepted_at: acceptedAt } }); setHistory(current => current && { ...current, quotes: current.quotes.map(quote => quote.id === activeQuote.quote.id ? { ...quote, accepted_at: acceptedAt } : quote) }); }} /> : <>
     {signOutFailed && <p className="border-r-2 border-sapphire px-4 py-2 text-sm leading-7 text-graphite/70" role="alert">خروج از حساب انجام نشد؛ دوباره تلاش کن.</p>}
-    {state === "ready" && completionMode && <p className="text-sm leading-7 text-graphite/75">پس از ذخیرهٔ شمارهٔ تماس و نشانی، به صندوق برمی‌گردی.</p>}
+    {completionMode && <p className="text-sm leading-7 text-graphite/75">{checkoutTitle ?? "ادامهٔ سفارش از صندوق گالری"}</p>}
     {workshopBook ? state === "signed-in" ? <div className={styles.customerBook}>
       <nav ref={bookNav} className={styles.customerBookIndex} aria-label="برگ‌های دفتر مشتری">
         {bookPages.map((page, index) => <button key={page.id} type="button" aria-current={workshopBook.page === page.id ? "page" : undefined} disabled={workshopBook.busy} onClick={() => turnPage(index)}>{page.title}</button>)}
@@ -195,7 +212,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
         <button type="button" disabled={workshopBook.busy || bookPageIndex >= bookPages.length - 1} onClick={() => turnPage(bookPageIndex + 1)}>برگ بعدی<span aria-hidden="true"> ←</span></button>
       </footer>
       {signOut}
-    </div> : <div className={styles.customerBookLock}>{content}</div> : <>{content}{historyPage}{signOut}</>}
+    </div> : <div className={styles.customerBookLock}>{content}</div> : profileBook ? <div className={state === "ready" ? styles.customerBook : styles.customerBookLock}>{content}</div> : <>{content}{historyPage}{signOut}</>}
     </>}
   </div>;
 }

@@ -1,0 +1,69 @@
+.note, .replay {
+  position: absolute;
+  z-index: 6;
+  border: 1px solid #b99d78;
+  background: #f7eddb url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / cover;
+  color: #34291f;
+  box-shadow: 0 4px 16px #35201635, inset 0 0 9px #896b4420;
+}
+
+.note {
+  --point: #efe2ca;
+  width: min(15.5rem, calc(100% - 1.1rem));
+  padding: .7rem .8rem .35rem;
+  border-radius: 5px 6px 8px 4px;
+}
+
+.note::after {
+  position: absolute;
+  width: .65rem;
+  aspect-ratio: 1;
+  top: 36%;
+  right: -.36rem;
+  rotate: 45deg;
+  border-top: 1px solid #b99d78;
+  border-right: 1px solid #b99d78;
+  background: var(--point);
+  content: "";
+  pointer-events: none;
+}
+
+.note[data-guide-stop="showcase"] { top: 14%; right: calc(14% + 9rem); }
+.note[data-guide-stop="magazine"] { bottom: 21%; right: 16%; }
+.note[data-guide-stop="cashier"] { bottom: 6%; left: 23%; }
+.note[data-guide-stop="phone"] { bottom: 6%; left: 13%; }
+.note[data-guide-stop="studio"] { top: 34%; left: 59%; }
+.note:is([data-guide-stop="cashier"], [data-guide-stop="phone"], [data-guide-stop="studio"])::after {
+  right: auto;
+  left: -.36rem;
+  rotate: 225deg;
+}
+
+.note h2 { margin: 0; font-size: .93rem; font-weight: 700; line-height: 1.55; }
+.note p { margin: .2rem 0 .35rem; font-size: .83rem; line-height: 1.65; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .6rem; border-top: 1px solid #79552d3d; }
+.controls > button { min-height: 2.05rem; padding: .13rem 0; border: 0; background: transparent; color: #584739; font-size: .71rem; cursor: pointer; }
+.controls > button:first-child { color: #233e59; font-weight: 700; }
+.controls > button[aria-disabled="true"] { opacity: .48; cursor: default; }
+.controls > button:last-child:not(:nth-child(2)) { margin-inline-start: auto; }
+.replay { right: max(.65rem, 2%); bottom: max(.55rem, env(safe-area-inset-bottom)); padding: .39rem .7rem; border-radius: .3rem; font-size: .78rem; cursor: pointer; }
+.controls button:focus-visible, .replay:focus-visible { outline: 2px solid #355a82; outline-offset: 2px; }
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .note[data-guide-stop="showcase"] { top: auto; right: .65rem; bottom: calc(100% + .65rem); }
+  .note[data-guide-stop="studio"] { top: auto; bottom: calc(100% + .65rem); left: 50%; translate: -50% 0; }
+  .note[data-guide-stop="magazine"] { top: calc(100% + .65rem); right: .65rem; bottom: auto; }
+  .note:is([data-guide-stop="cashier"], [data-guide-stop="phone"]) { top: calc(100% + .65rem); bottom: auto; left: .65rem; }
+  .note[data-guide-stop]::after { top: -.36rem; right: 1rem; left: auto; rotate: -45deg; }
+  .note[data-guide-stop="showcase"]::after { top: auto; bottom: -.36rem; rotate: 135deg; }
+  .note[data-guide-stop="studio"]::after { top: auto; right: 52%; bottom: -.36rem; rotate: 135deg; }
+  .note[data-guide-stop="cashier"]::after { right: auto; left: 18%; }
+  .note[data-guide-stop="phone"]::after { right: auto; left: 5%; }
+  .replay { top: calc(100% + var(--touch-index-space, 0rem) + .7rem); right: .65rem; bottom: auto; }
+}
+
+@media (orientation: landscape) and (max-height: 400px) {
+  .note { width: min(13rem, 41%); padding: .45rem .65rem .18rem; }
+  .note h2 { font-size: .83rem; }
+  .note p { font-size: .74rem; }
+}

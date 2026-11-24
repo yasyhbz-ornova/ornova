@@ -1,0 +1,19 @@
+.paper {
+  width: min(100%, 41rem);
+  margin: .8rem auto 1.5rem;
+  padding: clamp(.8rem, 3.8vw, 1.8rem);
+  border: 1px solid #b6a58e;
+  color: #42382d;
+  background: linear-gradient(#fff9edb3, #fff5e3bd), url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / cover;
+  box-shadow: 1px 2px #e1d0b6, 2px 4px #a78d6e, 2px 7px 15px #40322829;
+}
+.paper h2 { font-family: "Ornova Nastaliq", var(--font-display), serif; font-size: clamp(1.14rem, 3.7vw, 1.8rem); line-height: 2; }
+.paper p { font-size: .83rem; line-height: 1.95; }
+.index { margin: .5rem 0; padding: 0; list-style: none; }
+.index button { width: 100%; display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: .5rem; border-bottom: 1px solid #ae947871; text-align: start; font-size: .84rem; }
+.index time { flex: 0 0 auto; color: #695d4d; font-size: .74rem; }
+.index small { display: block; color: #695d4d; font-size: .71rem; }
+.action { display: inline-flex; min-height: 44px; align-items: center; color: #284969; text-decoration: underline; text-underline-offset: .25em; font-size: .81rem; }
+.index button:focus-visible, .action:focus-visible { outline: 2px solid #385a77; outline-offset: 2px; }
+.pages { display: flex; justify-content: space-between; gap: .5rem; }
+.pages button:disabled { opacity: .45; }

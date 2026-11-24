@@ -1,0 +1,35 @@
+name: Gallery checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, "codex/ornova-gallery-*-release"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gallery:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: build
+        run: npm run qa:build
+      - run: npm run qa:browser
+      - if: always() && !cancelled() && steps.build.outcome == 'success'
+        run: npm run qa:performance
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gallery-checks
+          include-hidden-files: true
+          path: |
+            test-results/
+            .lighthouseci/reports/

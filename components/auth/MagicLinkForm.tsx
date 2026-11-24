@@ -157,10 +157,15 @@ export function MagicLinkForm({
     const operation = begin("google"); if (!operation) return;
 
     try {
+      const destination = prepareEmailDestination?.();
+      if (destination === null) {
+        setError("پیش‌نویس در این مرورگر ذخیره نشد. ابتدا متن ایده‌ات را کپی کن.");
+        return;
+      }
       const supabase = createSupabaseBrowserClient();
       const { data, error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
+        options: { redirectTo: callbackUrl(destination), skipBrowserRedirect: true },
       });
       if (!owns(operation)) return;
       if (authError || !data?.url) throw authError ?? new Error("OAuth URL unavailable");

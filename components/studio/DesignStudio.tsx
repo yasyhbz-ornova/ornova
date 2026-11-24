@@ -227,10 +227,10 @@ export function DesignStudio({ draftId, userId, initialBookPage = null, imageMod
       {(draftId || !embedded) && <footer className={styles.chatFooter}>{draftId && <button type="button" onClick={clearDeviceDraft} disabled={busy}>پاک‌کردن پیش‌نویس این دستگاه</button>}{!embedded && <a href="/custom-design">شروع یک ایدهٔ تازه</a>}</footer>}
     </section>;
 
-  return <div className={`${styles.studio} ${embedded ? styles.embedded : ""}`}>
-    <aside className={styles.intro}>
+  return <div className={`${styles.studio} ${embedded ? styles.embedded : ""}`} data-personal-ledger={embedded ? (bookPage ? "open" : "cover") : undefined}>
+    <aside className={styles.intro} hidden={embedded && Boolean(bookPage)}>
       <p className={styles.eyebrow}>اُرنوا</p>
-      <h1 id={embedded && active ? "gallery-drawer-title" : undefined} tabIndex={embedded ? -1 : undefined}>{embedded ? "کارگاه طراحی" : "از ایدهٔ تو شروع کنیم."}</h1>
+      <h1 id={embedded && active && !bookPage ? "gallery-drawer-title" : undefined} tabIndex={embedded ? -1 : undefined}>{embedded ? "کارگاه طراحی" : "از ایدهٔ تو شروع کنیم."}</h1>
       {embedded && <nav className={styles.workshopNav} aria-label="میز مشتری در کارگاه">
         <button ref={accountTrigger} type="button" onClick={() => openAccount("profile")} disabled={busy} aria-expanded={Boolean(bookPage)} aria-controls="studio-customer-account">حساب مشتری</button>
         <button type="button" onClick={() => openAccount("idea")} disabled={busy}>ثبت ایده</button>
@@ -238,9 +238,9 @@ export function DesignStudio({ draftId, userId, initialBookPage = null, imageMod
       <figure className={styles.reference}><div><Image src="/images/ornova/lajvard-shab-04.png" alt="انگشتر لاجورد شب کنار دست‌نوشته؛ نمونه‌ای از آرشیو Ornova" fill sizes="(max-width: 800px) 1px, 400px" className={styles.referencePhoto} /></div><figcaption>از آرشیو Ornova by Yas · لاجورد شب</figcaption></figure>
       {!embedded && <nav aria-label="مسیرهای دیگر استودیو"><Link href="/account/gallery">گالری من <span aria-hidden="true">↖</span></Link><Link href="/ring-builder">طراحی انگشتر <span aria-hidden="true">↖</span></Link></nav>}
     </aside>
-    {!embedded ? ideaPage : <section id="studio-customer-account" aria-label="دفتر مشتری" className={styles.customerAccount} data-book-requested={Boolean(bookPage)}>
-      {!bookPage ? <button className={styles.closedBook} type="button" onClick={() => openAccount("profile")}><OrnovaSymbol />دفتر مشتری</button> : <>
-        <header><h2 ref={accountRef} tabIndex={-1}>دفتر مشتری</h2><button type="button" onClick={closeAccount} disabled={busy}>بستن دفتر</button></header>
+    {!embedded ? ideaPage : <section id="studio-customer-account" aria-label="دفتر شخصی اُرنوا" className={styles.customerAccount} data-book-requested={Boolean(bookPage)}>
+      {!bookPage ? <button className={styles.closedBook} type="button" onClick={() => openAccount("profile")}><OrnovaSymbol />دفتر شخصی اُرنوا</button> : <>
+        <header><h2 id={active ? "gallery-drawer-title" : undefined} ref={accountRef} tabIndex={-1}>دفتر شخصی اُرنوا</h2><button type="button" onClick={closeAccount} disabled={busy}>بستن دفتر</button></header>
         <GalleryAccountPanel completionMode={false} prepareEmailDestination={prepareAccountDestination} workshopBook={{ page: bookPage, onPageChange: setBookPage, authorizeIdea, idea: ideaPage, hasDraft: Boolean(answers.length || input.trim()), busy }} />
       </>}
     </section>}

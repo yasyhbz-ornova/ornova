@@ -26,24 +26,34 @@
 .customerAccount > header h2:focus { outline: none; }
 .customerAccount > header button { font-size: .75rem; }
 .closedBook {
+  position: relative;
   display: grid;
+  align-content: center;
   justify-items: center;
-  gap: 1rem;
-  inline-size: min(100%, 15rem);
-  margin: .7rem auto 1.5rem;
-  padding: 2.5rem .75rem;
-  border: 1px solid #574438;
-  border-radius: 3px 10px 8px 3px;
-  color: #e3d2ad;
-  background: linear-gradient(80deg, #4b3b37f5, #705545ec 90%, #4c3a2d), url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / cover;
-  box-shadow: inset -6px 0 #3628215c, 0 3px #957954, 0 5px #dfcb9e, 0 7px #533c2e, 5px 13px 14px #35251d5e;
+  gap: clamp(.35rem, 1.5dvh, 1rem);
+  inline-size: min(100%, clamp(10.8rem, 25vw, 14rem));
+  aspect-ratio: 500 / 643;
+  margin: .4rem auto 1.5rem;
+  padding: clamp(.9rem, 3.5dvh, 2rem) 1rem;
+  border: 0;
+  color: #f2e3cb;
+  background: url("/images/ornova/gallery/review/ornova-personal-ledger-cover-v1.webp") center / 100% 100% no-repeat;
+  filter: drop-shadow(4px 9px 9px #35251d50);
   font-family: "Ornova Nastaliq", var(--font-display), serif;
-  font-size: 1.7rem;
+  font-size: clamp(1.35rem, 3.5vw, 1.7rem);
   font-weight: 400;
   line-height: 2;
+  text-shadow: 0 1px 2px #2d211d;
   cursor: pointer;
 }
-.closedBook svg { width: 2.25rem; height: 2.4rem; }
+.closedBook svg { width: clamp(1.85rem, 6dvh, 2.5rem); height: auto; }
+@media (hover: hover) {
+  .closedBook:hover { color: #fff4df; }
+}
+.closedBook:active {
+  transform: translateY(2px);
+  filter: drop-shadow(2px 5px 6px #35251d50);
+}
 .closedBook:focus-visible { outline: 2px solid #385a77; outline-offset: 4px; }
 .customerAccount .conversation { padding: .5rem 0; border: 0; background: transparent; }
 .conversation { min-width: 0; border: 1px solid var(--color-silver); background: var(--color-ivory-soft); padding: 24px 28px; }
@@ -118,5 +128,53 @@
   .conversation { padding: 1.25rem 1rem; }
   .composer > div { flex-wrap: wrap; }
   .composer button, .gate > .primary, .review > .primary { width: 100%; }
+}
+.embedded[data-personal-ledger] {
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.embedded[data-personal-ledger="cover"] { grid-template-rows: auto minmax(0, 1fr); }
+.embedded[data-personal-ledger="cover"] .intro {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  padding: clamp(.75rem, 2vw, 1.4rem) clamp(.8rem, 4vw, 2.5rem) 0;
+  color: #30291f;
+  text-shadow: 0 1px 7px #fff5e8, 0 0 14px #fff5e8;
+}
+.embedded[data-personal-ledger="cover"] .customerAccount { align-self: stretch; display: grid; place-items: center; padding: .75rem 1rem 1rem; }
+.embedded[data-personal-ledger="cover"] .closedBook {
+  inline-size: min(100%, 88vw, clamp(8rem, calc((100dvh - 10.5rem) * .76), 28rem));
+  margin: 0;
+  font-size: clamp(1.4rem, 4.6vw, 2.25rem);
+}
+.embedded[data-personal-ledger="open"] .customerAccount {
+  --ledger-gutter: clamp(.55rem, 3.2vw, 2.75rem);
+  align-self: stretch;
+  width: min(62rem, calc(100% - var(--ledger-gutter) * 2));
+  margin: clamp(.55rem, 2.5dvh, 1.65rem) auto max(var(--ledger-gutter), env(safe-area-inset-bottom));
+  padding: clamp(.75rem, 2.5vw, 2rem) clamp(.75rem, 4vw, 3rem) max(1.5rem, env(safe-area-inset-bottom));
+  border: 1px solid #b99e7d;
+  border-radius: 3px 7px 5px 3px;
+  background: linear-gradient(90deg, #8d6c3930, transparent 2%, transparent 97.5%, #80603a26),
+    #f1e5d0 url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / cover;
+  box-shadow: 0 7px 28px #49352b3b;
+}
+.embedded[data-personal-ledger="open"] .customerAccount > header { max-width: 52rem; margin: 0 auto .9rem; border-bottom: 1px solid #b29b7c; }
+@media (orientation: landscape) and (max-height: 560px) {
+  .embedded[data-personal-ledger="cover"] {
+    grid-template-columns: minmax(10rem, .85fr) minmax(0, 1.15fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: center;
+  }
+  .embedded[data-personal-ledger="cover"] .intro { padding: .75rem clamp(.75rem, 3vw, 2rem); }
+  .embedded[data-personal-ledger="cover"] .customerAccount { padding: .5rem; }
+  .embedded[data-personal-ledger="cover"] .closedBook {
+    inline-size: min(100%, clamp(7rem, calc((100dvh - 5.75rem) * .74), 18rem));
+  }
 }
 @media (prefers-reduced-motion: reduce) { .choices button, .currentQuestion { transition: none; animation: none; } }

@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { loadTs } from "./helpers/load-ts.mjs";
 const require=createRequire(import.meta.url),ts=require("typescript"),mounted=new Set();
 afterEach(()=>{for(const cleanup of mounted)cleanup();mounted.clear();});
-function form({run=async()=>({error:null}),phone=true,google=true}={}){
+function form({run=async()=>({error:null}),phone=true,google=true,prepareEmailDestination}={}){
   const hooks=[],effects=[],cleanups=[],calls=[],routes=[];let cursor=0,tree;
   const browser={location:{origin:"http://localhost:3058",search:"?next=%2Fcontact%3Fintent%3Dprice",assign:path=>routes.push("oauth:"+path)}};
   const react={useState(value){const i=cursor++;hooks[i]??={value};return[hooks[i].value,next=>{hooks[i].value=typeof next==="function"?next(hooks[i].value):next;}];},useRef(value){const i=cursor++;hooks[i]??={current:value};return hooks[i];},useEffect(fn,deps){const i=cursor++;if(!hooks[i]||deps.some((v,n)=>v!==hooks[i].deps[n])){hooks[i]={deps};effects.push(fn);}}};
@@ -14,7 +14,7 @@ function form({run=async()=>({error:null}),phone=true,google=true}={}){
   new Function("require","exports","window","process",ts.transpileModule(readFileSync(new URL("../components/auth/MagicLinkForm.tsx",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText)(name=>name==="react"?react:name==="react/jsx-runtime"?jsx:name==="next/navigation"?{useRouter:()=>({replace:path=>routes.push(path),refresh:()=>routes.push("refresh")})}:name==="@/lib/supabase/client"?{createSupabaseBrowserClient:()=>({auth:{signInWithOtp:args=>call(args.email!==undefined?"email":"phone",args),verifyOtp:args=>call("verify",args),signInWithOAuth:async args=>{const result=await call("google",args);if(result.data?.url&&!args.options?.skipBrowserRedirect)browser.location.assign(result.data.url);return result;}}})}:name.startsWith("@/")?loadTs(name.slice(2)+".ts"):require(name),loaded.exports,browser,{env:{NEXT_PUBLIC_SUPABASE_URL:"http://localhost:3058"}});
   const nodes=(node=tree)=>!node||typeof node!=="object"?[]:[node,...[node.props?.children].flat(Infinity).filter(v=>v!=null).flatMap(v=>nodes(v))];
   const text=(node=tree)=>typeof node==="string"?node:!node||typeof node!=="object"?" ":[node.props?.children].flat(Infinity).filter(v=>v!=null).map(v=>text(v)).join(" ");
-  function render(){cursor=0;tree=loaded.exports.MagicLinkForm({phoneAuthEnabled:phone,googleAuthEnabled:google});for(const effect of effects.splice(0))cleanups.push(effect());return tree;}
+  function render(){cursor=0;tree=loaded.exports.MagicLinkForm({phoneAuthEnabled:phone,googleAuthEnabled:google,prepareEmailDestination});for(const effect of effects.splice(0))cleanups.push(effect());return tree;}
   function edit(type,value){const input=nodes().find(n=>n.type==="input"&&(type==="otp"?n.props.autoComplete==="one-time-code":n.props.type===type));assert.ok(input,type);input.props.onChange({target:{value}});render();}
   function button(label){const b=nodes().find(n=>n.type==="button"&&text(n).trim()===label);assert.ok(b,label);return b;}
   function submit(kind){const autocomplete=kind==="email"?"email":kind==="phone"?"tel":"one-time-code";const f=nodes().find(n=>n.type==="form"&&nodes(n).some(c=>c.type==="input"&&c.props.autoComplete===autocomplete));assert.ok(f,kind);return f.props.onSubmit({preventDefault(){}});}
@@ -33,6 +33,16 @@ test("late verification after unmount cannot navigate; valid completion uses cap
 });
 test("Google errors release busy state and never expose provider details",async()=>{
   const c=form({run:async()=>({error:{message:"PRIVATE-KEY"}})});await c.button("ادامه با حساب گوگل").props.onClick();c.render();assert.equal(c.button("ادامه با حساب گوگل").props.disabled,false);assert.ok(!c.text().includes("PRIVATE-KEY"));
+});
+
+test("Google keeps the prepared account return and stays put if the draft cannot be prepared", async () => {
+  const next = "/?galleryPanel=account&complete=1&archive=05";
+  const available = form({ prepareEmailDestination: () => next, run: async () => ({ error: null, data: { url: "http://localhost:3058/auth/v1/authorize?provider=google" } }) });
+  await available.button("ادامه با حساب گوگل").props.onClick();
+  assert.equal(new URL(available.calls[0].args.options.redirectTo).searchParams.get("next"), next);
+  const unavailable = form({ prepareEmailDestination: () => null });
+  await unavailable.button("ادامه با حساب گوگل").props.onClick();
+  assert.equal(unavailable.calls.length, 0);
 });
 
 test("phone, verify and Google also reject duplicate and cross-method starts",async()=>{

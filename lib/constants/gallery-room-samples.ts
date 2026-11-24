@@ -118,3 +118,13 @@ export function findGalleryShowcasePhoto(entries: GalleryShowcaseEntries, photo:
   const index = items.findIndex((item) => item.sample?.src === sample.src || (linked && item.product?.slug === linked.slug));
   return index < 0 ? null : { categoryId: sample.categoryId, index };
 }
+
+export function trayVisibleShowcaseEntries(products: readonly Product[]) {
+  const entries = galleryShowcaseEntries(products);
+  for (const category of Object.keys(entries) as CatalogCategoryId[]) {
+    entries[category] = entries[category]?.filter(({ product }) =>
+      !product || (product.galleryPlacementVerified === true && Boolean(product.standImage)),
+    );
+  }
+  return entries;
+}

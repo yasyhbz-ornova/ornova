@@ -62,7 +62,6 @@
   display: grid;
   grid-row: 1;
   grid-template-rows: 0fr;
-  pointer-events: none;
   transition: grid-template-rows 500ms cubic-bezier(.22, .8, .3, 1);
 }
 

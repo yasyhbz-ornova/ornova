@@ -3,20 +3,32 @@
 import Image from "next/image";
 import Link, { type LinkProps } from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type Ref } from "react";
+import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type Ref } from "react";
 import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catalog";
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
-import { findGalleryShowcasePhoto, galleryShowcaseEntries, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
+import { findGalleryShowcasePhoto, trayVisibleShowcaseEntries, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
 import type { Product } from "@/lib/constants/products";
 import { OrnovaBrandMark } from "./OrnovaBrandMark";
+import { GalleryRoomGuide, useGalleryRoomGuide, type GalleryGuideStop } from "./GalleryRoomGuide";
 import { GalleryTrayBackdrop, GalleryTrayDossier } from "./GalleryTray";
 import styles from "./GalleryShowcaseConcept.module.css";
+
+const roomMedium = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1280.webp";
+const roomLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1670.webp";
 
 const shelves = [
   { top: 13.5 }, { top: 23.35 }, { top: 33.1 },
   { top: 42.35 }, { top: 51.5 }, { top: 60.6 },
 ] as const;
+const shelfSymbols = {
+  "ring-display": "ring",
+  "brooch-display": "brooch",
+  "ear-display": "earrings",
+  "set-display": "set",
+  "pendant-display": "pendant",
+  "bracelet-display": "bracelet",
+} satisfies Record<(typeof galleryRoomStands)[number]["id"], string>;
 const number = new Intl.NumberFormat("fa-IR");
 const motionPreference = "(prefers-reduced-motion: reduce)";
 const workInterval = 12_000;
@@ -39,18 +51,9 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   ref?: Ref<GalleryShowcaseHandle>;
 }) {
   const router = useRouter();
-  const entriesByCategory = useMemo(() => {
-    const entries = galleryShowcaseEntries(products);
-    for (const category of catalogCategories) {
-      const categoryEntries = entries[category.id];
-      if (categoryEntries) {
-        entries[category.id] = categoryEntries.filter(({ product }) =>
-          !product || (product.galleryPlacementVerified === true && Boolean(product.standImage)),
-        );
-      }
-    }
-    return entries;
-  }, [products]);
+  const guide = useGalleryRoomGuide();
+  const tooltipPrefix = useId();
+  const entriesByCategory = useMemo(() => trayVisibleShowcaseEntries(products), [products]);
   const [indices, setIndices] = useState<Record<string, number>>({});
   const [table, setTable] = useState<{ categoryId: CatalogCategoryId; returnTo?: PhotoReturn; fromShelf?: boolean } | null>(null);
   const previewEntry = productPreview
@@ -59,6 +62,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const previewProduct = previewEntry?.product;
   const activeCategory = previewProduct?.categoryId ?? table?.categoryId ?? null;
   const [magazineOpen, setMagazineOpen] = useState(false);
+  const [hoveredShelf, setHoveredShelf] = useState<string | null>(null);
+  const [focusedShelf, setFocusedShelf] = useState<string | null>(null);
   const [dismissedTooltip, setDismissedTooltip] = useState<string | null>(null);
   const [paperHovered, setPaperHovered] = useState(false);
   const [paperFocused, setPaperFocused] = useState(false);
@@ -68,6 +73,20 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const roomBook = useRef<HTMLButtonElement>(null);
   const closeMagazine = useRef<HTMLButtonElement>(null);
   const tableOpen = activeCategory !== null;
+  const pointedShelf = hoveredShelf ?? focusedShelf;
+  const visibleTooltip = !tableOpen && !magazineOpen && !panelOpen && pointedShelf !== dismissedTooltip ? pointedShelf : null;
+
+  useEffect(() => {
+    if (!visibleTooltip) return;
+    function dismiss(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDismissedTooltip(visibleTooltip);
+    }
+    window.addEventListener("keydown", dismiss, true);
+    return () => window.removeEventListener("keydown", dismiss, true);
+  }, [visibleTooltip]);
 
   useEffect(() => {
     if (panelOpen) return;
@@ -81,12 +100,15 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
 
   function showCategory(id: CatalogCategoryId, trigger?: HTMLElement, returnTo?: PhotoReturn) {
     if (!entriesByCategory[id]?.length) return;
+    const fromShelf = Boolean(trigger?.dataset.standId || trigger?.dataset.shelfIndex);
+    if (fromShelf) guide.follow("showcase");
+    setHoveredShelf(null);
     if (trigger) returnFocus.current = trigger;
     else if (returnTo && !magazineOpen) returnFocus.current = null;
     setPaperHovered(false);
     setPaperFocused(false);
     if (!returnTo) setMagazineOpen(false);
-    setTable({ categoryId: id, returnTo, fromShelf: Boolean(trigger?.dataset.standId) });
+    setTable({ categoryId: id, returnTo, fromShelf });
   }
 
   useImperativeHandle(ref, () => ({
@@ -110,6 +132,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   }
 
   function showMagazine(trigger: HTMLElement) {
+    guide.follow("magazine");
     if (onOpenPanel) {
       onOpenPanel("/?galleryPanel=magazine");
       return;
@@ -126,6 +149,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     } else if (magazineOpen) {
       event.stopPropagation();
       setMagazineOpen(false);
+    } else if (guide.dismiss()) {
+      event.stopPropagation();
     }
   }
 
@@ -134,13 +159,17 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     else router.push("/?galleryPanel=basket");
   }
 
-  function panelLink(href: string): Pick<LinkProps, "href" | "onNavigate"> {
+  function panelLink(href: string, stop?: GalleryGuideStop): Pick<LinkProps, "href" | "onNavigate" | "prefetch"> {
     return {
       href,
-      onNavigate: onOpenPanel ? (event) => {
-        event.preventDefault();
-        onOpenPanel(href);
-      } : undefined,
+      prefetch: false,
+      onNavigate: (event) => {
+        if (stop) guide.follow(stop);
+        if (onOpenPanel) {
+          event.preventDefault();
+          onOpenPanel(href);
+        }
+      },
     };
   }
   const activeEntries = activeCategory ? entriesByCategory[activeCategory] ?? [] : [];
@@ -181,48 +210,85 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   return <main className={styles.root} dir="rtl" onKeyDown={handleEscape}>
     <div className={styles.scene} data-table-open={tableOpen || undefined} data-shelf-approach={(tableOpen && table?.fromShelf && !previewProduct) || undefined}>
       <div className={styles.roomView} inert={tableOpen || magazineOpen || panelOpen}>
-        <Image
-        className={styles.architecture}
-        src="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23.webp"
-        alt="سالن اُرنوا با اُرُسی سه‌لنگهٔ فیروزه‌ای و کهربایی، ویترین خاتم‌کاری و نشان و شعار برجستهٔ more than metal روی دیوار کاهگلی"
-        fill
-        unoptimized
-        preload
-      />
-      <Link {...panelLink("/?galleryPanel=studio")} className={styles.door} aria-label="ورود به کارگاه طراحی">
+        <picture>
+          <source media="(max-width: 700px)" srcSet="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-840.webp" />
+          <img
+            className={styles.architecture}
+            src={roomLarge}
+            srcSet={`${roomMedium} 1280w, ${roomLarge} 1670w`}
+            sizes="100vw"
+            width={1670}
+            height={942}
+            alt="سالن اُرنوا با اُرُسی سه‌لنگهٔ فیروزه‌ای و کهربایی، ویترین خاتم‌کاری و نشان و شعار برجستهٔ more than metal روی دیوار کاهگلی"
+            fetchPriority="high"
+          />
+        </picture>
+      <Link {...panelLink("/?galleryPanel=studio", "studio")} className={styles.door} aria-label="ورود به کارگاه طراحی">
         <span className={styles.doorTag} lang="en" dir="ltr">welcome</span>
       </Link>
       {galleryRoomStands.map((stand, index) => {
         const tier = shelves[index];
-        const available = Boolean(entriesByCategory[stand.categoryId]?.length);
+        const count = entriesByCategory[stand.categoryId]?.length ?? 0;
+        const tooltip = `${tooltipPrefix}-${stand.id}`;
         return (
-          <button
+          <div
             key={stand.id}
             className={styles.shelf}
             style={{ top: `${tier.top}%`, animationDelay: `${index * -0.6}s` }}
-            type="button"
-            data-stand-id={stand.id}
-            data-tooltip-dismissed={dismissedTooltip === stand.id || undefined}
-            aria-disabled={!available || undefined}
-            aria-label={available ? `نمایش ${stand.label} روی میز` : stand.label}
-            onMouseLeave={() => setDismissedTooltip(null)}
-            onBlur={() => setDismissedTooltip(null)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape" && dismissedTooltip !== stand.id) {
-                event.stopPropagation();
-                setDismissedTooltip(stand.id);
-              }
+            data-tooltip-open={visibleTooltip === stand.id || undefined}
+            onPointerEnter={(event) => {
+              if (event.pointerType !== "mouse") return;
+              setHoveredShelf(stand.id);
+              setDismissedTooltip(null);
             }}
-            onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}
+            onPointerLeave={(event) => { if (event.pointerType === "mouse") setHoveredShelf(null); }}
           >
-            <span className={styles.shelfGlow} aria-hidden="true" />
-            <span className={styles.shelfTooltip} aria-hidden="true">{stand.label}</span>
-          </button>
+            <button
+              className={styles.shelfTrigger}
+              type="button"
+              data-stand-id={stand.id}
+              aria-disabled={!count || undefined}
+              aria-label={count ? `نمایش ${stand.label} روی میز` : stand.label}
+              aria-describedby={tooltip}
+              onFocus={(event) => {
+                if (!event.currentTarget.matches(":focus-visible")) return;
+                setFocusedShelf(stand.id);
+                setDismissedTooltip(null);
+              }}
+              onBlur={() => setFocusedShelf(null)}
+              onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}
+            >
+              <span className={styles.shelfGlow} aria-hidden="true" />
+              <Image
+                className={styles.shelfSign}
+                data-category-symbol={stand.categoryId}
+                src={`/images/ornova/gallery/review/silver-emblem-${shelfSymbols[stand.id]}-v1.webp`}
+                width={112}
+                height={88}
+                unoptimized
+                alt=""
+              />
+            </button>
+            <div id={tooltip} className={styles.shelfTooltip} role="tooltip">
+              <span aria-hidden="true">{stand.label}</span>
+              <small>{count ? `${number.format(count)} اثر روی سینی` : "در حال تکمیل"}</small>
+            </div>
+          </div>
         );
       })}
       <button ref={roomBook} type="button" className={styles.book} onClick={(event) => showMagazine(event.currentTarget)} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
-      <Link {...panelLink("/?galleryPanel=phone")} className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
-      <Link {...panelLink("/?galleryPanel=basket")} className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />
+      <Link {...panelLink("/?galleryPanel=phone", "phone")} className={styles.phone} aria-label="ارتباط با اُرنوا از تلفن گالری" />
+      <Link {...panelLink("/?galleryPanel=basket", "cashier")} className={styles.register} aria-label="باز کردن صندوق درخواست‌ها" />
+      <div className={styles.mobileShelfIndex} role="group" aria-label="دسته‌های ویترین">
+        {galleryRoomStands.map((stand) => <button
+          key={stand.id}
+          type="button"
+          data-shelf-index={stand.id}
+          disabled={!entriesByCategory[stand.categoryId]?.length}
+          onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}
+        >{stand.label}</button>)}
+      </div>
+      {!tableOpen && !magazineOpen && !panelOpen && <GalleryRoomGuide step={guide.step} />}
       </div>
       <section className={styles.tableView} inert={!tableOpen || panelOpen} aria-hidden={!tableOpen || panelOpen || undefined} aria-label="نمای نزدیک میز و سینی">
         {tableOpen && <GalleryTrayBackdrop />}
@@ -255,7 +321,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
               />
             </div>
           </div>
-          <div className={styles.tableActions}>
+          <div className={styles.tableActions} role="group" aria-label="سفارش و ورق زدن آثار">
+            {canChangeWork && activeCount > 1 && <button type="button" className={styles.trayArrow} aria-label="اثر قبلی" onClick={() => moveSample(-1)}><span aria-hidden="true" /></button>}
             <div
               className={styles.orderAction}
               onPointerEnter={(event) => { if (event.pointerType === "mouse") setPaperHovered(true); }}
@@ -265,16 +332,9 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             >
               {linkedProduct && canRequestProduct
                 ? <RequestBasketButton key={linkedProduct.slug} item={{ slug: linkedProduct.slug, name: linkedProduct.name, category: linkedProduct.category }} label="ثبت سفارش" keepExistingQuantity onAdded={openBasket} />
-                : activeSample && <Link {...panelLink(`/?galleryPanel=contact&archive=${activeSample.number}`)} prefetch={false}>ثبت سفارش</Link>}
+                : activeSample && <Link {...panelLink(`/?galleryPanel=account&complete=1&archive=${activeSample.number}`)}>ثبت سفارش</Link>}
             </div>
-            {canChangeWork && activeCount > 1 && <div
-              className={styles.navigation}
-              role="group"
-              aria-label="ورق زدن آثار این دسته"
-            >
-              <button type="button" aria-label="اثر قبلی" onClick={() => moveSample(-1)}><span aria-hidden="true">→</span></button>
-              <button type="button" aria-label="اثر بعدی" onClick={() => moveSample(1)}>بعدی <span aria-hidden="true">←</span></button>
-            </div>}
+            {canChangeWork && activeCount > 1 && <button type="button" className={styles.trayArrow} aria-label="اثر بعدی" onClick={() => moveSample(1)}><span aria-hidden="true" /></button>}
           </div></>}
         </>}
       </section>
