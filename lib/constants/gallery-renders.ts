@@ -6,7 +6,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "01",
     "sourcePrefix": "2ae32afd",
-    "title": "سنجاق‌سینهٔ باریک",
+    "title": "سنجاق‌سینهٔ طرح جام",
     "categoryId": "brooches-pins",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/01-2ae32afd.webp",
@@ -47,7 +47,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "05",
     "sourcePrefix": "3a602d9e",
-    "title": "انگشتر نگین‌دار",
+    "title": "انگشتر با نگین اشکی",
     "categoryId": "rings",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/05-3a602d9e.webp",
@@ -68,7 +68,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "07",
     "sourcePrefix": "7d31d155",
-    "title": "سنجاق‌سینهٔ باریک",
+    "title": "سنجاق‌سینهٔ نواری مشبک",
     "categoryId": "brooches-pins",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/07-7d31d155.webp",
@@ -78,7 +78,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "08",
     "sourcePrefix": "3f570c5c",
-    "title": "آویز گل فیبوناچی",
+    "title": "آویز فیبوناچی با نگین ارغوانی",
     "categoryId": "pendants",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/08-3f570c5c.webp",
@@ -98,7 +98,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "10",
     "sourcePrefix": "90a43642",
-    "title": "آویز گل",
+    "title": "آویز گل مارپیچ",
     "categoryId": "pendants",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/10-90a43642.webp",
@@ -108,7 +108,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "11",
     "sourcePrefix": "100964b7",
-    "title": "آویز گل دوبرگ",
+    "title": "آویز گلبرگ باز",
     "categoryId": "pendants",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/11-100964b7.webp",
@@ -118,7 +118,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "12",
     "sourcePrefix": "5afa9e2b",
-    "title": "آویز گل دوبرگ",
+    "title": "آویز گل با گلبرگ‌های حلقه‌ای",
     "categoryId": "pendants",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/12-5afa9e2b.webp",
@@ -178,7 +178,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "18",
     "sourcePrefix": "6b9ab99a",
-    "title": "نشان مدور؛ سنجاق‌سینه",
+    "title": "سنجاق‌سینهٔ مدور با نقش بادبان",
     "categoryId": "brooches-pins",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/18-6b9ab99a.webp",
@@ -269,7 +269,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "27",
     "sourcePrefix": "1b15f65a",
-    "title": "آویز گل فیبوناچی",
+    "title": "آویز فیبوناچی با نگین بنفش",
     "categoryId": "pendants",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/27-1b15f65a.webp",
@@ -299,7 +299,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "30",
     "sourcePrefix": "edb2c3ff",
-    "title": "آویز گل فیبوناچی",
+    "title": "آویز فیبوناچی با نگین صورتی",
     "categoryId": "pendants",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/30-edb2c3ff.webp",
@@ -319,7 +319,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "32",
     "sourcePrefix": "85d9d26e",
-    "title": "گوشوارهٔ آویز نگین‌دار",
+    "title": "گوشوارهٔ آویز خوشه‌ای",
     "categoryId": "earrings",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/32-85d9d26e.webp",

@@ -244,7 +244,12 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
               onFocus={() => setPaperFocused(true)}
               onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaperFocused(false); }}
             >
-              <GalleryTrayDossier name={activeEntry.product ? activeEntry.product.name : activeEntry.sample.title} details={linkedProduct?.details} live={autoAdvance ? "off" : "polite"} />
+              <GalleryTrayDossier
+                name={activeEntry.product ? activeEntry.product.name : activeEntry.sample.title}
+                archivePhoto={activeEntry.product ? undefined : activeEntry.sample.number}
+                details={linkedProduct?.details}
+                live={autoAdvance ? "off" : "polite"}
+              />
             </div>
           </div>
           <div className={styles.tableActions}>

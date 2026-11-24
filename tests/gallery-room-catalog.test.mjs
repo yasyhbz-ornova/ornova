@@ -98,6 +98,15 @@ test("tray cutouts cover the six displays and match their precise original photo
   }
 });
 
+test("distinct visible archive works have distinct titles in the book and on the tray", () => {
+  const photos = renders.visibleGalleryRenders;
+  assert.equal(new Set(photos.map(({ title }) => title)).size, photos.length);
+  const sampleTitles = new Map(room.galleryRoomSamples.map(({ number, title }) => [number, title]));
+  for (const { number, title } of photos) {
+    assert.equal(sampleTitles.get(number), title, number);
+  }
+});
+
 test("each transparent tray image retains the original RGB of every visible pixel", async () => {
   const asset = (src) => fileURLToPath(new URL(`../public${src}`, import.meta.url));
   for (const sample of room.galleryRoomSamples) {

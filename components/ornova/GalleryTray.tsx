@@ -13,9 +13,12 @@ export function GalleryTrayBackdrop({ portrait = false }: { portrait?: boolean }
   </picture>;
 }
 
-export function GalleryTrayDossier({ name, details = [], heading: Heading = "h1", live }: {
+const archiveNumber = new Intl.NumberFormat("fa-IR", { minimumIntegerDigits: 2, useGrouping: false });
+
+export function GalleryTrayDossier({ name, details = [], archivePhoto, heading: Heading = "h1", live }: {
   name: string;
   details?: readonly { label: string; value: string }[];
+  archivePhoto?: string;
   heading?: "h1" | "h2";
   live?: "off" | "polite";
 }) {
@@ -32,11 +35,15 @@ export function GalleryTrayDossier({ name, details = [], heading: Heading = "h1"
     </header>
     <Heading className={styles.workTitle}>{name}</Heading>
     <dl className={styles.workDetails}>
-      <div><dt>جنس</dt><dd>{material || "نامشخص"}</dd></div>
-      <div><dt>سنگ</dt><dd>{stone || "نامشخص"}</dd></div>
-      <div><dt>وزن</dt><dd>{weight || "نامشخص"}</dd></div>
-      {stoneColor && <div><dt>رنگ سنگ</dt><dd>{stoneColor}</dd></div>}
-      {dimensions && <div className={styles.dossierWideDetail}><dt>ابعاد</dt><dd>{dimensions}</dd></div>}
+      {archivePhoto
+        ? <div className={styles.dossierWideDetail}><dt>عکس آرشیو</dt><dd>{archiveNumber.format(Number(archivePhoto))}</dd></div>
+        : <>
+            <div><dt>جنس</dt><dd>{material || "نامشخص"}</dd></div>
+            <div><dt>سنگ</dt><dd>{stone || "نامشخص"}</dd></div>
+            <div><dt>وزن</dt><dd>{weight || "نامشخص"}</dd></div>
+            {stoneColor && <div><dt>رنگ سنگ</dt><dd>{stoneColor}</dd></div>}
+            {dimensions && <div className={styles.dossierWideDetail}><dt>ابعاد</dt><dd>{dimensions}</dd></div>}
+          </>}
     </dl>
   </article>;
 }
