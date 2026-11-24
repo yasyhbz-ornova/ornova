@@ -185,3 +185,17 @@ test("the photographed earring pair and constellation sets rotate on their match
     assert.ok(room.galleryRoomSamplesByCategory["jewelry-sets"].some((sample) => sample.number === number));
   }
 });
+
+test("the crowned tooth with a back pin belongs to the brooch display", () => {
+  const photo = renders.visibleGalleryRenders.find(({ number }) => number === "02");
+  assert.equal(photo.categoryId, "brooches-pins");
+  assert.equal(photo.title, "سنجاق‌سینهٔ دندان تاج‌دار");
+  const trays = room.trayVisibleShowcaseEntries([]);
+  assert.ok(trays["brooches-pins"].some(({ sample }) => sample.number === photo.number && sample.src === photo.src));
+  assert.ok(!trays.pendants.some(({ sample }) => sample.number === photo.number));
+});
+
+test("the archive shows the CAD-matched scales of justice under its corrected title", () => {
+  const photo = room.galleryRoomSamplesByCategory["brooches-pins"].find(({ number }) => number === "18");
+  assert.equal(photo.title, "نشان سینهٔ ترازوی عدالت");
+});

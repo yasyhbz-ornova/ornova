@@ -13,7 +13,7 @@ const manifestPath = path.join(root, "lib/constants/gallery-renders.ts");
 const fullViewTop = { "04": 495, "06": 495, "19": 495 };
 const entries = [
   ["01", "2ae32afd", "brooches-pins", "سنجاق‌سینهٔ طرح جام", "ready"],
-  ["02", "28a58529", "pendants", "آویز دندان", "ready"],
+  ["02", "28a58529", "brooches-pins", "سنجاق‌سینهٔ دندان تاج‌دار", "ready"],
   ["03", "5ba0f400", "earrings", "گوشوارهٔ عنکبوتی", "ready"],
   ["04", "5fd8f6b5", "rings", "انگشتر مُهر گاو", "ready"],
   ["05", "3a602d9e", "rings", "انگشتر با نگین اشکی", "ready"],
@@ -29,7 +29,7 @@ const entries = [
   ["15", "f1e14d13", "rings", "انگشتر با نگین تیره", "ready"],
   ["16", "10439ecf", "jewelry-sets", "نیم‌ست صورت فلکی اسفند", "ready"],
   ["17", "506cd1ef", "jewelry-sets", "نیم‌ست خورشیدی", "ready"],
-  ["18", "6b9ab99a", "brooches-pins", "سنجاق‌سینهٔ مدور با نقش بادبان", "ready"],
+  ["18", "6b9ab99a", "brooches-pins", "نشان سینهٔ ترازوی عدالت", "ready"],
   ["19", "cc5bc68e", "rings", "انگشتر مُهر با رویهٔ تیره", "ready"],
   ["20", "916a01d1", "bracelets", "دستبند حوت · اسفند", "ready"],
   ["21", "989df897", "earrings", "گوشوارهٔ میخی نگین‌دار", "ready"],

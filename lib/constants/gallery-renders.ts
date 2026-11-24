@@ -16,8 +16,8 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "02",
     "sourcePrefix": "28a58529",
-    "title": "آویز دندان",
-    "categoryId": "pendants",
+    "title": "سنجاق‌سینهٔ دندان تاج‌دار",
+    "categoryId": "brooches-pins",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/02-28a58529.webp",
     "width": 662,
@@ -177,7 +177,7 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "18",
     "sourcePrefix": "6b9ab99a",
-    "title": "سنجاق‌سینهٔ مدور با نقش بادبان",
+    "title": "نشان سینهٔ ترازوی عدالت",
     "categoryId": "brooches-pins",
     "status": "ready",
     "src": "/images/ornova/gallery/final-renders/18-6b9ab99a.webp",
