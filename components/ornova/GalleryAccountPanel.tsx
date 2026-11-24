@@ -32,7 +32,7 @@ type InquiryFile = { id: string; inquiry_id: string; original_name: string };
 type InquiryHistory = { inquiries: AccountInquiry[]; items: InquiryItem[]; files: InquiryFile[]; quotes: CustomerQuoteDTO[]; detailsError: boolean; quoteError: boolean; quoteReadAt: string };
 type ActiveQuote = { quote: CustomerQuoteDTO; isPreviousVersion: boolean; checkedAt: string };
 
-export function GalleryAccountPanel({ completionMode, initialError, signOutFailed = false, onReturnToBasket, nextDestination }: { completionMode: boolean; initialError?: string | null; signOutFailed?: boolean; onReturnToBasket(): void; nextDestination?: string }) {
+export function GalleryAccountPanel({ completionMode, initialError, signOutFailed = false, onReturnToBasket, nextDestination, prepareEmailDestination }: { completionMode: boolean; initialError?: string | null; signOutFailed?: boolean; onReturnToBasket?: () => void; nextDestination?: string; prepareEmailDestination?: () => string | null }) {
   const [state, setState] = useState<PanelState>("checking");
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [identity, setIdentity] = useState<AccountIdentity | null>(null);
@@ -101,11 +101,11 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
 
   let content;
   if (state === "checking") content = <p className="text-sm leading-7 text-graphite/65" role="status">در حال بررسی حساب…</p>;
-  else if (state === "unavailable") content = <div className="grid gap-3 text-sm leading-7 text-graphite/70" role="alert"><p>اتصال امن حساب فعلاً پاسخ نداد؛ انتخاب‌های صندوق در همین مرورگر محفوظ‌اند.</p><button type="button" className="w-fit border-b border-silver pb-1 text-sapphire" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>;
+  else if (state === "unavailable") content = <div className="grid gap-3 text-sm leading-7 text-graphite/70" role="alert"><p>{prepareEmailDestination ? "حساب فعلاً در دسترس نیست. می‌توانی به ایده‌ات در کارگاه برگردی." : "اتصال امن حساب فعلاً پاسخ نداد؛ انتخاب‌های صندوق در همین مرورگر محفوظ‌اند."}</p><button type="button" className="w-fit border-b border-silver pb-1 text-sapphire" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>;
   else if (state === "guest") content = <>
     <div className={styles.accountLogin}>
-      <p className={styles.accountLoginHeading}>{completionMode ? "برای ادامهٔ درخواست، ابتدا با ایمیل وارد شو." : "لینک ورود یک‌بارمصرف به ایمیلت فرستاده می‌شود."}</p>
-      <MagicLinkForm compact initialError={initialError} nextDestination={completionMode ? "/?galleryPanel=account&complete=1" : nextDestination} />
+      <p className={styles.accountLoginHeading}>{completionMode ? "برای ادامهٔ درخواست، ابتدا با ایمیل وارد شو." : prepareEmailDestination ? "برای ورود یا ثبت‌نام، ایمیلت را وارد کن. لینک یک‌بارمصرف تو را به همین کارگاه برمی‌گرداند." : "لینک ورود یک‌بارمصرف به ایمیلت فرستاده می‌شود."}</p>
+      <MagicLinkForm compact initialError={initialError} nextDestination={completionMode ? "/?galleryPanel=account&complete=1" : nextDestination} prepareEmailDestination={prepareEmailDestination} />
     </div>
   </>;
   else if (state === "signed-in") content = <details className={styles.accountProfile} open={profileUnavailable || undefined}>

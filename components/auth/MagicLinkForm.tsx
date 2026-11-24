@@ -14,12 +14,14 @@ export function MagicLinkForm({
   phoneAuthEnabled = PHONE_AUTH_ENABLED,
   googleAuthEnabled = GOOGLE_AUTH_ENABLED,
   nextDestination,
+  prepareEmailDestination,
   compact = false,
 }: {
   initialError?: string | null;
   phoneAuthEnabled?: boolean;
   googleAuthEnabled?: boolean;
   nextDestination?: string;
+  prepareEmailDestination?: () => string | null;
   compact?: boolean;
 }) {
   const router = useRouter();
@@ -57,8 +59,8 @@ export function MagicLinkForm({
     return safeInternalPath(requested);
   }
 
-  function callbackUrl() {
-    return buildAuthCallbackUrl(window.location.origin, process.env.NEXT_PUBLIC_SITE_URL, nextPath());
+  function callbackUrl(destination?: string) {
+    return buildAuthCallbackUrl(window.location.origin, process.env.NEXT_PUBLIC_SITE_URL, destination ?? nextPath());
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -68,10 +70,15 @@ export function MagicLinkForm({
 
     try {
       if (!target) { setError("ایمیل خود را وارد کنید."); return; }
+      const destination = prepareEmailDestination?.();
+      if (destination === null) {
+        setError("پیش‌نویس ایده در این مرورگر ذخیره نشد. به کارگاه برگرد و متن ایده‌ات را پیش از ورود کپی کن.");
+        return;
+      }
       const supabase = createSupabaseBrowserClient();
       const { error: authError } = await supabase.auth.signInWithOtp({
         email: target,
-        options: { emailRedirectTo: callbackUrl() },
+        options: { emailRedirectTo: callbackUrl(destination) },
       });
       if (!owns(operation)) return;
       if (authError) throw authError;
@@ -172,7 +179,7 @@ export function MagicLinkForm({
     <div className="mt-8 grid gap-6" aria-busy={loading}>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-2 text-sm text-graphite"><span>ایمیل</span><input required type="email" autoComplete="email" dir="ltr" disabled={loading} value={email} onChange={(event) => { if (active.current) return; setEmail(event.target.value); clearFeedback(); }} className="border-b border-silver bg-transparent px-1 py-3 text-left outline-none focus:border-sapphire" placeholder="you@example.com" /></label>
-        <button type="submit" disabled={loading} className="w-fit rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{pendingKind === "email" ? "در حال ارسال…" : "ارسال لینک ورود"}</button>
+        <button type="submit" disabled={loading} className="w-fit rounded-full bg-sapphire px-6 py-3 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60">{pendingKind === "email" ? "در حال ارسال…" : prepareEmailDestination ? "ارسال لینک ورود و ثبت‌نام" : "ارسال لینک ورود"}</button>
         {!compact && <p className="text-xs leading-6 text-graphite/55">لینک یک‌بارمصرف به ایمیل شما فرستاده می‌شود؛ بعد از ورود، می‌توانید درخواستتان را ادامه دهید.</p>}
       </form>
 

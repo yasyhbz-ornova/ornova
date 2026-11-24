@@ -91,7 +91,7 @@ function getGalleryContactSnapshot(): string | null {
   return JSON.stringify(context);
 }
 
-export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "offline" | "preview"; galleryProducts?: Product[] }) {
+export function VirtualGallery({ imageMode, galleryProducts, studioDraftOwner = null }: { imageMode: "offline" | "preview"; galleryProducts?: Product[]; studioDraftOwner?: string | null }) {
   const products = galleryProducts ?? legacyProducts;
   const showcaseRef = useRef<GalleryShowcaseHandle>(null);
   const drawerRef = useRef<HTMLElement | null>(null);
@@ -490,7 +490,16 @@ export function VirtualGallery({ imageMode, galleryProducts }: { imageMode: "off
           <button type="button" className={styles.secondaryLink} onClick={() => openDrawer({ kind: "basket" })}>دیدن صندوق درخواست <span aria-hidden="true">←</span></button>
         </div>}
         {(drawer.kind === "studio" || (drawer.kind === "contact" && studioContact)) && <div hidden={drawer.kind !== "studio"} inert={drawer.kind !== "studio"}>
-          <DesignStudio draftId={studioContact ? studioContact.studioDraftId : studioDraftId} userId={null} imageMode={imageMode} embedded active={drawer.kind === "studio"} onOpenInquiry={openStudioInquiry} onReturnToInquiry={studioContact ? () => setDrawer({ kind: "contact" }) : undefined} onOpenAccountGallery={() => openDrawer({ kind: "library" })} onRequestLogin={(id) => { setAccountReturnDestination(`/?galleryPanel=studio&draft=${encodeURIComponent(id)}`); openDrawer({ kind: "account" }); }} />
+          <DesignStudio
+            draftId={studioContact ? studioContact.studioDraftId : studioDraftId}
+            userId={studioDraftOwner}
+            imageMode={imageMode}
+            embedded
+            active={drawer.kind === "studio"}
+            onOpenInquiry={openStudioInquiry}
+            onReturnToInquiry={studioContact ? () => setDrawer({ kind: "contact" }) : undefined}
+            onOpenAccountGallery={() => openDrawer({ kind: "library" })}
+          />
         </div>}
         {drawer.kind === "about" && <><p className={styles.eyebrow}>یادداشت مجله</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>دربارهٔ اُرنوا</h1><p className={styles.intro}>Ornova by Yas فضای شخصی یاس برای طراحی دیجیتال جواهرات نقره است؛ هر اثر از ایده و فرم آغاز می‌شود و با ابزارهایی مانند MatrixGold و ZBrush به طرحی قابل بررسی می‌رسد.</p><p className={styles.intro}>این گالری برای دیدن آثار، خواندن شناسنامهٔ هر قطعه و فرستادن ایده‌های طراحی ساخته شده است؛ جزئیات هر محصول بر پایهٔ اطلاعات تأییدشدهٔ همان اثر نمایش داده می‌شود.</p><button type="button" className={styles.primaryLink} onClick={() => openDrawer({ kind: "contact" })}>ارتباط با اُرنوا <span>←</span></button><button type="button" className={styles.secondaryLink} onClick={() => openDrawer({ kind: "account" })}>حساب مشتری <span>←</span></button></>}
       </aside>

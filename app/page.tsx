@@ -2,6 +2,8 @@ import { OrnovaHome } from "@/components/ornova/OrnovaHome";
 import { createPageMetadata } from "@/lib/seo/page-metadata";
 import { getStudioImageMode } from "@/lib/studio/availability";
 import { getPublishedProducts } from "@/lib/catalog/public-products";
+import { isStudioId } from "@/lib/studio/conversation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata = createPageMetadata({
   title: "جهان نقرهٔ یاس | Ornova by Yas",
@@ -13,8 +15,21 @@ export const metadata = createPageMetadata({
   },
 });
 
-export default async function Home() {
-  const galleryProducts = await getPublishedProducts();
+async function getStudioDraftOwner() {
+  try {
+    const client = await createSupabaseServerClient();
+    const { data: { user }, error } = await client.auth.getUser();
+    return error ? null : user?.id ?? null;
+  } catch { return null; }
+}
+
+export default async function Home({ searchParams }: { searchParams: Promise<{ galleryPanel?: string; draft?: string }> }) {
+  const { galleryPanel, draft } = await searchParams;
+  const studioContinuation = galleryPanel === "studio" && isStudioId(draft);
+  const [galleryProducts, studioDraftOwner] = await Promise.all([
+    getPublishedProducts(),
+    studioContinuation ? getStudioDraftOwner() : null,
+  ]);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -23,5 +38,5 @@ export default async function Home() {
     description: "طراحی دیجیتال و قابل ساخت جواهرات نقره برای خاطره‌ها و نشانه‌های شخصی.",
   };
 
-  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
+  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts} studioDraftOwner={studioDraftOwner} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
 }

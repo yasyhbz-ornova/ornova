@@ -13,6 +13,17 @@
 .reference figcaption { font-size: .62rem; line-height: 2; margin-top: .6rem; color: color-mix(in srgb, var(--color-graphite) 75%, transparent); }
 .intro nav { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem; font-size: .72rem; }
 .intro nav a { display: flex; align-items: center; justify-content: space-between; min-height: 44px; gap: 1rem; border-bottom: 1px solid var(--color-silver); }
+.intro .workshopNav { gap: .4rem 1rem; }
+.workshopNav button, .customerAccount > header > button { min-height: 44px; border-bottom: 1px solid var(--color-silver); padding-inline: .35rem; color: var(--color-sapphire); cursor: pointer; }
+.workshopNav button[aria-expanded="true"] { border-color: var(--color-sapphire); }
+.workshopNav button:disabled { opacity: .55; cursor: default; }
+.workshopNav button:focus-visible, .customerAccount button:focus-visible { outline: 2px solid var(--color-sapphire); outline-offset: 3px; }
+.customerAccount { min-width: 0; border: 1px solid var(--color-silver); background: var(--color-ivory-soft); padding: clamp(1rem, 4vw, 1.75rem); }
+.customerAccount > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1rem; margin-bottom: 1rem; }
+.customerAccount > header h2 { font-family: var(--font-display); font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 400; }
+.customerAccount > header h2:focus { outline: none; }
+.customerAccount > header button, .accountDraftNote { font-size: .75rem; }
+.accountDraftNote { margin-bottom: 1rem; line-height: 1.9; }
 .conversation { min-width: 0; border: 1px solid var(--color-silver); background: var(--color-ivory-soft); padding: 24px 28px; }
 .chatHeader { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-bottom: 18px; font-size: .85rem; }
 .chatHeader span:last-child { font-size: .7rem; color: var(--color-sapphire); }
