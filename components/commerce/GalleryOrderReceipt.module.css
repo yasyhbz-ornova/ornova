@@ -106,6 +106,16 @@
   white-space: pre-wrap;
 }
 
+.total {
+  margin-block-start: .95rem;
+  padding-block-start: .75rem;
+  border-block-start: 1px solid var(--receipt-border);
+  font-size: .86rem;
+}
+
+.total > div { display: flex; flex-wrap: wrap; gap: .2rem .65rem; justify-content: space-between; }
+.total dd { font-weight: 600; }
+
 .actions {
   display: flex;
   flex-wrap: wrap;

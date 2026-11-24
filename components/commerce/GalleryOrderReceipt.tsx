@@ -3,11 +3,14 @@
 import { useRef } from "react";
 import type { InquiryReceipt } from "@/lib/commerce/inquiry-receipt";
 import { productPreferenceRows } from "@/lib/commerce/product-preferences";
+import { isCanonicalRial } from "@/lib/commerce/quote-money";
 import { getRequestItemKey } from "@/lib/commerce/request-basket";
 import { OrnovaSymbol } from "@/components/ornova/OrnovaBrandMark";
+import { GalleryEnvelope } from "./GalleryEnvelope";
 import styles from "./GalleryOrderReceipt.module.css";
 
 const countFormat = new Intl.NumberFormat("fa-IR");
+const archiveNumberFormat = new Intl.NumberFormat("fa-IR", { minimumIntegerDigits: 2, useGrouping: false });
 const dateFormat = new Intl.DateTimeFormat("fa-IR", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -32,6 +35,8 @@ const standaloneStyle = `
   li { padding: .65rem 0; border-block-start: 1px solid #d7cbb9; break-inside: avoid; }
   li strong { margin-inline-end: .65rem; }
   li p { margin-block: .4rem 0; white-space: pre-wrap; }
+  [data-receipt-total] { padding-block-start: .75rem; border-block-start: 1px solid #b9ad99; break-inside: avoid; }
+  [data-receipt-total] dd { font-weight: bold; }
   @page { margin: 17mm; }
   @media print {
     :root, article { background: white; }
@@ -41,14 +46,18 @@ const standaloneStyle = `
   }
 `;
 
-export function GalleryOrderReceipt({ receipt, archiveTitle, registeredAt }: {
+export function GalleryOrderReceipt({ receipt, archiveTitle, archiveNumber, registeredAt, acceptedTotalRial, showEnvelope = false }: {
   receipt: InquiryReceipt;
   archiveTitle?: string;
+  archiveNumber?: string;
   registeredAt: string;
+  acceptedTotalRial?: string;
+  showEnvelope?: boolean;
 }) {
   const sheet = useRef<HTMLElement>(null);
   const timestamp = new Date(registeredAt);
   const confirmedAt = Number.isNaN(timestamp.getTime()) ? null : dateFormat.format(timestamp);
+  const confirmedTotal = isCanonicalRial(acceptedTotalRial) ? countFormat.format(BigInt(acceptedTotalRial)) : null;
 
   function downloadReceipt() {
     if (!sheet.current) return;
@@ -75,49 +84,57 @@ export function GalleryOrderReceipt({ receipt, archiveTitle, registeredAt }: {
     window.setTimeout(() => URL.revokeObjectURL(href), 1000);
   }
 
-  return (
-    <div className={styles.receipt} dir="rtl">
-      <article ref={sheet} className={styles.sheet} aria-label="رسید ثبت درخواست اُرنوا">
-        <header className={styles.heading}>
-          <div>
-            <p lang="en" dir="ltr">Ornova by Yas</p>
-            <h2>رسید ثبت درخواست</h2>
-          </div>
-          <span className={styles.stamp} data-receipt-stamp><OrnovaSymbol />ثبت شد</span>
-        </header>
-        <dl className={styles.metadata}>
-          <div><dt>شناسهٔ پیگیری</dt><dd><bdi dir="ltr" className={styles.identifier}>{receipt.id}</bdi></dd></div>
-          {confirmedAt && <div><dt>زمان تأیید ثبت</dt><dd><time dateTime={timestamp.toISOString()}>{confirmedAt}</time> به وقت تهران</dd></div>}
-          {archiveTitle?.trim() && <div><dt>ارجاع به آرشیو</dt><dd><bdi dir="auto">{archiveTitle}</bdi></dd></div>}
-        </dl>
-        {receipt.items.length > 0 && <>
-          <h3 className={styles.itemsHeading}>قطعه‌های درخواست</h3>
-          <ol className={styles.items} role="list">
-            {receipt.items.map((item) => {
-              const preferences = productPreferenceRows(item.preferences);
+  const paper = (
+    <article ref={sheet} className={styles.sheet} aria-label="رسید ثبت درخواست اُرنوا">
+      <header className={styles.heading}>
+        <div>
+          <p lang="en" dir="ltr">Ornova by Yas</p>
+          <h2>رسید ثبت درخواست</h2>
+        </div>
+        <span className={styles.stamp} data-receipt-stamp><OrnovaSymbol />ثبت شد</span>
+      </header>
+      <dl className={styles.metadata}>
+        <div><dt>شناسهٔ پیگیری</dt><dd><bdi dir="ltr" className={styles.identifier}>{receipt.id}</bdi></dd></div>
+        {confirmedAt && <div><dt>زمان تأیید ثبت</dt><dd><time dateTime={timestamp.toISOString()}>{confirmedAt}</time> به وقت تهران</dd></div>}
+        {archiveTitle?.trim() && <div><dt>ارجاع به آرشیو</dt><dd><bdi dir="auto">{archiveTitle}</bdi>{archiveNumber && ` · عکس ${archiveNumberFormat.format(Number(archiveNumber))}`}</dd></div>}
+      </dl>
+      {receipt.items.length > 0 && <>
+        <h3 className={styles.itemsHeading}>قطعه‌های درخواست</h3>
+        <ol className={styles.items} role="list">
+          {receipt.items.map((item) => {
+            const preferences = productPreferenceRows(item.preferences);
 
-              return (
-                <li key={getRequestItemKey(item)}>
-                  <div className={styles.itemHeading}>
-                    <strong><bdi dir="auto">{item.name}</bdi></strong>
-                    <span>تعداد {countFormat.format(item.quantity)}</span>
-                  </div>
-                  {preferences.length > 0 && <dl className={styles.preferences}>
-                    {preferences.map(({ label, value }) => (
-                      <div key={label}><dt>{label}</dt><dd><bdi dir="auto">{value}</bdi></dd></div>
-                    ))}
-                  </dl>}
-                  {item.note && <p className={styles.note}>یادداشت همراه <bdi dir="auto">{item.note}</bdi></p>}
-                </li>
-              );
-            })}
-          </ol>
-        </>}
-      </article>
-      <div className={styles.actions}>
-        <button type="button" onClick={downloadReceipt}>دریافت رسید</button>
-        <p>برای چاپ، فایل رسید را در مرورگر باز کنید.</p>
-      </div>
+            return (
+              <li key={getRequestItemKey(item)}>
+                <div className={styles.itemHeading}>
+                  <strong><bdi dir="auto">{item.name}</bdi></strong>
+                  <span>تعداد {countFormat.format(item.quantity)}</span>
+                </div>
+                {preferences.length > 0 && <dl className={styles.preferences}>
+                  {preferences.map(({ label, value }) => (
+                    <div key={label}><dt>{label}</dt><dd><bdi dir="auto">{value}</bdi></dd></div>
+                  ))}
+                </dl>}
+                {item.note && <p className={styles.note}>یادداشت همراه <bdi dir="auto">{item.note}</bdi></p>}
+              </li>
+            );
+          })}
+        </ol>
+      </>}
+      {confirmedTotal !== null && <dl className={styles.total} data-receipt-total>
+        <div><dt>مبلغ تأییدشده</dt><dd><bdi>{confirmedTotal}</bdi> ریال</dd></div>
+      </dl>}
+    </article>
+  );
+
+  const actions = (
+    <div className={styles.actions}>
+      <button type="button" onClick={downloadReceipt}>دریافت رسید</button>
+      <p>برای چاپ، فایل رسید را در مرورگر باز کنید.</p>
     </div>
   );
+
+  return <div className={styles.receipt} dir="rtl">
+    {showEnvelope ? <GalleryEnvelope footer={actions}>{paper}</GalleryEnvelope> : <>{paper}{actions}</>}
+  </div>;
 }

@@ -76,6 +76,7 @@
 }
 
 .pocket[aria-expanded="true"] + .reveal .paper { transform: translateY(0); }
+.footer { grid-row: 3; }
 
 @media (prefers-reduced-motion: reduce) {
   .photo::before, .photo::after, .reveal, .paper { transition: none; }

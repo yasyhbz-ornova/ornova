@@ -4,13 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReceiptDetail, ReceiptList } from "@/lib/account/inquiry-receipts";
 import { getInquiryStatusLabel } from "@/lib/commerce/inquiry-status";
-import { GalleryEnvelope } from "./GalleryEnvelope";
 import { GalleryOrderReceipt } from "./GalleryOrderReceipt";
 import styles from "./GalleryCashierReceipts.module.css";
 
 type Result = { kind: "loading" | "guest" | "missing" | "error" } | { kind: "list"; data: ReceiptList } | { kind: "detail"; data: ReceiptDetail };
 const day = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" });
-const amount = new Intl.NumberFormat("fa-IR");
 
 export function GalleryCashierReceipts({ initialReceiptId, onOpenAccount }: { initialReceiptId?: string; onOpenAccount?: () => void }) {
   const [result, setResult] = useState<Result>({ kind: "loading" });
@@ -57,9 +55,17 @@ export function GalleryCashierReceipts({ initialReceiptId, onOpenAccount }: { in
     {result.kind === "missing" && <><p role="alert">این رسید در دفتر تو پیدا نشد.</p><button type="button" className={styles.action} onClick={openList}>دیدن همهٔ رسیدها</button></>}
     {result.kind === "detail" && <>
       <button type="button" className={styles.action} onClick={openList}>بازگشت به فهرست رسیدها</button>
-      <GalleryEnvelope key={result.data.receipt.id}><GalleryOrderReceipt receipt={result.data.receipt} archiveTitle={result.data.archiveTitle ?? undefined} registeredAt={result.data.registeredAt} /></GalleryEnvelope>
+      <GalleryOrderReceipt
+        key={result.data.receipt.id}
+        receipt={result.data.receipt}
+        archiveTitle={result.data.archiveTitle ?? undefined}
+        archiveNumber={result.data.archiveNumber ?? undefined}
+        registeredAt={result.data.registeredAt}
+        acceptedTotalRial={result.data.price.kind === "accepted" ? result.data.price.totalRial : undefined}
+        showEnvelope
+      />
       <p>{getInquiryStatusLabel(result.data.status)}</p>
-      {result.data.price.kind === "accepted" && <><p>مبلغ تأییدشده {amount.format(BigInt(result.data.price.totalRial))} ریال</p><Link className={styles.action} href={`/account/inquiries/${result.data.receipt.id}/quotes/${result.data.price.quoteId}`}>بازکردن برگهٔ مبلغ تأییدشده</Link></>}
+      {result.data.price.kind === "accepted" && <Link className={styles.action} href={`/account/inquiries/${result.data.receipt.id}/quotes/${result.data.price.quoteId}`}>بازکردن برگهٔ مبلغ تأییدشده</Link>}
       {result.data.price.kind === "pending" && <p>مبلغ بعد از بررسی سفارش در همین صندوق در دسترس قرار می‌گیرد.</p>}
       {result.data.price.kind === "unavailable" && <p role="status">برگهٔ مبلغ موقتاً در دسترس نیست.</p>}
     </>}

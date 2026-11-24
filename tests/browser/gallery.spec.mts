@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 import { galleryTestCookie } from "./gallery-fixture.mjs";
 
 const tray = (page: Page) => page.getByRole("group", { name: "سینی مخمل آبی افغانی", exact: true });
@@ -122,4 +123,50 @@ test("mobile tray and cashier retain their layout", async ({ page }) => {
   await page.getByRole("link", { name: "باز کردن صندوق درخواست‌ها" }).click();
   await expect(drawer(page).getByRole("button", { name: /پاکت صندوق/ })).toBeVisible();
   await expect(page).toHaveScreenshot("cashier.png");
+});
+
+test("downloaded archive receipts include the stamp and only their confirmed amount", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const acceptedId = "39fe816c-5c30-4cde-8200-611bcfb2afd0";
+  const pendingId = "41111111-4444-4444-8444-411111111111";
+  const quoteId = "02222222-2222-4222-8222-222222222222";
+  const totalRial = "9007199254740993";
+  const totalLabel = "۹٬۰۰۷٬۱۹۹٬۲۵۴٬۷۴۰٬۹۹۳";
+  await page.route("**/api/account/inquiries?view=receipts&receiptId=*", async (route) => {
+    const id = new URL(route.request().url()).searchParams.get("receiptId");
+    const accepted = id === acceptedId;
+    await route.fulfill({ json: {
+      receipt: { id, items: [] },
+      archiveTitle: "آویز دندان",
+      archiveNumber: "02",
+      registeredAt: "2026-11-24T10:00:00Z",
+      status: "received",
+      price: accepted ? { kind: "accepted", quoteId, totalRial } : { kind: "pending" },
+    } });
+  });
+
+  for (const [id, accepted] of [[acceptedId, true], [pendingId, false]] as const) {
+    await page.goto(`/?galleryPanel=basket&view=receipts&receipt=${id}`);
+    const receipt = page.getByRole("article", { name: "رسید ثبت درخواست اُرنوا" });
+    await expect(receipt.getByText("ثبت شد", { exact: true })).toBeVisible();
+    await expect(receipt).toContainText("آویز دندان · عکس ۰۲");
+    if (accepted) await expect(receipt).toContainText(`${totalLabel} ریال`);
+    else await expect(receipt.locator("[data-receipt-total]")).toHaveCount(0);
+
+    const downloadButton = page.getByRole("button", { name: "دریافت رسید" });
+    const pocket = await page.getByRole("button", { name: "بستن پاکت صندوق" }).boundingBox();
+    const action = await downloadButton.boundingBox();
+    if (!pocket || !action) throw new Error("The receipt download controls are missing");
+    expect(action.y).toBeGreaterThan(pocket.y + pocket.height);
+    const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
+    expect(download.suggestedFilename()).toBe(`ornova-receipt-${id}.html`);
+    const path = await download.path();
+    if (!path) throw new Error("The receipt file was not saved");
+    const html = await readFile(path, "utf8");
+    expect(html).toContain("<html lang=\"fa\" dir=\"rtl\">");
+    expect(html).toContain('data-receipt-stamp="true"');
+    expect(html).toContain("عکس ۰۲");
+    expect(html.includes(totalLabel)).toBe(accepted);
+    expect(html.includes("مبلغ تأییدشده")).toBe(accepted);
+  }
 });

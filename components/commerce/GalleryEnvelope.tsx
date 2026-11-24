@@ -5,7 +5,7 @@ import styles from "./GalleryEnvelope.module.css";
 
 const REVEAL_DELAY_MS = 1800;
 
-export function GalleryEnvelope({ children }: { children: ReactNode }) {
+export function GalleryEnvelope({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   const controlsId = useId();
   const revealTimer = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
@@ -45,6 +45,7 @@ export function GalleryEnvelope({ children }: { children: ReactNode }) {
           <div className={styles.paper}>{children}</div>
         </div>
       </div>
+      {open && footer && <div className={styles.footer}>{footer}</div>}
     </div>
   );
 }

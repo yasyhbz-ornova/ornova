@@ -574,7 +574,7 @@ function InquiryFormSession({ productContext, productSelectionKey, sourceContext
       </section>}
       {submissionState === "registered" && <section role="status" className="mt-5 border-t border-silver pt-5 text-sm leading-7 text-graphite/75">
         <p className="font-medium text-sapphire">{receipt ? "درخواست شما ثبت شد." : "درخواست به سرویس رسید."}</p>
-        {receipt && galleryMode ? <GalleryOrderReceipt receipt={receipt} archiveTitle={archiveOrder?.title} registeredAt={registeredAt} /> : receipt ? <>
+        {receipt && galleryMode ? <GalleryOrderReceipt receipt={receipt} archiveTitle={archiveOrder?.title} archiveNumber={archiveOrder?.number} registeredAt={registeredAt} /> : receipt ? <>
           {receipt.items.length > 0
             ? <ul className="mt-3 grid gap-3" aria-label="خلاصه‌ی قطعات ثبت‌شده">{receipt.items.map((item) => <li key={getRequestItemKey(item)} className="grid gap-1"><div className="flex justify-between gap-4"><span>{item.name}</span><span className="shrink-0 text-graphite/55">تعداد {countFormat.format(item.quantity)}</span></div><ProductPreferencesSummary value={item.preferences} />{item.note && <p className="whitespace-pre-wrap text-xs leading-6 text-graphite/60">یادداشت همراه: {item.note}</p>}</li>)}</ul>
             : <p className="mt-2">توضیحات و پیش‌طرح همراه همین پرونده ثبت شده‌اند.</p>}

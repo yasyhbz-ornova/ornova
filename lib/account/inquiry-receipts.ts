@@ -16,18 +16,25 @@ type ReceiptPrice =
 export type ReceiptDetail = {
   receipt: InquiryReceipt;
   archiveTitle: string | null;
+  archiveNumber: string | null;
   registeredAt: string;
   status: string;
   price: ReceiptPrice;
 };
 
-function readArchiveTitle(message: string) {
-  // Match the reference line stored by the submission route against public archive data.
+const previousArchiveTitles: Readonly<Record<string, string>> = {
+  "02": "آویز دندان",
+  "18": "سنجاق‌سینهٔ مدور با نقش بادبان",
+};
+
+function readArchiveReference(message: string) {
   const [reference] = message.split("\n\n", 1);
-  const archive = visibleGalleryRenders.find(
-    ({ title, number }) => reference === `درخواست سفارش اثر آرشیو «${title}» (عکس ${number})`,
-  );
-  return archive?.title ?? null;
+  const match = /^درخواست سفارش اثر آرشیو «([^\r\n]+)» \(عکس ([0-9]{2})\)$/u.exec(reference);
+  if (!match) return null;
+  const [, title, number] = match;
+  const archive = visibleGalleryRenders.find((photo) => photo.number === number);
+  if (!archive || (title !== archive.title && title !== previousArchiveTitles[number])) return null;
+  return { title, number };
 }
 
 export async function readInquiryReceipt(
@@ -58,10 +65,12 @@ export async function readInquiryReceipt(
   const price: ReceiptPrice = quoteResult.error ? { kind: "unavailable" }
     : accepted ? { kind: "accepted", quoteId: accepted.id, totalRial: accepted.payload.total_rial }
     : { kind: "pending" };
+  const archive = items.length ? null : readArchiveReference(inquiry.message);
 
   return {
     receipt: { id: inquiry.id, items },
-    archiveTitle: items.length ? null : readArchiveTitle(inquiry.message),
+    archiveTitle: archive?.title ?? null,
+    archiveNumber: archive?.number ?? null,
     registeredAt: inquiry.created_at,
     status: inquiry.status,
     price,
