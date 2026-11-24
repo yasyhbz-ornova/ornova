@@ -15,10 +15,10 @@ export function GalleryTrayBackdrop({ portrait = false }: { portrait?: boolean }
 
 const archiveNumber = new Intl.NumberFormat("fa-IR", { minimumIntegerDigits: 2, useGrouping: false });
 
-export function GalleryTrayDossier({ name, details = [], archivePhoto, heading: Heading = "h1", live }: {
+export function GalleryTrayDossier({ name, details = [], archive, heading: Heading = "h1", live }: {
   name: string;
   details?: readonly { label: string; value: string }[];
-  archivePhoto?: string;
+  archive?: { number: string; category?: string; month?: string };
   heading?: "h1" | "h2";
   live?: "off" | "polite";
 }) {
@@ -28,15 +28,19 @@ export function GalleryTrayDossier({ name, details = [], archivePhoto, heading: 
   const weight = displayDossierField(details, "weight");
   const dimensions = displayDossierField(details, "dimensions");
 
-  return <article className={styles.dossier} tabIndex={0} aria-live={live} aria-label="شناسنامهٔ اثر روی میز">
+  return <article className={styles.dossier} data-archive-card={Boolean(archive) || undefined} tabIndex={0} aria-live={live} aria-label="شناسنامهٔ اثر روی میز">
     <header className={styles.dossierHeader}>
       <OrnovaSymbol className={styles.dossierSymbol} />
       <span>شناسنامهٔ اثر</span>
+      {archive && <span className={styles.dossierArchiveNumber}>آرشیو {archiveNumber.format(Number(archive.number))}</span>}
     </header>
     <Heading className={styles.workTitle}>{name}</Heading>
     <dl className={styles.workDetails}>
-      {archivePhoto
-        ? <div className={styles.dossierWideDetail}><dt>عکس آرشیو</dt><dd>{archiveNumber.format(Number(archivePhoto))}</dd></div>
+      {archive
+        ? <>
+            {archive.category && <div className={styles.dossierWideDetail}><dt>دسته</dt><dd>{archive.category}</dd></div>}
+            {archive.month && <div className={styles.dossierWideDetail}><dt>ماه تولد</dt><dd>{archive.month}</dd></div>}
+          </>
         : <>
             <div><dt>جنس</dt><dd>{material || "نامشخص"}</dd></div>
             <div><dt>سنگ</dt><dd>{stone || "نامشخص"}</dd></div>

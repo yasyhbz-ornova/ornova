@@ -82,6 +82,29 @@ test("magazine filters preserve the exact work and its focus on return", async (
   await expect(page).toHaveScreenshot("magazine-filtered.png");
 });
 
+test("keyboard tray navigation announces the chosen work without announcing automatic changes", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await page.clock.install();
+  await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  const heading = tray(page).getByRole("heading");
+  const status = tray(page).getByRole("status");
+  const initialTitle = await heading.innerText();
+  await expect(status).toBeEmpty();
+
+  const next = page.getByRole("button", { name: "اثر بعدی" });
+  await next.press("Enter");
+  const selectedTitle = await heading.innerText();
+  expect(selectedTitle).not.toBe(initialTitle);
+  await expect(next).toBeFocused();
+  await expect(status).toHaveText(selectedTitle);
+
+  await page.clock.fastForward(13_000);
+  await expect(heading).not.toHaveText(selectedTitle);
+  await expect(status).toBeEmpty();
+});
+
 test("mobile tray and cashier retain their layout", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

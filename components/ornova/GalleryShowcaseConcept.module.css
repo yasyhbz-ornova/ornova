@@ -209,6 +209,7 @@
 .dossierHeader { display: flex; align-items: center; justify-content: center; gap: .45rem; margin: 0 0 .5rem; line-height: 1.45; font-size: clamp(.72rem, 1.03cqw, .9rem); }
 .dossierSymbol { display: block; width: clamp(1.45rem, 2.6cqw, 2.6rem); color: #303f54; }
 .dossierSymbol svg { display: block; width: 100%; height: auto; }
+.dossierArchiveNumber { color: #534635; font-size: .88em; white-space: nowrap; }
 .close { position: absolute; top: .45rem; left: .5rem; width: 32px; height: 32px; border: 0; color: #514c40; background: transparent; font: inherit; font-size: 1.4rem; cursor: pointer; }
 .dossierBrand { color: #6a5d4e; }
 .dossierBrand :global(.ornova-symbol) { grid-column: 1; grid-row: 1 / 3; width: 22px; }
@@ -372,7 +373,12 @@
 @media (max-width: 350px) and (orientation: portrait) {
   .tableComposition { grid-template-columns: minmax(0, .67fr) minmax(0, 1.33fr); }
   .tableView .dossier { padding-inline: .4rem; }
+  .tableView .dossier[data-archive-card] { padding-block: .2rem; }
+  .dossier[data-archive-card] .dossierHeader { margin-bottom: .08rem; }
+  .dossier[data-archive-card] .workTitle { line-height: 1.3; padding-bottom: .1rem; }
+  .dossier[data-archive-card] .workDetails { margin-top: .13rem; }
   .dossierSymbol { width: 1rem; }
+  .dossierArchiveNumber { font-size: .85em; }
   .workDetails { gap: .12rem; }
   .workDetails > div { gap: .14rem; }
   .workDetails dd { padding: .04rem .05rem; }

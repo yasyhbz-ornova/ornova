@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type Ref } from "react";
 import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catalog";
+import { findGalleryBirthMonth } from "@/lib/constants/collections";
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
 import { findGalleryShowcasePhoto, trayVisibleShowcaseEntries, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
 import type { Product } from "@/lib/constants/products";
@@ -67,6 +68,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const [dismissedTooltip, setDismissedTooltip] = useState<string | null>(null);
   const [paperHovered, setPaperHovered] = useState(false);
   const [paperFocused, setPaperFocused] = useState(false);
+  const [manualWorkTitle, setManualWorkTitle] = useState("");
   const reducedMotion = useSyncExternalStore(subscribeToMotionPreference, () => window.matchMedia(motionPreference).matches, () => true);
   const returnFocus = useRef<HTMLElement | null>(null);
   const backToGallery = useRef<HTMLButtonElement>(null);
@@ -107,6 +109,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     else if (returnTo && !magazineOpen) returnFocus.current = null;
     setPaperHovered(false);
     setPaperFocused(false);
+    setManualWorkTitle("");
     if (!returnTo) setMagazineOpen(false);
     setTable({ categoryId: id, returnTo, fromShelf });
   }
@@ -191,6 +194,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       window.clearTimeout(timer);
       if (document.hidden) return;
       timer = window.setTimeout(() => {
+        setManualWorkTitle("");
         setIndices((current) => ({ ...current, [category]: (activeIndex + 1) % activeCount }));
       }, workInterval);
     }
@@ -204,7 +208,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
 
   const moveSample = (step: number) => {
     if (!activeCategory || activeCount < 2) return;
-    setIndices((current) => ({ ...current, [activeCategory]: ((current[activeCategory] ?? 0) + step + activeCount) % activeCount }));
+    const nextIndex = (activeIndex + step + activeCount) % activeCount;
+    const work = activeEntries[nextIndex];
+    setManualWorkTitle(work.product?.name ?? work.sample?.title ?? "");
+    setIndices((current) => ({ ...current, [activeCategory]: nextIndex }));
   };
 
   return <main className={styles.root} dir="rtl" onKeyDown={handleEscape}>
@@ -295,6 +302,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
         {tableOpen && <>
           <button ref={backToGallery} type="button" className={styles.backToGallery} onClick={closeTable}>{(previewProduct ? productPreview?.backLabel : table?.returnTo?.label) ?? "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
           {activeEntry && <><div className={styles.tableComposition} role="group" aria-label="سینی مخمل آبی افغانی">
+            {autoAdvance && <span role="status" className="sr-only">{manualWorkTitle}</span>}
             <div className={styles.tableDisplay}>
               <div key={linkedProduct?.slug ?? activeSample?.number} className={styles.tableProduct}>
                 {linkedProduct?.standImage
@@ -315,7 +323,11 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             >
               <GalleryTrayDossier
                 name={activeEntry.product ? activeEntry.product.name : activeEntry.sample.title}
-                archivePhoto={activeEntry.product ? undefined : activeEntry.sample.number}
+                archive={activeEntry.product ? undefined : {
+                  number: activeEntry.sample.number,
+                  category: catalogCategories.find(({ id }) => id === activeCategory)?.label,
+                  month: findGalleryBirthMonth(activeEntry.sample)?.name,
+                }}
                 details={linkedProduct?.details}
                 live={autoAdvance ? "off" : "polite"}
               />

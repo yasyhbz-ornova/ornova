@@ -1,5 +1,5 @@
 import { catalogCategories, filterCatalogProducts } from "../constants/catalog";
-import { galleryCollections } from "../constants/collections";
+import { findGalleryBirthMonth } from "../constants/collections";
 import { trayVisibleShowcaseEntries } from "../constants/gallery-room-samples";
 import type { Product } from "../constants/products";
 
@@ -8,14 +8,12 @@ export const emptyMagazineFilters: MagazineFilters = { query: "", category: "", 
 
 export function buildMagazineIndex(products: readonly Product[]) {
   const entries = trayVisibleShowcaseEntries(products);
-  const birthMonths = galleryCollections.find(({ id }) => id === "birth-months")?.birthMonths ?? [];
-
   return catalogCategories.flatMap((category) => (entries[category.id] ?? []).map(({ product, sample }) => {
     const image = product?.standImage ?? sample?.trayImage;
     const archive = product ? undefined : sample;
     const id = product?.slug ?? archive?.number;
     if (!image || !id) return null;
-    const month = birthMonths.find((item) => sample && [item.braceletImage, item.constellationImage, item.flowerImage].some((photo) => photo?.number === sample.number));
+    const month = sample && findGalleryBirthMonth(sample);
     const fibonacci = Boolean(sample && (month?.flowerImage?.number === sample.number || sample.title.includes("فیبوناچی")));
     return {
       id,

@@ -103,6 +103,14 @@ const birthMonths: readonly BirthMonth[] = [
   },
 ];
 
+export function findGalleryBirthMonth(photo: Pick<GalleryRender, "number" | "src" | "categoryId">) {
+  return birthMonths.find(({ braceletImage, constellationImage, flowerImage }) =>
+    [braceletImage, constellationImage, flowerImage].some((source) =>
+      source?.number === photo.number && source.src === photo.src && source.categoryId === photo.categoryId,
+    ),
+  );
+}
+
 // Owner-confirmed grouping. Keep this separate from published product records
 // until each pendant has an identity-matched photo and reviewed dossier.
 export const galleryCollections: readonly GalleryCollection[] = [

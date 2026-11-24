@@ -12,7 +12,7 @@ function load(file, dependencies = {}) {
 }
 
 const renders = load("lib/constants/gallery-renders.ts");
-const { galleryCollections } = load("lib/constants/collections.ts", { "./gallery-renders": renders });
+const { galleryCollections, findGalleryBirthMonth } = load("lib/constants/collections.ts", { "./gallery-renders": renders });
 const { birthMonths } = galleryCollections.find(({ id }) => id === "birth-months");
 
 test("the birth-month book uses a different, matching original zodiac bracelet for all twelve months", () => {
@@ -33,4 +33,18 @@ test("month entries only show originals in their own family, without repeating t
   assert.equal(birthMonths.find(({ id }) => id === "azar").constellationImage?.number, "14");
   assert.equal(birthMonths.find(({ id }) => id === "esfand").constellationImage?.number, "16");
   assert.equal(birthMonths.find(({ id }) => id === "mordad").flowerImage?.number, "09");
+});
+
+test("the shared month lookup accepts all 29 confirmed photos and rejects unmatched archives", () => {
+  let confirmed = 0;
+  for (const month of birthMonths) {
+    for (const photo of [month.braceletImage, month.constellationImage, month.flowerImage].filter(Boolean)) {
+      confirmed++;
+      assert.equal(findGalleryBirthMonth(photo), month);
+      assert.equal(findGalleryBirthMonth({ ...photo, src: `${photo.src}.other` }), undefined);
+      assert.equal(findGalleryBirthMonth({ ...photo, categoryId: "rings" }), undefined);
+    }
+  }
+  assert.equal(confirmed, 29);
+  assert.equal(findGalleryBirthMonth(renders.visibleGalleryRenders.find(({ number }) => number === "05")), undefined);
 });
