@@ -70,30 +70,27 @@ test("catalog validation prevents unverified publication and database conflict i
   assert.equal(ready.writes[0][1].p_product.slug, undefined);
 });
 
-test("a cropped archive reference stays linked during review and publication but cannot be the public cover or tray", async () => {
+test("a reference-only archive photo stays linked during review and publication but cannot be the public cover or tray", async () => {
   const reference = fixture();
-  for (const number of ["04", "06", "19"]) {
-    const cropped = renders.galleryRenders.find((photo) => photo.number === number).src;
-    assert.equal((await reference.post({ ...product, image_path: cropped })).status, 400);
-    assert.equal((await reference.post({ ...product, stand_image_path: cropped })).status, 400);
-    assert.equal(reference.writes.length, 0);
-  }
-  const cropped = renders.galleryRenders.find(({ number }) => number === "04").src;
-  const gallery = [{ src: cropped, alt: "مرجع بررسی" }];
-  assert.equal((await reference.post({ ...product, status: "review", image_path: cropped, stand_image_path: null, gallery, gallery_placement_verified: false })).status, 201);
+  const duplicate = renders.galleryRenders.find(({ number }) => number === "06").src;
+  assert.equal((await reference.post({ ...product, image_path: duplicate })).status, 400);
+  assert.equal((await reference.post({ ...product, stand_image_path: duplicate })).status, 400);
+  assert.equal(reference.writes.length, 0);
+  const gallery = [{ src: duplicate, alt: "مرجع بررسی" }];
+  assert.equal((await reference.post({ ...product, status: "review", image_path: duplicate, stand_image_path: null, gallery, gallery_placement_verified: false })).status, 201);
   assert.equal((await reference.post({ ...product, gallery })).status, 201);
   assert.deepEqual(reference.writes.map(([, args]) => args.p_product.gallery), [gallery, gallery]);
 });
 
-test("public catalog filters cropped archive imagery and resolves a usable cover for older products", async () => {
-  const cropped = renders.galleryRenders.find(({ number }) => number === "04").src;
-  const reference = { src: cropped, alt: "مرجع بررسی" };
+test("public catalog filters reference-only imagery and resolves a usable cover for older products", async () => {
+  const duplicate = renders.galleryRenders.find(({ number }) => number === "06").src;
+  const reference = { src: duplicate, alt: "مرجع بررسی" };
   const full = { src: "/images/ornova/full-ring.jpg", alt: "نمای کامل" };
   const rows = [
-    { ...product, slug: "legacy", image_path: cropped, gallery: [reference, full], packaging_gallery: [reference, full] },
-    { ...product, slug: "tray-only", image_path: cropped, gallery: [reference] },
-    { ...product, slug: "missing-tray", stand_image_path: cropped },
-    { ...product, slug: "reference-only", image_path: cropped, stand_image_path: cropped, gallery: [reference] },
+    { ...product, slug: "legacy", image_path: duplicate, gallery: [reference, full], packaging_gallery: [reference, full] },
+    { ...product, slug: "tray-only", image_path: duplicate, gallery: [reference] },
+    { ...product, slug: "missing-tray", stand_image_path: duplicate },
+    { ...product, slug: "reference-only", image_path: duplicate, stand_image_path: duplicate, gallery: [reference] },
     product,
   ];
   const client = { from: () => ({ select: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: rows, error: null }) }) }) }) }) };

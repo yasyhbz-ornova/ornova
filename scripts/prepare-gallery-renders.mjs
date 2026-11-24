@@ -9,11 +9,13 @@ const manifestPath = path.join(root, "lib/constants/gallery-renders.ts");
 
 // Final source render references from the 53-image owner-approved batch.
 // 06 is a duplicate of 04. The original files remain untouched.
+// The tall signet faces project above the blue stand in the original portrait views.
+const fullViewTop = { "04": 495, "06": 495, "19": 495 };
 const entries = [
   ["01", "2ae32afd", "brooches-pins", "سنجاق‌سینهٔ طرح جام", "ready"],
   ["02", "28a58529", "pendants", "آویز دندان", "ready"],
   ["03", "5ba0f400", "earrings", "گوشوارهٔ عنکبوتی", "ready"],
-  ["04", "5fd8f6b5", "rings", "انگشتر مُهر گاو", "ready", { needsCompleteView: true }],
+  ["04", "5fd8f6b5", "rings", "انگشتر مُهر گاو", "ready"],
   ["05", "3a602d9e", "rings", "انگشتر با نگین اشکی", "ready"],
   ["06", "4501ed69", "rings", "تکرار تصویر ۰۴", "duplicate", { duplicateOf: "04" }],
   ["07", "7d31d155", "brooches-pins", "سنجاق‌سینهٔ نواری مشبک", "ready"],
@@ -28,7 +30,7 @@ const entries = [
   ["16", "10439ecf", "jewelry-sets", "نیم‌ست صورت فلکی اسفند", "ready"],
   ["17", "506cd1ef", "jewelry-sets", "نیم‌ست خورشیدی", "ready"],
   ["18", "6b9ab99a", "brooches-pins", "سنجاق‌سینهٔ مدور با نقش بادبان", "ready"],
-  ["19", "cc5bc68e", "rings", "انگشتر مُهر با مینای تیره", "ready", { needsCompleteView: true }],
+  ["19", "cc5bc68e", "rings", "انگشتر مُهر با رویهٔ تیره", "ready"],
   ["20", "916a01d1", "bracelets", "دستبند حوت · اسفند", "ready"],
   ["21", "989df897", "earrings", "گوشوارهٔ میخی نگین‌دار", "ready"],
   ["22", "b92fbb99", "earrings", "گوشوارهٔ میخی برف‌گون", "ready"],
@@ -75,8 +77,7 @@ for (const [number, sourcePrefix, categoryId, title, status, review = {}] of ent
   const { data, info } = await sharp(source).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   let left = info.width, top = info.height, right = -1, bottom = -1;
 
-  // Estimate the crop from the Afghan-blue stand. Views with incomplete
-  // jewelry at the crop boundary remain marked for staff follow-up.
+  // Estimate the crop from the Afghan-blue stand.
   for (let y = 0; y < info.height; y++) {
     for (let x = 0; x < info.width; x++) {
       const offset = (y * info.width + x) * info.channels;
@@ -91,6 +92,7 @@ for (const [number, sourcePrefix, categoryId, title, status, review = {}] of ent
   const padX = Math.round(info.width * 0.045);
   const padY = Math.round(info.height * 0.06);
   left = Math.max(0, left - padX); top = Math.max(0, top - padY);
+  top = Math.min(top, fullViewTop[number] ?? top);
   right = Math.min(info.width - 1, right + padX); bottom = Math.min(info.height - 1, bottom + padY);
   const width = right - left + 1, height = bottom - top + 1;
   const filename = `${number}-${sourcePrefix}.webp`;

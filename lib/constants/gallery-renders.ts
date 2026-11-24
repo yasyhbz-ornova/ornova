@@ -39,10 +39,9 @@ export const galleryRenders: readonly GalleryRender[] = [
     "title": "انگشتر مُهر گاو",
     "categoryId": "rings",
     "status": "ready",
-    "needsCompleteView": true,
     "src": "/images/ornova/gallery/final-renders/04-5fd8f6b5.webp",
     "width": 994,
-    "height": 608
+    "height": 762
   },
   {
     "number": "05",
@@ -63,7 +62,7 @@ export const galleryRenders: readonly GalleryRender[] = [
     "duplicateOf": "04",
     "src": "/images/ornova/gallery/final-renders/06-4501ed69.webp",
     "width": 994,
-    "height": 608
+    "height": 762
   },
   {
     "number": "07",
@@ -188,13 +187,12 @@ export const galleryRenders: readonly GalleryRender[] = [
   {
     "number": "19",
     "sourcePrefix": "cc5bc68e",
-    "title": "انگشتر مُهر با مینای تیره",
+    "title": "انگشتر مُهر با رویهٔ تیره",
     "categoryId": "rings",
     "status": "ready",
-    "needsCompleteView": true,
     "src": "/images/ornova/gallery/final-renders/19-cc5bc68e.webp",
     "width": 994,
-    "height": 602
+    "height": 761
   },
   {
     "number": "20",

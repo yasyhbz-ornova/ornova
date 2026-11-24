@@ -83,7 +83,7 @@ test("a published exact tray cutout replaces its archive card without needing a 
 
 test("tray cutouts cover the six displays and match their precise original photos", () => {
   const samples = room.galleryRoomSamples;
-  assert.equal(samples.length, 50);
+  assert.equal(samples.length, 52);
   assert.equal(new Set(samples.map((sample) => sample.categoryId)).size, 6);
   for (const sample of samples) {
     const mask = galleryTrayMask(sample);
@@ -105,6 +105,17 @@ test("distinct visible archive works have distinct titles in the book and on the
   for (const { number, title } of photos) {
     assert.equal(sampleTitles.get(number), title, number);
   }
+});
+
+test("both signet faces extend above their stand in the corrected crops", () => {
+  const rings = room.galleryRoomSamplesByCategory.rings;
+  for (const number of ["04", "19"]) {
+    const photo = rings.find((sample) => sample.number === number);
+    const crop = galleryTrayCutout(photo);
+    assert.ok(crop.bounds[1] <= photo.bounds[1] - 150);
+    assert.ok(crop.bounds[1] + crop.bounds[3] > photo.bounds[1]);
+  }
+  assert.equal(rings.some(({ number }) => number === "06"), false);
 });
 
 test("each transparent tray image retains the original RGB of every visible pixel", async () => {

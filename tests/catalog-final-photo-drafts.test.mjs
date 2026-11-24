@@ -34,7 +34,7 @@ test("ready final photos start private review records, but the marked duplicate 
     assert.equal(draft.category_id, photo.categoryId);
     assert.equal(draft.status, "review");
     assert.equal(draft.gallery_placement_verified, false);
-    assert.equal(draft.stand_image_path, ["04", "19"].includes(photo.number) ? null : photo.src.replace("/final-renders/", "/tray-cutouts/"));
+    assert.equal(draft.stand_image_path, photo.src.replace("/final-renders/", "/tray-cutouts/"));
     assert.equal(draft.description, "");
     assert.equal(slugs.has(draft.slug), false);
     slugs.add(draft.slug);
@@ -63,14 +63,17 @@ test("a legacy claim of duplicate photo 06 also keeps its byte-identical origina
   assert.deepEqual(review.excluded.map(({ number }) => number), ["06"]);
 });
 
-test("photos with a cropped work stay out of the gallery and remain available in private drafts", () => {
-  const cropped = galleryRenders.filter((photo) => photo.needsCompleteView);
-  assert.deepEqual(cropped.map(({ number }) => number), ["04", "19"]);
-  const visible = new Set(visibleGalleryRenders.map(({ src }) => src));
-  for (const photo of cropped) {
-    assert.equal(visible.has(photo.src), false);
-    assert.equal(draftCatalogFormFromPhoto(photo).image_path, photo.src);
-    assert.equal(draftCatalogFormFromPhoto(photo).stand_image_path, null);
+test("the recovered signets have review drafts with complete tray images and the duplicate stays out", () => {
+  const [bull, dark] = ["04", "19"].map((number) => visibleGalleryRenders.find((photo) => photo.number === number));
+  assert.ok(bull && dark);
+  assert.equal(visibleGalleryRenders.some(({ number }) => number === "06"), false);
+  assert.deepEqual([bull.height, dark.height], [762, 761]);
+  for (const photo of [bull, dark]) {
+    const draft = draftCatalogFormFromPhoto(photo);
+    assert.equal(draft.image_path, photo.src);
+    assert.ok(draft.stand_image_path);
+    assert.equal(draft.status, "review");
+    assert.equal(draft.gallery_placement_verified, false);
   }
 });
 

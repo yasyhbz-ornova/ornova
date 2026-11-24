@@ -13,6 +13,11 @@ const cutouts: Record<string, Cutout> = {
     src: "/images/ornova/gallery/tray-cutouts/03-5ba0f400.webp",
     bounds: [108, 306, 466, 258],
   },
+  "04": {
+    source: "/images/ornova/gallery/final-renders/04-5fd8f6b5.webp",
+    src: "/images/ornova/gallery/tray-cutouts/04-5fd8f6b5.webp",
+    bounds: [252, 40, 492, 355],
+  },
   "05": {
     source: "/images/ornova/gallery/final-renders/05-3a602d9e.webp",
     src: "/images/ornova/gallery/tray-cutouts/05-3a602d9e.webp",
@@ -92,6 +97,11 @@ const cutouts: Record<string, Cutout> = {
     source: "/images/ornova/gallery/final-renders/18-6b9ab99a.webp",
     src: "/images/ornova/gallery/tray-cutouts/18-6b9ab99a.webp",
     bounds: [130, 257, 414, 424],
+  },
+  "19": {
+    source: "/images/ornova/gallery/final-renders/19-cc5bc68e.webp",
+    src: "/images/ornova/gallery/tray-cutouts/19-cc5bc68e.webp",
+    bounds: [246, 40, 500, 355],
   },
   "20": {
     source: "/images/ornova/gallery/final-renders/20-916a01d1.webp",
