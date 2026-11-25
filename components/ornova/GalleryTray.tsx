@@ -3,13 +3,21 @@ import { displayDossierField } from "@/lib/catalog/dossier-fields";
 import { OrnovaSymbol } from "./OrnovaBrandMark";
 import styles from "./GalleryShowcaseConcept.module.css";
 
-const portraitTray = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v2.webp";
+const staffTray = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v2.webp";
 const desktopTray = "/images/ornova/gallery/review/ornova-velvet-tray-desktop-v1.webp";
+const portraitTrayAvifSmall = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v3-460.avif";
+const portraitTrayAvifLarge = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v3-768.avif";
+const portraitTrayWebpSmall = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v3-460.webp";
+const portraitTrayWebpLarge = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v3-768.webp";
+const portraitMedia = "(max-width: 700px) and (orientation: portrait)";
 
 export function GalleryTrayBackdrop({ portrait = false }: { portrait?: boolean }) {
   return <picture className={styles.seatedPicture}>
-    {!portrait && <source media="(max-width: 700px) and (orientation: portrait)" srcSet={portraitTray} />}
-    <Image className={styles.architecture} src={portrait ? portraitTray : desktopTray} alt="" fill sizes={portrait ? "(max-width: 500px) 90vw, 496px" : "100vw"} unoptimized loading="eager" />
+    {!portrait && <>
+      <source media={portraitMedia} type="image/avif" srcSet={`${portraitTrayAvifSmall} 460w, ${portraitTrayAvifLarge} 768w`} sizes="100vw" />
+      <source media={portraitMedia} srcSet={`${portraitTrayWebpSmall} 460w, ${portraitTrayWebpLarge} 768w`} sizes="100vw" />
+    </>}
+    <Image className={styles.architecture} src={portrait ? staffTray : desktopTray} alt="" fill sizes={portrait ? "(max-width: 500px) 90vw, 496px" : "100vw"} unoptimized loading="eager" />
   </picture>;
 }
 

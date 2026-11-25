@@ -12,18 +12,24 @@ const stops = [
 export type GalleryGuideStop = (typeof stops)[number]["id"];
 const storageKey = "ornova.gallery.guide.v1";
 const changeEvent = "ornova:gallery-guide-change";
+const compactGuide = "(max-width: 700px), (max-height: 430px) and (pointer: coarse)";
 let lastStep = 0;
+let guideRequested = false;
 
 function subscribe(listener: () => void) {
+  const compact = window.matchMedia(compactGuide);
+  compact.addEventListener("change", listener);
   window.addEventListener(changeEvent, listener);
   window.addEventListener("storage", listener);
   return () => {
+    compact.removeEventListener("change", listener);
     window.removeEventListener(changeEvent, listener);
     window.removeEventListener("storage", listener);
   };
 }
 
 function getStep() {
+  if (!guideRequested && window.matchMedia(compactGuide).matches) return stops.length;
   let saved: string | null;
   try {
     saved = window.localStorage.getItem(storageKey);
@@ -79,7 +85,10 @@ export function GalleryRoomGuide({ step }: { step: number }) {
   if (step < 0) return null;
   const stop = stops[step];
   if (!stop) {
-    return <button ref={primaryControl} type="button" className={styles.replay} onClick={() => switchGuide(0)}>راهنمای بازدید</button>;
+    return <button ref={primaryControl} type="button" className={styles.replay} aria-label="راهنمای بازدید" onClick={() => {
+      guideRequested = true;
+      switchGuide(0);
+    }}><span>راهنمای بازدید</span></button>;
   }
   const isLast = step === stops.length - 1;
 

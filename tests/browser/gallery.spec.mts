@@ -128,7 +128,13 @@ test("mobile tray and cashier retain their layout", async ({ page }) => {
 test("a portrait phone shows the complete room and opens the real showcase boxes", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("ornova.gallery.guide.v1", "0");
+    window.dispatchEvent(new Event("storage"));
+  });
   await expect(page.getByRole("group", { name: "دسته‌های ویترین" })).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "راهنمای بازدید" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "راهنمای بازدید", exact: true })).toHaveCSS("width", "44px");
   const room = page.getByRole("img", { name: /سالن اُرنوا/ });
   const image = await room.evaluate(async (element: HTMLImageElement) => {
     await element.decode();
@@ -152,6 +158,20 @@ test("a portrait phone shows the complete room and opens the real showcase boxes
     await expect(tray(page)).toBeVisible();
     await page.getByRole("button", { name: "بازگشت به گالری" }).click();
   }
+});
+
+test("the narrow mobile tray fits the full catalog card beneath the product", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  await page.evaluate(() => document.fonts.ready.then(() => true));
+  const product = await tray(page).locator('[data-table-product="lajvard-shab-ring"]').boundingBox();
+  const card = tray(page).getByRole("article");
+  const position = await card.boundingBox();
+  expect(position!.y).toBeGreaterThan(product!.y + product!.height);
+  expect(await card.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
+  await expect(card.getByText("ابعاد", { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole("button", { name: "ثبت سفارش", exact: true })).toBeInViewport({ ratio: 1 });
 });
 
 test("the visit guide marks its objects and restores keyboard focus on finish and replay", async ({ page }) => {

@@ -141,10 +141,6 @@
 .shelfTrigger[data-guide-current] .shelfSign { filter: brightness(1.22) drop-shadow(0 0 3px #fff0cc); }
 .door:focus-visible, .shelfTrigger:focus-visible, .book:focus-visible, .phone:focus-visible, .register:focus-visible { outline: 2px solid #355a82; outline-offset: -2px; }
 .tableView { position: absolute; z-index: 1; inset: 0; isolation: isolate; visibility: hidden; opacity: 0; transition: opacity 420ms ease, visibility 420ms; }
-.tableView, .staffTrayPreview {
-  --portrait-tray-art-height: max(100%, 225cqw);
-  --portrait-tray-floor: calc(50% - var(--portrait-tray-art-height) * .094) 11.5% calc(50% - var(--portrait-tray-art-height) * .063) 10.5%;
-}
 .scene[data-table-open] .tableView { visibility: visible; opacity: 1; transition: opacity 420ms ease 560ms; }
 .scene[data-shelf-approach] .tableView {
   animation: settle-at-table 800ms cubic-bezier(.2, .55, .24, 1) 440ms both;
@@ -296,6 +292,8 @@
 .magazineLinks :is(a, button) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 .25rem; border: 0; color: #315170; background: transparent; font: inherit; font-size: .84rem; text-decoration: underline; text-underline-offset: .24em; cursor: pointer; }
 .magazineLinks :is(a, button):focus-visible { outline: 2px solid #355a82; outline-offset: 2px; }
 .staffTrayPreview {
+  --staff-tray-art-height: max(100%, 225cqw);
+  --staff-tray-floor: calc(50% - var(--staff-tray-art-height) * .094) 11.5% calc(50% - var(--staff-tray-art-height) * .063) 10.5%;
   position: relative;
   isolation: isolate;
   container-type: inline-size;
@@ -306,9 +304,9 @@
   border-radius: .5rem;
   background: #68432f;
 }
-.staffTrayPreview .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
+.staffTrayPreview .seatedPicture { inset: 50% 0 auto; height: var(--staff-tray-art-height); transform: translateY(-50%); }
 .staffTrayPreview .seatedPicture .architecture { object-fit: fill; transform: none; }
-.staffTrayPreview .tableComposition { inset: var(--portrait-tray-floor); grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: .45rem; }
+.staffTrayPreview .tableComposition { inset: var(--staff-tray-floor); grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: .45rem; }
 .staffTrayPreview .tablePaper { transform: none; }
 .staffTrayPreview .catalogCutout { animation: none; }
 .staffDossierText { width: min(100%, 31rem); margin-top: .5rem; }
@@ -327,8 +325,9 @@
     transform-origin: 41% 63%;
   }
   .roomView > picture > .architecture { object-fit: fill; }
-  .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
-  .seatedPicture .architecture { object-fit: fill; transform: none; }
+  .tableView { --portrait-tray-art-height: max(100%, min(195cqw, 120dvh)); }
+  .tableView .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
+  .tableView .seatedPicture .architecture { object-fit: fill; transform: none; }
   .backToGallery { top: max(4%, calc(env(safe-area-inset-top) + .55rem)); }
   .door { top: 28.5%; left: 24.2%; width: 36%; height: 23%; }
   .doorTag { top: 72%; left: 57%; transform: translate(-50%, -50%) rotate(64deg); }
@@ -338,33 +337,37 @@
   .book { top: 60.5%; left: 29%; width: 21%; height: 6%; }
   .phone { top: 75.6%; left: 3.2%; width: 33%; height: 12.4%; }
   .register { top: 75.2%; left: 38%; width: 27%; height: 12.8%; }
-  .tableComposition {
-    /* Anchor the item and card to the velvet floor when the tall photo is cropped. */
-    inset: var(--portrait-tray-floor);
-    grid-template-columns: minmax(0, .83fr) minmax(0, 1.17fr);
-    gap: .45rem;
+  .tableView .tableComposition {
+    /* The photo's velvet floor starts 24% from its top and ends at 63%. */
+    inset: calc(50% - var(--portrait-tray-art-height) * .245) 16% calc(50% - var(--portrait-tray-art-height) * .125);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1.16fr);
+    align-items: stretch;
+    gap: .38rem;
   }
+  .tableView .tableDisplay { display: block; min-height: 0; }
+  .tableView .tableProduct { height: 100%; grid-template-rows: minmax(0, 1fr); transform: none; }
+  .tableView :is(.archiveCutout, .catalogCutout, .catalogCutout[data-table-product="lajvard-shab-ring"]) { width: min(100%, 15rem); height: min(100%, 9rem); }
   .tableView .tablePaper {
+    align-self: start;
+    width: min(100%, 18rem);
     max-height: 100%;
-    grid-template-rows: minmax(0, 1fr);
     transform: none;
   }
-  .archiveCutout { width: 98%; height: 28cqw; }
-  .catalogCutout { width: 96%; height: 28cqw; }
-  .catalogCutout[data-table-product="lajvard-shab-ring"] { height: 31cqw; }
-  .tableView .dossier { max-height: 100%; padding: .36rem .5rem; }
+  .tableView .dossier { max-height: 100%; padding: .4rem .55rem; }
   .dossier::before { top: .35rem; inset-inline-start: .34rem; width: .29rem; }
   .dossierHeader { gap: .25rem; margin-bottom: .15rem; font-size: .7rem; }
   .dossierSymbol { width: 1.2rem; }
-  .workDetails { grid-template-columns: 1fr; gap: .16rem; margin-top: .22rem; font-size: .75rem; line-height: 1.45; }
+  .workDetails { gap: .2rem .55rem; margin-top: .22rem; font-size: .75rem; line-height: 1.45; }
   .workTitle { padding-bottom: .17rem; font-size: clamp(.9rem, 3.9cqw, 1.08rem); line-height: 1.55; }
   .workDetails dd { padding-block: .04rem; }
-  .tableActions { top: calc(50% + var(--portrait-tray-art-height) * .0875 + .45rem); }
+  .tableActions { top: calc(50% + var(--portrait-tray-art-height) * .172 + .55rem); }
   .magazine { width: calc(100% - 1.3rem); }
   .magazineCategories { grid-template-columns: 1fr; }
 }
 @media (max-width: 350px) and (orientation: portrait) {
-  .tableComposition { grid-template-columns: minmax(0, .67fr) minmax(0, 1.33fr); }
+  .tableView .tableComposition { inset-inline: 14%; grid-template-rows: minmax(0, .78fr) minmax(0, 1.38fr); }
+  .tableView .tableDisplay { margin-inline: 3%; }
   .tableView .dossier { padding-inline: .4rem; }
   .tableView .dossier[data-archive-card] { padding-block: .2rem; }
   .dossier[data-archive-card] .dossierHeader { margin-bottom: .08rem; }
@@ -372,7 +375,7 @@
   .dossier[data-archive-card] .workDetails { margin-top: .13rem; }
   .dossierSymbol { width: 1rem; }
   .dossierArchiveNumber { font-size: .85em; }
-  .workDetails { gap: .12rem; }
+  .workDetails { gap: .12rem .45rem; }
   .workDetails > div { gap: .14rem; }
   .workDetails dd { padding: .04rem .05rem; }
 }

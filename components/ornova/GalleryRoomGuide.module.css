@@ -49,6 +49,34 @@
 .replay { right: max(.65rem, 2%); bottom: max(.55rem, env(safe-area-inset-bottom)); min-height: 44px; padding: .39rem .7rem; border-radius: .3rem; font-size: .78rem; cursor: pointer; }
 .controls button:focus-visible, .replay:focus-visible { outline: 2px solid #355a82; outline-offset: 2px; }
 
+@media (max-width: 700px), (max-height: 430px) and (pointer: coarse) {
+  .replay {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+  }
+  .replay span { display: none; }
+  .replay::before {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    aspect-ratio: 1;
+    border: 1px solid #e3c29a;
+    border-radius: 50%;
+    color: #fff4e0;
+    background: #534437;
+    box-shadow: inset 0 1px #e3c29a55, 0 1px 3px #31211655;
+    font-size: .88rem;
+    content: "؟";
+  }
+}
+
 @media (max-width: 700px) and (orientation: portrait) {
   .note { width: min(15.5rem, 70%); }
   .note[data-guide-stop="showcase"] { top: 54%; right: 26%; }
