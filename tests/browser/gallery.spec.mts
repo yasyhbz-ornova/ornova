@@ -125,6 +125,35 @@ test("mobile tray and cashier retain their layout", async ({ page }) => {
   await expect(page).toHaveScreenshot("cashier.png");
 });
 
+test("a portrait phone shows the complete room and opens the real showcase boxes", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/");
+  await expect(page.getByRole("group", { name: "دسته‌های ویترین" })).toHaveCount(0);
+  const room = page.getByRole("img", { name: /سالن اُرنوا/ });
+  const image = await room.evaluate(async (element: HTMLImageElement) => {
+    await element.decode();
+    const bounds = element.getBoundingClientRect();
+    return { src: element.currentSrc, left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom };
+  });
+  expect(image.src).toContain("hatam-portrait-v1-");
+  expect(image.left).toBeLessThanOrEqual(0);
+  expect(image.right).toBeGreaterThanOrEqual(320);
+  expect(image.top).toBeLessThanOrEqual(0);
+  expect(image.bottom).toBeGreaterThanOrEqual(568);
+
+  const boxes = await page.locator("[data-stand-id]").all();
+  expect(boxes).toHaveLength(6);
+  for (const box of boxes) {
+    expect(await box.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.width >= 24 && bounds.height >= 24 && element.contains(document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2));
+    })).toBe(true);
+    await box.click();
+    await expect(tray(page)).toBeVisible();
+    await page.getByRole("button", { name: "بازگشت به گالری" }).click();
+  }
+});
+
 test("the visit guide marks its objects and restores keyboard focus on finish and replay", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/");

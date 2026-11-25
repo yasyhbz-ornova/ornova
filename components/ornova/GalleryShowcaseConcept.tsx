@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link, { type LinkProps } from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type Ref } from "react";
+import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type Ref } from "react";
 import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catalog";
 import { findGalleryBirthMonth } from "@/lib/constants/collections";
@@ -17,10 +17,16 @@ import styles from "./GalleryShowcaseConcept.module.css";
 
 const roomMedium = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1280.webp";
 const roomLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1670.webp";
+const portraitAvifSmall = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-460.avif";
+const portraitAvifLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-768.avif";
+const portraitWebpSmall = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-460.webp";
+const portraitWebpLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-768.webp";
+const portraitMedia = "(max-width: 700px) and (orientation: portrait)";
+const portraitSizes = "(max-aspect-ratio: 426/923) 46.154vh, 100vw";
 
 const shelves = [
-  { top: 13.5 }, { top: 23.35 }, { top: 33.1 },
-  { top: 42.35 }, { top: 51.5 }, { top: 60.6 },
+  { top: 13.5, portraitTop: 31.25 }, { top: 23.35, portraitTop: 35.15 }, { top: 33.1, portraitTop: 39.04 },
+  { top: 42.35, portraitTop: 42.91 }, { top: 51.5, portraitTop: 46.77 }, { top: 60.6, portraitTop: 50.63 },
 ] as const;
 const shelfSymbols = {
   "ring-display": "ring",
@@ -103,7 +109,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
 
   function showCategory(id: CatalogCategoryId, trigger?: HTMLElement, returnTo?: PhotoReturn) {
     if (!entriesByCategory[id]?.length) return;
-    const fromShelf = Boolean(trigger?.dataset.standId || trigger?.dataset.shelfIndex);
+    const fromShelf = Boolean(trigger?.dataset.standId);
     if (fromShelf) guide.follow("showcase");
     setHoveredShelf(null);
     if (trigger) returnFocus.current = trigger;
@@ -219,6 +225,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     <div className={styles.scene} data-table-open={tableOpen || undefined} data-shelf-approach={(tableOpen && table?.fromShelf && !previewProduct) || undefined}>
       <div className={styles.roomView} inert={tableOpen || magazineOpen || panelOpen}>
         <picture>
+          <source media={portraitMedia} type="image/avif" srcSet={`${portraitAvifSmall} 460w, ${portraitAvifLarge} 768w`} sizes={portraitSizes} />
+          <source media={portraitMedia} srcSet={`${portraitWebpSmall} 460w, ${portraitWebpLarge} 768w`} sizes={portraitSizes} />
           <source media="(max-width: 700px)" srcSet="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-840.webp" />
           <img
             className={styles.architecture}
@@ -242,7 +250,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
           <div
             key={stand.id}
             className={styles.shelf}
-            style={{ top: `${tier.top}%`, animationDelay: `${index * -0.6}s` }}
+            style={{ "--shelf-top": `${tier.top}%`, "--portrait-shelf-top": `${tier.portraitTop}%`, animationDelay: `${index * -0.6}s` } as CSSProperties}
             data-tooltip-open={visibleTooltip === stand.id || undefined}
             onPointerEnter={(event) => {
               if (event.pointerType !== "mouse") return;
@@ -288,15 +296,6 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       <button ref={roomBook} type="button" className={styles.book} data-guide-current={visibleGuideStop === "magazine" || undefined} onClick={(event) => showMagazine(event.currentTarget)} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
       <Link {...panelLink("/?galleryPanel=phone", "phone")} className={styles.phone} data-guide-current={visibleGuideStop === "phone" || undefined} aria-label="ارتباط با اُرنوا از تلفن گالری" />
       <Link {...panelLink("/?galleryPanel=basket", "cashier")} className={styles.register} data-guide-current={visibleGuideStop === "cashier" || undefined} aria-label="باز کردن صندوق درخواست‌ها" />
-      <div className={styles.mobileShelfIndex} role="group" aria-label="دسته‌های ویترین">
-        {galleryRoomStands.map((stand) => <button
-          key={stand.id}
-          type="button"
-          data-shelf-index={stand.id}
-          disabled={!entriesByCategory[stand.categoryId]?.length}
-          onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}
-        >{stand.label}</button>)}
-      </div>
       {!tableOpen && !magazineOpen && !panelOpen && <GalleryRoomGuide step={guide.step} />}
       </div>
       <section className={styles.tableView} inert={!tableOpen || panelOpen} aria-hidden={!tableOpen || panelOpen || undefined} aria-label="نمای نزدیک میز و سینی">

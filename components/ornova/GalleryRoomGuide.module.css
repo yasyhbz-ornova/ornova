@@ -50,16 +50,25 @@
 .controls button:focus-visible, .replay:focus-visible { outline: 2px solid #355a82; outline-offset: 2px; }
 
 @media (max-width: 700px) and (orientation: portrait) {
-  .note[data-guide-stop="showcase"] { top: auto; right: .65rem; bottom: calc(100% + .65rem); }
-  .note[data-guide-stop="studio"] { top: auto; bottom: calc(100% + .65rem); left: 50%; translate: -50% 0; }
-  .note[data-guide-stop="magazine"] { top: calc(100% + .65rem); right: .65rem; bottom: auto; }
-  .note:is([data-guide-stop="cashier"], [data-guide-stop="phone"]) { top: calc(100% + .65rem); bottom: auto; left: .65rem; }
-  .note[data-guide-stop]::after { top: -.36rem; right: 1rem; left: auto; rotate: -45deg; }
-  .note[data-guide-stop="showcase"]::after { top: auto; bottom: -.36rem; rotate: 135deg; }
-  .note[data-guide-stop="studio"]::after { top: auto; right: 52%; bottom: -.36rem; rotate: 135deg; }
-  .note[data-guide-stop="cashier"]::after { right: auto; left: 18%; }
-  .note[data-guide-stop="phone"]::after { right: auto; left: 5%; }
-  .replay { top: calc(100% + var(--touch-index-space, 0rem) + .7rem); right: .65rem; bottom: auto; }
+  .note { width: min(15.5rem, 70%); }
+  .note[data-guide-stop="showcase"] { top: 54%; right: 26%; }
+  .note[data-guide-stop="studio"] { top: 53%; left: 9%; }
+  .note[data-guide-stop="magazine"] { bottom: 40%; right: auto; left: 8%; }
+  .note[data-guide-stop="cashier"] { bottom: 25.5%; left: 18%; }
+  .note[data-guide-stop="phone"] { bottom: 25.5%; left: 5%; }
+  .note[data-guide-stop="studio"]::after { top: -.36rem; right: auto; left: 44%; rotate: -45deg; }
+  .note:is([data-guide-stop="magazine"], [data-guide-stop="cashier"], [data-guide-stop="phone"])::after {
+    top: auto;
+    right: auto;
+    bottom: -.36rem;
+    left: 44%;
+    rotate: 135deg;
+  }
+  .note[data-guide-stop="phone"]::after { left: 23%; }
+  .replay {
+    right: calc(max(0px, (100% - 100vw) / 2) + .65rem);
+    bottom: calc(max(0px, (100% - 100dvh) / 2) + max(.65rem, env(safe-area-inset-bottom)));
+  }
 }
 
 @media (orientation: landscape) and (max-height: 400px) {
