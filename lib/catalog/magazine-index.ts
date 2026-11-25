@@ -1,6 +1,6 @@
 import { catalogCategories, filterCatalogProducts } from "../constants/catalog";
 import { findGalleryBirthMonth } from "../constants/collections";
-import { trayVisibleShowcaseEntries } from "../constants/gallery-room-samples";
+import { showcaseEntryTrayImage, trayVisibleShowcaseEntries } from "../constants/gallery-room-samples";
 import type { Product } from "../constants/products";
 
 export type MagazineFilters = { query: string; category: string; collection: string };
@@ -8,8 +8,9 @@ export const emptyMagazineFilters: MagazineFilters = { query: "", category: "", 
 
 export function buildMagazineIndex(products: readonly Product[]) {
   const entries = trayVisibleShowcaseEntries(products);
-  return catalogCategories.flatMap((category) => (entries[category.id] ?? []).map(({ product, sample }) => {
-    const image = product?.standImage ?? sample?.trayImage;
+  return catalogCategories.flatMap((category) => (entries[category.id] ?? []).map((entry) => {
+    const { product, sample } = entry;
+    const image = showcaseEntryTrayImage(entry);
     const archive = product ? undefined : sample;
     const id = product?.slug ?? archive?.number;
     if (!image || !id) return null;

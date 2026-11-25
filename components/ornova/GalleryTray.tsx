@@ -10,13 +10,6 @@ const portraitTrayWebpSmall = "/images/ornova/gallery/review/ornova-velvet-tray-
 const portraitTrayWebpLarge = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v3-768.webp";
 const portraitMedia = "(max-width: 700px) and (orientation: portrait)";
 
-const originalLapisCutout = "/images/ornova/gallery/products/lajvard-shab-stand-cutout-preview-v1.webp";
-const horizontalLapisCutout = "/images/ornova/gallery/products/lajvard-shab-tray-horizontal-v2.webp";
-
-export function galleryTrayWorkImage(path: string) {
-  return path === originalLapisCutout ? horizontalLapisCutout : path;
-}
-
 export function GalleryTrayBackdrop({ layout = "responsive" }: { layout?: "responsive" | "phone" | "desktop" }) {
   const media = layout === "responsive" ? portraitMedia : undefined;
   const sizes = layout === "phone" ? "390px" : "100vw";

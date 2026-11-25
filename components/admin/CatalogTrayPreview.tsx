@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useLayoutEffect, useRef, useState } from "react";
-import { GalleryTrayBackdrop, GalleryTrayDossier, galleryTrayWorkImage } from "@/components/ornova/GalleryTray";
+import { GalleryTrayBackdrop, GalleryTrayDossier } from "@/components/ornova/GalleryTray";
 import styles from "@/components/ornova/GalleryShowcaseConcept.module.css";
+import { galleryTrayWorkImage } from "@/lib/constants/gallery-tray-cutouts";
 import { drawTrayImage, visibleTrayCrop, type TrayCrop } from "@/lib/catalog/rotate-tray-image";
 
 const previews = {

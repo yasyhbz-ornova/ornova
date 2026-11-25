@@ -2,7 +2,7 @@ import type { CatalogCategoryId } from "./catalog";
 import type { Product } from "./products";
 import { findGalleryProduct, isPublicGalleryProduct, isWithheldGalleryPhoto } from "../catalog/gallery-product-link";
 import { visibleGalleryRenders, type GalleryRender } from "./gallery-renders";
-import { galleryTrayCutout } from "./gallery-tray-cutouts";
+import { galleryTrayCutout, galleryTrayWorkImage } from "./gallery-tray-cutouts";
 
 /** Measured blue stand silhouettes in the owner's final photographs (source pixels).
  * The original renders stay intact; the scene masks them to the matching empty stand.
@@ -83,6 +83,10 @@ type GalleryShowcaseEntry =
 
 type GalleryShowcaseEntries = Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>>;
 export type GalleryShowcasePhoto = Pick<GalleryRender, "number" | "src" | "categoryId">;
+
+export function showcaseEntryTrayImage({ product, sample }: GalleryShowcaseEntry) {
+  return product?.standImage ? galleryTrayWorkImage(product.standImage) : sample?.trayImage;
+}
 
 export function galleryShowcaseEntries(products: readonly Product[]): GalleryShowcaseEntries {
   const entries: Partial<Record<CatalogCategoryId, GalleryShowcaseEntry[]>> = {};

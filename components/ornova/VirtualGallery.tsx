@@ -8,7 +8,8 @@ import type { GuideChapter } from "@/components/ornova/GalleryGuidePanel";
 import type { StudioInquiryMode } from "@/components/studio/DesignStudio";
 import { GalleryShowcaseConcept, type GalleryShowcaseHandle } from "./GalleryShowcaseConcept";
 import { OrnovaSymbol } from "./OrnovaBrandMark";
-import { galleryRoomSamples, galleryRoomSamplesByCategory, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
+import { findGalleryShowcasePhoto, galleryRoomSamples, galleryRoomSamplesByCategory, showcaseEntryTrayImage, trayVisibleShowcaseEntries, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
+import { galleryTrayWorkImage } from "@/lib/constants/gallery-tray-cutouts";
 import { isPublicGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { buildMagazineIndex, emptyMagazineFilters, findMagazineWorks, type MagazineFilters } from "@/lib/catalog/magazine-index";
@@ -180,11 +181,13 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
   const searchingMagazine = Boolean(magazineFilters.query.trim() || magazineFilters.category || magazineFilters.collection);
   const magazineWorks = useMemo(() => searchingMagazine ? findMagazineWorks(magazineIndex, magazineFilters) : [], [magazineIndex, magazineFilters, searchingMagazine]);
   const categoryProducts = useMemo(() => products.filter((product) => product.categoryId === category?.id && isPublicGalleryProduct(product)), [category?.id, products]);
+  const availableTypes = category?.types.filter((type) => categoryProducts.some((product) => product.subtypeId === type.id)) ?? [];
   const filteredProducts = subtypeId ? categoryProducts.filter((product) => product.subtypeId === subtypeId) : categoryProducts;
   const archiveWorks = category && !subtypeId ? (galleryRoomSamplesByCategory[category.id] ?? []).flatMap((photo) =>
     photo.trayImage && !findGalleryProduct(products, photo) ? [{ photo, image: photo.trayImage }] : [],
   ) : [];
-  const chapterImage = categoryProducts[0]?.standImage ?? archiveWorks[0]?.image;
+  const chapterStandImage = filteredProducts[0]?.standImage;
+  const chapterImage = chapterStandImage ? galleryTrayWorkImage(chapterStandImage) : archiveWorks[0]?.image;
 
   const clearGalleryReturnState = useCallback(() => {
     const url = new URL(window.location.href);
@@ -395,11 +398,17 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
   }
   const activeCollection = drawer?.kind === "collection" ? galleryCollections.find((item) => item.id === drawer.id) : undefined;
   const selectedBirthMonth = activeCollection?.birthMonths?.find((month) => month.id === selectedBirthMonthId) ?? activeCollection?.birthMonths?.[0];
+  const hasBirthMonths = Boolean(activeCollection?.birthMonths?.length);
+  const collectionEntries = useMemo(() => hasBirthMonths ? trayVisibleShowcaseEntries(products) : null, [hasBirthMonths, products]);
   const birthMonthWorks = selectedBirthMonth ? [
-    { label: "دستبند زودیاک", title: selectedBirthMonth.bracelet, image: selectedBirthMonth.braceletImage },
-    { label: "نیم‌ست صورت فلکی", title: selectedBirthMonth.constellation, image: selectedBirthMonth.constellationImage },
-    { label: "آویز گل فیبوناچی", title: selectedBirthMonth.flowerPendant, image: selectedBirthMonth.flowerImage },
-  ] : [];
+    { label: "دستبند زودیاک", title: selectedBirthMonth.bracelet, photo: selectedBirthMonth.braceletImage },
+    { label: "نیم‌ست صورت فلکی", title: selectedBirthMonth.constellation, photo: selectedBirthMonth.constellationImage },
+    { label: "آویز گل فیبوناچی", title: selectedBirthMonth.flowerPendant, photo: selectedBirthMonth.flowerImage },
+  ].map((work) => {
+    const position = collectionEntries && work.photo && findGalleryShowcasePhoto(collectionEntries, work.photo);
+    const entry = position && collectionEntries?.[position.categoryId]?.[position.index];
+    return { ...work, thumbnail: entry ? showcaseEntryTrayImage(entry) : undefined };
+  }) : [];
 
   return <div className={`${styles.root} virtualGallery`} dir="rtl">
   <GalleryShowcaseConcept
@@ -416,22 +425,21 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
           <button type="button" onClick={handleDrawerBack} className={styles.backButton}>{drawer.kind === "category" || drawer.kind === "collection" ? "بازگشت به فهرست" : drawer.kind === "contact" && studioContact ? "بازگشت به کارگاه" : (drawer.kind === "contact" && contactContext?.sourceContext === "ring-builder") || (drawer.kind === "size-guide" && sizeGuideFromBuilder) ? "بازگشت به طراحی انگشتر" : "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
           <button type="button" onClick={closeDrawer} className={styles.closeButton} aria-label="بستن پنل">×</button>
         </div>
-        {drawer.kind === "category" && category && <>
-          <header className={styles.magazineCover}>
+        {drawer.kind === "category" && category && <section className={styles.chapterSheet} aria-labelledby="gallery-drawer-title">
+          <header className={`${styles.magazineCover} ${styles.chapterHeading}`}>
             <div><p className={styles.eyebrow}>{catalogFamilies.find((family) => family.id === category.family)?.label}</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{category.label}</h1></div>
             {chapterImage && <div className={styles.magazineFeature} aria-hidden="true"><Image src={chapterImage} alt="" width={220} height={120} loading="eager" unoptimized /></div>}
           </header>
-          <div className={styles.chapterSheet}>
-          {categoryProducts.length > 0 && <div className={styles.subtypes} role="group" aria-label={`گونه‌های ${category.label}`}>
+          {availableTypes.length > 0 && <div className={styles.subtypes} role="group" aria-label={`گونه‌های ${category.label}`}>
             <button type="button" aria-pressed={!subtypeId} className={!subtypeId ? styles.selectedSubtype : ""} onClick={() => setSubtypeId(null)}>همهٔ گونه‌ها</button>
-            {category.types.map((type) => <button type="button" key={type.id} aria-pressed={subtypeId === type.id} className={subtypeId === type.id ? styles.selectedSubtype : ""} onClick={() => setSubtypeId(type.id)}>{type.label}</button>)}
+            {availableTypes.map((type) => <button type="button" key={type.id} aria-pressed={subtypeId === type.id} className={subtypeId === type.id ? styles.selectedSubtype : ""} onClick={() => setSubtypeId(type.id)}>{type.label}</button>)}
           </div>}
           {filteredProducts.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-orderable-title">
             <h2 id="gallery-orderable-title">آثار قابل سفارش</h2>
             <ul className={styles.indexWorks}>{filteredProducts.map((product) => {
               if (!product.standImage) return null;
               const id = `gallery-index-product-${product.slug}`;
-              return <GalleryIndexWork key={id} id={id} name={product.name} image={product.standImage} onOpen={() => openProductOnTray(product, "بازگشت به صفحهٔ مجله", id)} />;
+              return <GalleryIndexWork key={id} id={id} name={product.name} image={galleryTrayWorkImage(product.standImage)} onOpen={() => openProductOnTray(product, "بازگشت به صفحهٔ مجله", id)} />;
             })}</ul>
           </section>}
           {archiveWorks.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-archive-title">
@@ -445,8 +453,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
             <p>{subtypeId ? "برای این گونه هنوز اثری منتشر نشده است." : "برای این دسته هنوز اثری آمادهٔ نمایش نیست."}</p>
             {!subtypeId && <button type="button" className={styles.primaryLink} onClick={() => openDrawer({ kind: "studio" })}>درخواست طراحی شخصی <span aria-hidden="true">←</span></button>}
           </div>}
-          </div>
-        </>}
+        </section>}
         {drawer.kind === "basket" && <>
           <span id="gallery-drawer-title" tabIndex={-1} className="sr-only">صندوق سفارش‌ها</span>
           <nav className={styles.cashierNav} aria-label="برگه‌های صندوق"><button type="button" aria-pressed={receiptSelection === null} onClick={() => showCashier()}>انتخاب‌های فعلی</button><button type="button" aria-pressed={receiptSelection !== null} onClick={() => showCashier(true)}>رسیدها و برگه‌های مبلغ</button></nav>
@@ -499,23 +506,23 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
           <div className={styles.magazineFooter}><button type="button" onClick={() => openDrawer({ kind: "about" })}>دربارهٔ اُرنوا <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "guide" })}>دفتر راهنما <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "phone" })}>دفترچهٔ تلفن <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "account" })}>حساب من <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "library" })}>دفتر طرح‌های شخصی <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "basket" })}>صندوق درخواست <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "studio" })}>کارگاه طراحی <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "ring-builder" })}>طراحی انگشتر <span aria-hidden="true">↖</span></button><button type="button" onClick={() => { setSizeGuideFromBuilder(false); openDrawer({ kind: "size-guide" }); }}>راهنمای سایز انگشتر <span aria-hidden="true">↖</span></button></div>
           </div>
         </>}
-        {drawer.kind === "collection" && (activeCollection ? <>
-            <header className={styles.magazineCover}><div><p className={styles.eyebrow}>دفتر مجموعه‌های اُرنوا</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{activeCollection.name}</h1><p className={styles.intro}>{activeCollection.description}</p></div></header>
-            <div className={styles.chapterSheet}>
+        {drawer.kind === "collection" && (activeCollection ? <section className={styles.chapterSheet} aria-labelledby="gallery-drawer-title">
+            <header className={`${styles.magazineCover} ${styles.chapterHeading}`}><div><p className={styles.eyebrow}>دفتر مجموعه‌های اُرنوا</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{activeCollection.name}</h1><p className={styles.intro}>{activeCollection.description}</p></div></header>
             {activeCollection.birthMonths && selectedBirthMonth ? <>
               <div className={styles.birthMonthPicker} role="group" aria-label="انتخاب ماه تولد">
                 {activeCollection.birthMonths.map((month) => <button type="button" key={month.id} aria-pressed={month.id === selectedBirthMonth.id} onClick={() => setSelectedBirthMonthId(month.id)}>{month.name}</button>)}
               </div>
               <h2 className={styles.birthMonthTitle}>{selectedBirthMonth.name}</h2>
               <div className={styles.birthMonthWorks} aria-label={`آثار ماه ${selectedBirthMonth.name}`}>
-                {birthMonthWorks.map(({ label, title, image }) => <article className={styles.birthMonthWork} key={label}>
-                  <span className={styles.collectionReferenceNumber}>{label}</span>
-                  <strong>{title}</strong>
-                  {image ? <figure className={styles.birthMonthFigure}>
-                    <button id={`gallery-collection-photo-${image.number}`} type="button" className={styles.birthMonthPhoto} data-collection-photo={image.number} aria-label={`نمایش ${image.title} روی سینی`} onClick={(event) => openGalleryPhoto(image, event.currentTarget.id, "بازگشت به دفتر")}>
-                      <Image src={image.src} alt={image.title} width={image.width} height={image.height} sizes="(max-width: 700px) 76vw, 320px" />
-                    </button>
-                  </figure> : <p className={styles.collectionImagePending}>عکس این طرح در حال تطبیق است.</p>}
+                {birthMonthWorks.map(({ label, title, photo, thumbnail }) => <article className={styles.birthMonthWork} key={label}>
+                  <header className={styles.birthMonthCaption}>
+                    <span className={styles.collectionReferenceNumber}>{label}</span>
+                    <strong>{title}</strong>
+                    {(!photo || !thumbnail) && <p className={styles.collectionImagePending}>عکس این طرح در حال تطبیق است.</p>}
+                  </header>
+                  {photo && thumbnail && <button id={`gallery-collection-photo-${photo.number}`} type="button" className={styles.birthMonthPhoto} data-collection-photo={photo.number} aria-label={`نمایش ${photo.title} روی سینی`} onClick={(event) => openGalleryPhoto(photo, event.currentTarget.id, "بازگشت به دفتر")}>
+                    <Image src={thumbnail} alt="" fill sizes="(max-width: 640px) 32vw, 220px" unoptimized />
+                  </button>}
                 </article>)}
               </div>
             </> : <>
@@ -528,8 +535,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
               </div>
               <p className={styles.collectionNotice}>این مراجع هنوز عکس تأییدشدهٔ محصول و جزئیات نهایی ندارند؛ فعلاً برای خرید یا افزودن به صندوق ارائه نمی‌شوند.</p>
             </>}
-            </div>
-          </> : <div className={styles.emptyState}><p>این صفحه از مجموعه در دسترس نیست.</p></div>)}
+          </section> : <div className={styles.emptyState}><p>این صفحه از مجموعه در دسترس نیست.</p></div>)}
         {drawer.kind === "account" && <section className={styles.accountPage} aria-labelledby="gallery-drawer-title">
           <header className={styles.accountHeading}>
             <OrnovaSymbol className={styles.accountSymbol} />

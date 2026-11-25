@@ -140,9 +140,6 @@
 }
 
 .magazineCover .intro { margin: .3rem 0 0; line-height: 1.8; }
-.magazineCover:has(+ .chapterSheet) h1 { font-size: clamp(1.55rem, 4vw, 2.9rem); line-height: 1.8; }
-.magazineCover:has(+ .chapterSheet) .magazineFeature { min-height: clamp(4rem, 13vw, 7.15rem); }
-.magazineCover:has(+ .chapterSheet) .magazineFeature img { height: clamp(4rem, 13vw, 7.15rem); }
 
 .magazineCover > .magazineFeature {
   position: relative;
@@ -231,8 +228,13 @@
   box-shadow: inset 0 0 1rem #78634e22, 0 2px #e5d5bd, 0 3px #b6a286, 0 5px #d8c7ae, 0 6px #a18b71, 0 8px #887163, 2px 13px 18px #48362b31;
 }
 
+.chapterSheet > .chapterHeading { margin: 0 0 .75rem; padding: 0 0 .6rem; border-block-start: 0; border-block-end: 3px double #a68b76; }
+.chapterHeading h1 { font-size: clamp(1.55rem, 4vw, 2.9rem); line-height: 1.8; }
+.chapterHeading > .magazineFeature { min-height: 0; border: 0; background: none; }
+.chapterHeading .magazineFeature img { height: clamp(3.3rem, 13vw, 6.15rem); padding: .25rem .6rem; filter: drop-shadow(2px 3px 2px #68584835); }
+
 .chapterSheet .subtypes {
-  margin: 0 0 1.2rem;
+  margin: 0 0 .75rem;
   gap: .15rem .85rem;
   border-block-end: 1px solid #97816866;
 }
@@ -367,21 +369,27 @@
 .collectionReferenceNumber { color: #887e70; font-size: .7rem; }
 .collectionReference strong { color: var(--ink); font-size: .85rem; font-weight: 500; }
 .collectionReference small { grid-column: 2; color: #746f67; font-size: .72rem; line-height: 1.9; }
-.birthMonthWorks { display: grid; gap: .35rem; margin-top: 1.1rem; }
-.birthMonthWork { display: grid; justify-items: center; gap: .25rem; padding: .85rem 0 1rem; border-bottom: 1px solid var(--silver); text-align: center; }
-.birthMonthWork .collectionReferenceNumber { font-size: .74rem; }
-.birthMonthWork strong { color: var(--ink); font-size: .9rem; font-weight: 500; line-height: 1.8; }
-.collectionImagePending { margin: .25rem 0 0; color: #706b63; font-size: .75rem; line-height: 1.8; }
-.birthMonthFigure { width: min(100%, 320px); margin: .45rem auto 0; }
-.birthMonthPhoto { display: block; width: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.birthMonthWorks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+.birthMonthWork { display: grid; grid-template-rows: auto 1fr; min-width: 0; gap: .25rem; padding: .6rem .5rem; border-block-start: 1px solid #9e8c7380; }
+.birthMonthCaption { display: grid; gap: .1rem; align-content: start; min-width: 0; }
+.birthMonthCaption .collectionReferenceNumber { color: #685747; font-size: .74rem; }
+.birthMonthCaption strong { color: var(--ink); font-size: .95rem; font-weight: 500; overflow-wrap: anywhere; }
+.collectionImagePending { margin: .25rem 0 0; color: #655746; font-size: .74rem; line-height: 1.8; }
+.birthMonthPhoto { position: relative; display: block; align-self: end; width: 100%; height: clamp(5.2rem, 10vw, 9.25rem); border: 0; background: transparent; cursor: pointer; }
+.birthMonthPhoto img { object-fit: contain; padding: .22rem; filter: drop-shadow(1px 2px 1px #69563c42); }
 .birthMonthPhoto:focus-visible { outline: 2px solid #355a82; outline-offset: 3px; }
-.birthMonthFigure img { display: block; width: 100%; height: auto; border: 1px solid #d8d4cc; background: #f6f1e8; }
 .collectionNotice { margin-top: 1rem; padding: .8rem 1rem; border-right: 2px solid var(--sapphire); color: #635f58; font-size: .74rem; line-height: 2; }
-.birthMonthPicker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; margin-top: 1.2rem; }
-.birthMonthPicker button { min-height: 42px; padding: .35rem .25rem; border: 1px solid #d8d4cc; color: #514d46; background: rgb(255 255 255 / 24%); font: inherit; font-size: .76rem; cursor: pointer; }
-.birthMonthPicker button[aria-pressed="true"] { border-color: #536d85; color: #304b65; background: rgb(83 109 133 / 9%); box-shadow: inset 0 -2px #536d85; }
+.birthMonthPicker { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0 .35rem; }
+.birthMonthPicker button { min-height: 44px; padding: .25rem .1rem; border-block-end: 1px solid #9e8c7361; color: #514d46; font: inherit; font-size: .76rem; cursor: pointer; }
+.birthMonthPicker button[aria-pressed="true"] { border-color: #536d85; color: #263d52; background: #536d8510; box-shadow: inset 0 -1px #536d85; }
 .birthMonthPicker button:focus-visible { outline: 2px solid var(--sapphire); outline-offset: 2px; }
-.birthMonthTitle { margin: 1.25rem 0 -.4rem; color: #6f6252; font-family: var(--font-display); font-size: 1.05rem; font-weight: 400; }
+.birthMonthTitle { margin: .65rem 0 .25rem; color: #5c483a; font-family: var(--font-display); font-size: 1.15rem; font-weight: 400; }
+@media (max-width: 640px) {
+  .birthMonthPicker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .birthMonthWorks { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .birthMonthWork { grid-template: auto / minmax(0, 1.45fr) minmax(4.5rem, 1fr); align-items: center; gap: .65rem; min-height: 5.6rem; padding: .35rem .08rem; }
+  .birthMonthPhoto { align-self: center; height: 5.2rem; }
+}
 .magazineLinks { display: grid; }
 
 .magazineLinks button, .magazineFooter > * {

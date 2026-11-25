@@ -133,6 +133,51 @@ test("magazine filters preserve the exact work and its focus on return", async (
   await expect(page).toHaveScreenshot("magazine-filtered.png");
 });
 
+test("magazine chapters show the same cutouts as the tray and retain the selected month", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await magazine(page).click();
+  await drawer(page).getByRole("button", { name: "انگشتر", exact: true }).click();
+  const rings = drawer(page).getByRole("region", { name: "انگشتر", exact: true });
+  const lapis = rings.getByRole("button", { name: /نمایش انگشتر نقره «لاجورد شب» روی سینی/ });
+  const horizontal = /lajvard-shab-tray-horizontal-v2\.webp$/;
+  await expect(rings.locator("header img")).toHaveAttribute("src", horizontal);
+  await expect(lapis.locator("img")).toHaveAttribute("src", horizontal);
+  await lapis.click();
+  await expect(tray(page).locator("[data-table-product] img")).toHaveAttribute("src", horizontal);
+  await page.getByRole("button", { name: /بازگشت به صفحهٔ مجله/ }).click();
+  await expect(lapis).toBeFocused();
+  await drawer(page).getByRole("button", { name: /بازگشت به فهرست/ }).click();
+  await drawer(page).getByRole("button", { name: "ماه‌های تولد", exact: true }).click();
+
+  const leaf = drawer(page).getByRole("region", { name: "ماه‌های تولد", exact: true });
+  const picker = leaf.getByRole("group", { name: "انتخاب ماه تولد" });
+  const monthButtons = await picker.getByRole("button").all();
+  expect(monthButtons).toHaveLength(12);
+  const photos = new Set<string>();
+  let pending = 0;
+  for (const month of monthButtons) {
+    await month.click();
+    const cutouts = await leaf.locator("[data-collection-photo] img").all();
+    for (const cutout of cutouts) {
+      const source = await cutout.evaluate(async (img: HTMLImageElement) => { await img.decode(); return img.getAttribute("src")!; });
+      expect(source).toMatch(/\/gallery\/tray-cutouts\//);
+      photos.add(source);
+    }
+    pending += await leaf.getByText("عکس این طرح در حال تطبیق است.", { exact: true }).count();
+  }
+  expect(photos.size).toBe(29);
+  expect(pending).toBe(7);
+  const esfand = picker.getByRole("button", { name: "اسفند", exact: true });
+  const bracelet = leaf.locator('[data-collection-photo="20"]');
+  const braceletSrc = await bracelet.locator("img").getAttribute("src");
+  await bracelet.click();
+  await expect(tray(page).locator('[data-gallery-product-number="20"] img')).toHaveAttribute("src", braceletSrc!);
+  await page.getByRole("button", { name: /بازگشت به دفتر/ }).click();
+  await expect(esfand).toHaveAttribute("aria-pressed", "true");
+  await expect(bracelet).toBeFocused();
+});
+
 test("keyboard tray navigation announces the chosen work without announcing automatic changes", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });

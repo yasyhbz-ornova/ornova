@@ -269,3 +269,10 @@ export function galleryTrayCutout(photo: { number: string; src: string }): Cutou
   const cutout = Object.hasOwn(cutouts, photo.number) ? cutouts[photo.number] : undefined;
   return cutout?.source === photo.src ? cutout : null;
 }
+
+const originalLapisCutout = "/images/ornova/gallery/products/lajvard-shab-stand-cutout-preview-v1.webp";
+const horizontalLapisCutout = "/images/ornova/gallery/products/lajvard-shab-tray-horizontal-v2.webp";
+
+export function galleryTrayWorkImage(path: string) {
+  return path === originalLapisCutout ? horizontalLapisCutout : path;
+}

@@ -8,11 +8,11 @@ import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catalog";
 import { findGalleryBirthMonth } from "@/lib/constants/collections";
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
-import { findGalleryShowcasePhoto, trayVisibleShowcaseEntries, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
+import { findGalleryShowcasePhoto, showcaseEntryTrayImage, trayVisibleShowcaseEntries, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
 import type { Product } from "@/lib/constants/products";
 import { OrnovaBrandMark } from "./OrnovaBrandMark";
 import { GalleryRoomGuide, useGalleryRoomGuide, type GalleryGuideStop } from "./GalleryRoomGuide";
-import { GalleryTrayBackdrop, GalleryTrayDossier, galleryTrayWorkImage } from "./GalleryTray";
+import { GalleryTrayBackdrop, GalleryTrayDossier } from "./GalleryTray";
 import styles from "./GalleryShowcaseConcept.module.css";
 
 const roomMedium = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1280.webp";
@@ -191,7 +191,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const activeIndex = activeCategory ? (indices[activeCategory] ?? 0) % Math.max(activeCount, 1) : 0;
   const activeEntry = previewEntry ?? activeEntries[activeIndex];
   const activeSample = activeEntry?.sample;
-  const trayImage = activeSample?.trayImage;
+  const trayImage = activeEntry && showcaseEntryTrayImage(activeEntry);
   const linkedProduct = activeEntry?.product;
   const canRequestProduct = linkedProduct?.galleryPlacementVerified === true && Boolean(linkedProduct.standImage);
   const canChangeWork = !previewProduct && !table?.returnTo;
@@ -312,9 +312,9 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             {autoAdvance && <span role="status" className="sr-only">{manualWorkTitle}</span>}
             <div className={styles.tableDisplay} data-tray-category={activeCategory}>
               <div key={linkedProduct?.slug ?? activeSample?.number} className={styles.tableProduct}>
-                {linkedProduct?.standImage
+                {linkedProduct && trayImage
                   ? <div className={styles.catalogCutout} data-table-product={linkedProduct.slug}>
-                      <Image src={galleryTrayWorkImage(linkedProduct.standImage)} alt={linkedProduct.name} fill sizes="(max-width: 700px) 220px, 352px" loading="eager" unoptimized />
+                      <Image src={trayImage} alt={linkedProduct.name} fill sizes="(max-width: 700px) 220px, 352px" loading="eager" unoptimized />
                     </div>
                   : activeSample && trayImage && <div className={styles.archiveCutout} data-gallery-product-number={activeSample.number} data-tray-cutout>
                         <Image src={trayImage} alt={activeSample.title} fill sizes="(max-width: 700px) 240px, 384px" loading="eager" unoptimized />
