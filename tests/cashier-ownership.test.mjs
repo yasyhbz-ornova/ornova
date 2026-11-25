@@ -15,6 +15,15 @@ function fixture(user) {
     "@/lib/supabase/server": { createSupabaseServerClient: async () => ({
       auth: { getUser: async () => ({ data: { user }, error: null }) },
       from: (table) => {
+        if (table === "inquiry_items") return { select() { return this; }, async in(column, ids) {
+          calls.push([column, ids]);
+          return { data: [
+            { inquiry_id: receiptId, product_slug: "lapis", product_name: "انگشتر لاجورد" },
+            { inquiry_id: receiptId, product_slug: "lapis", product_name: "انگشتر لاجورد" },
+            { inquiry_id: receiptId, product_slug: "silver-bracelet", product_name: "دستبند نقره" },
+            { inquiry_id: otherId, product_slug: "private-work", product_name: "private b work" },
+          ].filter((item) => ids.includes(item.inquiry_id)), error: null };
+        } };
         assert.equal(table, "inquiries");
         let filtered = records;
         const query = {
@@ -22,12 +31,11 @@ function fixture(user) {
           eq(column, value) { calls.push([column, value]); filtered = filtered.filter((row) => row[column] === value); return this; },
           maybeSingle: async () => ({ data: filtered[0] ?? null, error: null }),
           order() { return this; },
-          range: async () => ({ data: filtered.map(({ id, status, created_at }) => ({ id, status, created_at })), error: null }),
+          range: async () => ({ data: filtered, error: null }),
         };
         return query;
       },
     }) },
-    "@/lib/account/inquiry-receipts": { readInquiryReceipt: async (_client, inquiry) => ({ receipt: { id: inquiry.id, items: [] } }) },
   }).GET;
   return { calls, get: (suffix = "") => get(new Request(`https://www.ornova.ir/api/account/inquiries?view=receipts${suffix}`)) };
 }
@@ -40,12 +48,34 @@ test("cashier receipt list and direct receipt lookups are scoped to the verified
   const account = fixture({ id: "a" });
   const list = await account.get();
   assert.equal(list.headers.get("cache-control"), "private, no-store");
-  assert.deepEqual((await list.json()).receipts.map((receipt) => receipt.id), [receiptId]);
+  assert.deepEqual((await list.json()).receipts, [{
+    id: receiptId, status: "received", created_at: "2026-11-24T10:00:00Z", workName: "انگشتر لاجورد", additionalWorks: 1, archiveNumber: null,
+  }]);
+  assert.deepEqual(account.calls.filter(([column]) => column === "inquiry_id"), [["inquiry_id", [receiptId]]]);
   assert.equal((await account.get(`&receiptId=${otherId}`)).status, 404);
   assert.equal((await account.get("&receiptId=invalid")).status, 400);
   const detail = await account.get(`&receiptId=${receiptId}`);
   assert.equal((await detail.json()).receipt.id, receiptId);
   assert.equal(account.calls.filter(([column, value]) => column === "user_id" && value === "a").length, 3);
+});
+
+test("archive receipt summaries use the recorded name without returning a private message", async () => {
+  let failed = false;
+  let reads = 0;
+  const { readReceiptSummaries } = loadTs("lib/account/inquiry-receipts.ts", {
+    "./inquiry-items": { readInquiryItems: async () => { reads++; return { data: [], error: failed ? { code: "unavailable" } : null }; } },
+  });
+  const fields = { id: receiptId, status: "received", created_at: "2026-11-24T10:00:00Z" };
+  const archive = { ...fields, message: "درخواست سفارش اثر آرشیو «آویز دندان» (عکس 02)\n\nیادداشت خصوصی" };
+  const custom = { ...fields, id: otherId, message: "ایدهٔ خصوصی در کارگاه" };
+  assert.deepEqual(await readReceiptSummaries({}, []), []);
+  assert.equal(reads, 0);
+  assert.deepEqual(await readReceiptSummaries({}, [archive, custom]), [
+    { ...fields, workName: "آویز دندان", additionalWorks: 0, archiveNumber: "02" },
+    { ...fields, id: otherId, workName: null, additionalWorks: 0, archiveNumber: null },
+  ]);
+  failed = true;
+  assert.deepEqual(await readReceiptSummaries({}, [archive]), [{ ...fields, workName: null, additionalWorks: 0, archiveNumber: null }]);
 });
 
 test("saved archive receipts retain the exact title and numbers from before a rename", async () => {

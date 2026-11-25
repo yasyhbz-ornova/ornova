@@ -342,6 +342,13 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
     window.history.pushState(window.history.state, "", `/?galleryPanel=basket${receipts ? `&view=receipts${selection}` : ""}`);
     window.dispatchEvent(new Event(galleryPanelEvent));
   }
+  function selectCashierReceipt(id?: string) {
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set("receipt", id);
+    else url.searchParams.delete("receipt");
+    window.history.replaceState(window.history.state, "", url);
+    window.dispatchEvent(new Event(galleryPanelEvent));
+  }
   function openCategory(id: string) {
     setSubtypeId(null);
     openDrawer({ kind: "category", id });
@@ -445,7 +452,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
           <nav className={styles.cashierNav} aria-label="برگه‌های صندوق"><button type="button" aria-pressed={receiptSelection === null} onClick={() => showCashier()}>انتخاب‌های فعلی</button><button type="button" aria-pressed={receiptSelection !== null} onClick={() => showCashier(true)}>رسیدها و برگه‌های مبلغ</button></nav>
           <div className={styles.basketView}>{receiptSelection === null
             ? <RequestBasketView galleryMode products={products} onBrowseCatalog={() => openDrawer({ kind: "magazine" })} onContinueRequest={continueCheckout} onSelectProduct={openBasketProduct} />
-            : <GalleryCashierReceipts key={receiptSelection} initialReceiptId={receiptSelection || undefined} onOpenAccount={() => { setAccountReturnDestination(`/?galleryPanel=basket&view=receipts${receiptSelection ? `&receipt=${encodeURIComponent(receiptSelection)}` : ""}`); openDrawer({ kind: "account" }); }} />}</div>
+            : <GalleryCashierReceipts selection={receiptSelection || undefined} onSelectReceipt={selectCashierReceipt} onOpenAccount={() => { setAccountReturnDestination(`/?galleryPanel=basket&view=receipts${receiptSelection ? `&receipt=${encodeURIComponent(receiptSelection)}` : ""}`); openDrawer({ kind: "account" }); }} />}</div>
         </>}
         {drawer.kind === "magazine" && <>
           <header className={styles.magazineCover}>

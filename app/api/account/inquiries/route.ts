@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readInquiryItems } from "@/lib/account/inquiry-items";
 import { readInquiryQuotes } from "@/lib/account/inquiry-quotes";
-import { readInquiryReceipt, type ReceiptList } from "@/lib/account/inquiry-receipts";
+import { readInquiryReceipt, readReceiptSummaries, type ReceiptList } from "@/lib/account/inquiry-receipts";
 import { isQuoteDocumentId } from "@/lib/account/quote-document";
 
 export const dynamic = "force-dynamic";
@@ -47,14 +47,17 @@ export async function GET(request: Request) {
       if (!/^[1-9]\d{0,6}$/.test(page)) return errorResponse("شمارهٔ صفحه معتبر نیست.", 400);
       const start = (Number(page) - 1) * receiptPageSize;
       const { data, error } = await supabase.from("inquiries")
-        .select("id,status,created_at")
+        .select("id,status,created_at,message")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .range(start, start + receiptPageSize);
       if (error) return errorResponse(unavailable, 503);
       const rows = data ?? [];
-      const list: ReceiptList = { receipts: rows.slice(0, receiptPageSize), hasMore: rows.length > receiptPageSize };
+      const list: ReceiptList = {
+        receipts: await readReceiptSummaries(supabase, rows.slice(0, receiptPageSize)),
+        hasMore: rows.length > receiptPageSize,
+      };
       return NextResponse.json(list, { headers: noStore });
     }
 

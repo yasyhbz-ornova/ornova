@@ -537,6 +537,84 @@ test.describe("touch gallery orientation", () => {
   });
 });
 
+test("the tray selection stays attached to the order and its named receipt", async ({ page, context }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await context.addCookies([galleryTestCookie()]);
+  const receiptId = "39fe816c-5c30-4cde-8200-611bcfb2afd0";
+  const catalogReceiptId = "41111111-4444-4444-8444-411111111111";
+  const date = "2026-11-24T10:00:00Z";
+  const title = "انگشتر با نگین اشکی";
+  let submissions = 0;
+  await page.route("**/api/inquiries", async (route) => {
+    expect(route.request().method()).toBe("POST");
+    const sent = route.request().postDataJSON();
+    expect(sent.archive_photo).toBe("05");
+    expect(sent.items).toEqual([]);
+    submissions++;
+    await route.fulfill({ status: 201, json: { id: receiptId } });
+  });
+  await page.route("**/api/account/inquiries?view=receipts&*", async (route) => {
+    const id = new URL(route.request().url()).searchParams.get("receiptId");
+    if (id) {
+      expect(id).toBe(receiptId);
+      await route.fulfill({ json: {
+        receipt: { id, items: [] }, archiveTitle: title, archiveNumber: "05", registeredAt: date,
+        status: "received", price: { kind: "pending" },
+      } });
+      return;
+    }
+    await route.fulfill({ json: { receipts: [
+      { id: receiptId, status: "received", created_at: date, workName: title, additionalWorks: 0, archiveNumber: "05" },
+      { id: catalogReceiptId, status: "reviewing", created_at: date, workName: "انگشتر نقره «لاجورد شب»", additionalWorks: 1, archiveNumber: null },
+    ], hasMore: false } });
+  });
+
+  await page.goto("/");
+  await page.clock.install();
+  await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  const selected = tray(page).locator('[data-gallery-product-number="05"]');
+  for (let step = 0; step < 12 && !(await selected.count()); step++) {
+    await page.getByRole("button", { name: "اثر بعدی" }).click();
+  }
+  await expect(selected).toBeVisible();
+  await tray(page).getByRole("heading", { name: title }).scrollIntoViewIfNeeded();
+  await page.getByRole("link", { name: "ثبت سفارش", exact: true }).click();
+  await expect(page).toHaveURL(/galleryPanel=account&complete=1&archive=05$/);
+  await page.clock.fastForward(25_000);
+  await drawer(page).getByRole("button", { name: /بازبینی و ثبت سفارش/ }).click();
+  await expect(drawer(page).getByRole("heading", { name: title, exact: true })).toBeVisible();
+  await drawer(page).getByRole("textbox", { name: "نام", exact: true }).fill("مشتری آزمایشی");
+  await drawer(page).getByRole("textbox", { name: "راه ارتباطی", exact: true }).fill("receipt-test@example.test");
+  await drawer(page).getByRole("button", { name: "ارسال درخواست برای Ornova", exact: true }).click();
+  await drawer(page).getByRole("button", { name: /دیدن رسید در صندوق/ }).click();
+  await expect(page).toHaveURL(new RegExp(`receipt=${receiptId}$`));
+  const issued = drawer(page).getByRole("article", { name: "رسید ثبت درخواست اُرنوا" });
+  await expect(issued).toContainText(`${title} · عکس ۰۵`);
+  const backToList = drawer(page).getByRole("button", { name: "بازگشت به فهرست رسیدها" });
+  await backToList.click();
+  await expect(page).toHaveURL(/view=receipts$/);
+  const archiveRow = drawer(page).getByRole("button", { name: new RegExp(title) });
+  await expect(archiveRow).toBeFocused();
+  await expect(archiveRow).toContainText("عکس ۰۵");
+  await expect(drawer(page).getByRole("button", { name: /لاجورد شب.*و ۱ اثر دیگر/ })).toBeVisible();
+  await archiveRow.click();
+  await expect(backToList).toBeFocused();
+  await expect(page).toHaveURL(new RegExp(`receipt=${receiptId}$`));
+  await expect(issued).toContainText(title);
+  await backToList.click();
+  await expect(archiveRow).toBeFocused();
+  await expect(page).toHaveURL(/view=receipts$/);
+  await drawer(page).getByRole("button", { name: "بستن پنل" }).click();
+  await expect(selected).toBeVisible();
+  await page.goto("/?galleryPanel=basket&view=receipts");
+  await expect(archiveRow).toBeVisible();
+  await archiveRow.click();
+  await page.reload();
+  await expect(issued).toContainText(title);
+  expect(submissions).toBe(1);
+});
+
 test("downloaded archive receipts include the stamp and only their confirmed amount", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const acceptedId = "39fe816c-5c30-4cde-8200-611bcfb2afd0";

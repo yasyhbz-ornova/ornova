@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReceiptDetail, ReceiptList } from "@/lib/account/inquiry-receipts";
 import { getInquiryStatusLabel } from "@/lib/commerce/inquiry-status";
 import { GalleryOrderReceipt } from "./GalleryOrderReceipt";
@@ -9,12 +9,15 @@ import styles from "./GalleryCashierReceipts.module.css";
 
 type Result = { kind: "loading" | "guest" | "missing" | "error" } | { kind: "list"; data: ReceiptList } | { kind: "detail"; data: ReceiptDetail };
 const day = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" });
+const number = new Intl.NumberFormat("fa-IR");
+const photoNumber = new Intl.NumberFormat("fa-IR", { minimumIntegerDigits: 2 });
 
-export function GalleryCashierReceipts({ initialReceiptId, onOpenAccount }: { initialReceiptId?: string; onOpenAccount?: () => void }) {
+export function GalleryCashierReceipts({ selection, onSelectReceipt, onOpenAccount }: { selection?: string; onSelectReceipt(id?: string): void; onOpenAccount?: () => void }) {
   const [result, setResult] = useState<Result>({ kind: "loading" });
-  const [selection, setSelection] = useState<string | undefined>(initialReceiptId);
   const [page, setPage] = useState(1);
   const [retry, setRetry] = useState(0);
+  const returnToReceipt = useRef<string | undefined>(undefined);
+  const focusReceiptDetail = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -45,7 +48,8 @@ export function GalleryCashierReceipts({ initialReceiptId, onOpenAccount }: { in
   }, [page, selection, retry]);
 
   function openList() {
-    setSelection(undefined);
+    returnToReceipt.current = selection;
+    onSelectReceipt();
   }
   return <section className={styles.paper} aria-labelledby="cashier-saved-title">
     <h2 id="cashier-saved-title">رسیدهای ثبت‌شده</h2>
@@ -54,7 +58,12 @@ export function GalleryCashierReceipts({ initialReceiptId, onOpenAccount }: { in
     {result.kind === "error" && <><p role="alert">رسیدها فعلاً در دسترس نیستند.</p><button type="button" className={styles.action} onClick={() => setRetry((value) => value + 1)}>تلاش دوباره</button></>}
     {result.kind === "missing" && <><p role="alert">این رسید در دفتر تو پیدا نشد.</p><button type="button" className={styles.action} onClick={openList}>دیدن همهٔ رسیدها</button></>}
     {result.kind === "detail" && <>
-      <button type="button" className={styles.action} onClick={openList}>بازگشت به فهرست رسیدها</button>
+      <button type="button" className={styles.action} onClick={openList} ref={(element) => {
+        if (element && focusReceiptDetail.current) {
+          focusReceiptDetail.current = false;
+          element.focus();
+        }
+      }}>بازگشت به فهرست رسیدها</button>
       <GalleryOrderReceipt
         key={result.data.receipt.id}
         receipt={result.data.receipt}
@@ -70,9 +79,23 @@ export function GalleryCashierReceipts({ initialReceiptId, onOpenAccount }: { in
       {result.data.price.kind === "unavailable" && <p role="status">برگهٔ مبلغ موقتاً در دسترس نیست.</p>}
     </>}
     {result.kind === "list" && <>
-      {result.data.receipts.length > 0 ? <ul className={styles.index}>{result.data.receipts.map((receipt) => <li key={receipt.id}><button type="button" onClick={() => setSelection(receipt.id)}>
-        <span>رسید <bdi dir="ltr">{receipt.id.slice(0, 8)}</bdi><small>{getInquiryStatusLabel(receipt.status)}</small></span>
-        <time dateTime={receipt.created_at}>{day.format(new Date(receipt.created_at))}</time>
+      {result.data.receipts.length > 0 ? <ul className={styles.index}>{result.data.receipts.map((receipt) => <li key={receipt.id}><button
+        type="button"
+        onClick={() => { focusReceiptDetail.current = true; onSelectReceipt(receipt.id); }}
+        ref={(element) => {
+          if (element && returnToReceipt.current === receipt.id) {
+            returnToReceipt.current = undefined;
+            element.focus();
+          }
+        }}
+      >
+        <strong>{receipt.workName ?? "رسید درخواست"}{receipt.additionalWorks > 0 && ` و ${number.format(receipt.additionalWorks)} اثر دیگر`}</strong>
+        <span className={styles.receiptMeta}>
+          <span>{getInquiryStatusLabel(receipt.status)}</span>
+          <time dateTime={receipt.created_at}>{day.format(new Date(receipt.created_at))}</time>
+          {receipt.archiveNumber && <span>عکس {photoNumber.format(Number(receipt.archiveNumber))}</span>}
+          <span>رسید <bdi dir="ltr">{receipt.id.slice(0, 8)}</bdi></span>
+        </span>
       </button></li>)}</ul> : <p>هنوز رسیدی در صندوق ثبت نشده است.</p>}
       {(page > 1 || result.data.hasMore) && <nav className={styles.pages} aria-label="صفحه‌های رسیدها">
         <button type="button" className={styles.action} disabled={page <= 1} onClick={() => setPage(page - 1)}>صفحهٔ قبل</button>

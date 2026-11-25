@@ -6,7 +6,12 @@ import { readInquiryItems } from "./inquiry-items";
 import { readInquiryQuotes } from "./inquiry-quotes";
 import { isQuoteDocumentId } from "./quote-document";
 
-export type ReceiptSummary = { id: string; status: string; created_at: string };
+type ReceiptRecord = { id: string; status: string; created_at: string; message: string };
+export type ReceiptSummary = Omit<ReceiptRecord, "message"> & {
+  workName: string | null;
+  additionalWorks: number;
+  archiveNumber: string | null;
+};
 export type ReceiptList = { receipts: ReceiptSummary[]; hasMore: boolean };
 type ReceiptPrice =
   | { kind: "accepted"; quoteId: string; totalRial: string }
@@ -37,9 +42,34 @@ function readArchiveReference(message: string) {
   return { title, number };
 }
 
+export async function readReceiptSummaries(client: SupabaseClient, inquiries: ReceiptRecord[]): Promise<ReceiptSummary[]> {
+  if (!inquiries.length) return [];
+
+  const { data, error } = await readInquiryItems(client, inquiries.map(({ id }) => id), true);
+  const worksByInquiry = new Map<string, Map<string, string>>();
+  for (const item of error ? [] : data ?? []) {
+    const works = worksByInquiry.get(item.inquiry_id) ?? new Map<string, string>();
+    works.set(item.product_slug, item.product_name);
+    worksByInquiry.set(item.inquiry_id, works);
+  }
+
+  return inquiries.map(({ id, status, created_at, message }) => {
+    const works = worksByInquiry.get(id);
+    const archive = error || works ? null : readArchiveReference(message);
+    return {
+      id,
+      status,
+      created_at,
+      workName: archive?.title ?? works?.values().next().value ?? null,
+      additionalWorks: works ? works.size - 1 : 0,
+      archiveNumber: archive?.number ?? null,
+    };
+  });
+}
+
 export async function readInquiryReceipt(
   client: SupabaseClient,
-  inquiry: ReceiptSummary & { message: string },
+  inquiry: ReceiptRecord,
 ): Promise<ReceiptDetail | null> {
   const [itemResult, quoteResult] = await Promise.all([
     readInquiryItems(client, [inquiry.id], true),
