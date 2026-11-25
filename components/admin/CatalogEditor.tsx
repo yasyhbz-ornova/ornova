@@ -11,8 +11,9 @@ import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 import { dossierFields, incompleteDossierFields, isDossierField, readDossierField, updateDossierField } from "@/lib/catalog/dossier-fields";
 import { appendCatalogPhotoView, draftCatalogFormFromPhoto, reviewCatalogPhotos } from "@/lib/catalog/photo-draft";
 import type { RoomPlacement } from "@/lib/catalog/room-placement";
-import { GalleryTrayBackdrop, GalleryTrayDossier, galleryTrayWorkImage } from "@/components/ornova/GalleryTray";
+import { GalleryTrayDossier } from "@/components/ornova/GalleryTray";
 import trayStyles from "@/components/ornova/GalleryShowcaseConcept.module.css";
+import { CatalogTrayPreview } from "./CatalogTrayPreview";
 import { RoomPlacementEditor } from "./RoomPlacementEditor";
 
 type CatalogRow = CatalogProductInput & { room_placement?: RoomPlacement | null; created_at?: string; updated_at?: string };
@@ -322,32 +323,15 @@ export function CatalogEditor() {
           </label>)}
         </div>
         {(form.name.trim() || form.stand_image_path) && <>
-          <figure className={trayStyles.staffTrayPreview} aria-label="پیش‌نمایش سینی در گالری">
-            <GalleryTrayBackdrop portrait />
-            <div className={trayStyles.tableComposition}>
-              <div className={trayStyles.tableDisplay}>
-                {trayPath && <div className={trayStyles.tableProduct}>
-                  <div className={trayStyles.catalogCutout} data-table-product={form.slug}>
-                    <Image
-                      key={trayPath}
-                      src={galleryTrayWorkImage(trayPath)}
-                      alt="پیش‌نمایش تصویر اثر روی سینی"
-                      fill
-                      sizes="(max-width: 700px) 124px, 190px"
-                      loading="eager"
-                      unoptimized
-                      style={{ visibility: trayReady ? "visible" : "hidden" }}
-                      onLoad={(event) => setTrayPreview({ path: trayPath, transparent: /\.(png|webp)$/.test(trayPath) && hasVisibleCutout(event.currentTarget) })}
-                      onError={() => setTrayPreview({ path: trayPath, transparent: false })}
-                    />
-                  </div>
-                </div>}
-              </div>
-              <div className={trayStyles.tablePaper}>
-                <GalleryTrayDossier name={previewName} details={form.details} heading="h2" />
-              </div>
-            </div>
-          </figure>
+          <CatalogTrayPreview
+            name={previewName}
+            categoryId={form.category_id}
+            details={form.details}
+            path={trayPath}
+            imageReady={trayReady === true}
+            onImageLoad={(image) => { if (trayPath) setTrayPreview({ path: trayPath, transparent: /\.(png|webp)$/.test(trayPath) && hasVisibleCutout(image) }); }}
+            onImageError={() => { if (trayPath) setTrayPreview({ path: trayPath, transparent: false }); }}
+          />
           <details className={trayStyles.staffDossierText}>
             <summary>متن شناسنامه</summary>
             <GalleryTrayDossier name={previewName} details={form.details} heading="h2" />

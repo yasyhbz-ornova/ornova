@@ -27,6 +27,30 @@ export function galleryTestCookie() {
   return { name: "sb-127-auth-token", value: `base64-${encode(galleryQA.session)}`, url: galleryQA.app };
 }
 
+const staffUser = { ...user, id: "931ffb97-b062-4d9c-a8df-08ddbc9e47e0", email: "gallery-staff@example.invalid", app_metadata: { ornova_role: "staff" } };
+
+export const galleryStaffSession = {
+  ...galleryQA.session,
+  access_token: `${encode({ typ: "JWT", alg: "HS256" })}.${encode({ exp: expires, sub: staffUser.id })}.c3RhZmY`,
+  user: staffUser,
+};
+
+export function galleryStaffCookie() {
+  return { ...galleryTestCookie(), value: `base64-${encode(galleryStaffSession)}` };
+}
+
+export const galleryStaffCatalog = [{
+  slug: "lajvard-shab-ring", revision: 1, name: "انگشتر نقره «لاجورد شب»", category_id: "rings", category_label: "انگشتر", subtype_id: null,
+  description: "نمونهٔ آزمایشی برای پیش‌نمایش کاتالوگ.", status: "published", image_fit: "contain", gallery_placement_verified: true,
+  image_path: "/images/ornova/lajvard-shab-01.jpg", stand_image_path: "/images/ornova/gallery/products/lajvard-shab-stand-cutout-preview-v1.webp",
+  gallery: [{ src: "/images/ornova/lajvard-shab-01.jpg", alt: "انگشتر لاجورد شب" }], packaging_gallery: [], turntable_video_path: null, room_placement: null,
+  details: [
+    { label: "جنس", value: "نقره" }, { label: "سنگ", value: "جزئیات پس از بررسی درخواست اعلام می‌شود" },
+    { label: "رنگ سنگ", value: "آبی شبانه" }, { label: "وزن تقریبی", value: "پس از طراحی مشخص می‌شود" },
+    { label: "ابعاد تقریبی", value: "پس از بررسی اعلام می‌شود" },
+  ],
+}];
+
 const firstOrderId = "acff0d42-4bed-42cf-9b89-f22741abdcdf";
 
 export const galleryOrderHistory = {

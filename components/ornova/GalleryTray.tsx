@@ -3,7 +3,6 @@ import { displayDossierField } from "@/lib/catalog/dossier-fields";
 import { OrnovaSymbol } from "./OrnovaBrandMark";
 import styles from "./GalleryShowcaseConcept.module.css";
 
-const staffTray = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v2.webp";
 const desktopTray = "/images/ornova/gallery/review/ornova-velvet-tray-desktop-v1.webp";
 const portraitTrayAvifSmall = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v3-460.avif";
 const portraitTrayAvifLarge = "/images/ornova/gallery/review/ornova-velvet-tray-mobile-v3-768.avif";
@@ -18,13 +17,15 @@ export function galleryTrayWorkImage(path: string) {
   return path === originalLapisCutout ? horizontalLapisCutout : path;
 }
 
-export function GalleryTrayBackdrop({ portrait = false }: { portrait?: boolean }) {
+export function GalleryTrayBackdrop({ layout = "responsive" }: { layout?: "responsive" | "phone" | "desktop" }) {
+  const media = layout === "responsive" ? portraitMedia : undefined;
+  const sizes = layout === "phone" ? "390px" : "100vw";
   return <picture className={styles.seatedPicture}>
-    {!portrait && <>
-      <source media={portraitMedia} type="image/avif" srcSet={`${portraitTrayAvifSmall} 460w, ${portraitTrayAvifLarge} 768w`} sizes="100vw" />
-      <source media={portraitMedia} srcSet={`${portraitTrayWebpSmall} 460w, ${portraitTrayWebpLarge} 768w`} sizes="100vw" />
+    {layout !== "desktop" && <>
+      <source media={media} type="image/avif" srcSet={`${portraitTrayAvifSmall} 460w, ${portraitTrayAvifLarge} 768w`} sizes={sizes} />
+      <source media={media} srcSet={`${portraitTrayWebpSmall} 460w, ${portraitTrayWebpLarge} 768w`} sizes={sizes} />
     </>}
-    <Image className={styles.architecture} src={portrait ? staffTray : desktopTray} alt="" fill sizes={portrait ? "(max-width: 500px) 90vw, 496px" : "100vw"} unoptimized loading="eager" />
+    <Image className={styles.architecture} src={layout === "phone" ? portraitTrayWebpSmall : desktopTray} alt="" fill sizes={sizes} unoptimized loading="eager" />
   </picture>;
 }
 

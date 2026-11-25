@@ -212,23 +212,23 @@
   gap: 5%;
   direction: ltr;
 }
+.trayViewport { container: gallery-tray / size; --portrait-tray-art-height: max(100%, min(195cqw, 120cqh)); }
 .tableDisplay, .tablePaper { display: grid; justify-items: center; min-width: 0; direction: rtl; }
-.tableDisplay { gap: .7rem; }
 .tableProduct { display: grid; width: 100%; min-height: 0; place-items: center; }
-.archiveCutout, .catalogCutout { position: relative; filter: drop-shadow(0 1px 1px #050a1866); animation: work-on-table 320ms ease-out both; }
-.archiveCutout img, .catalogCutout img { object-fit: contain; pointer-events: none; }
-.catalogCutout { width: min(94%, 22rem); height: clamp(5rem, 20cqw, 17rem); }
-.tableView .tableDisplay {
+.tableDisplay {
   align-self: stretch;
   min-height: 0;
   container-type: size;
   grid-template-rows: minmax(0, 1fr);
-  gap: 0;
 }
-.tableView :is(.archiveCutout, .catalogCutout) {
+.archiveCutout, .catalogCutout {
+  position: relative;
   width: min(var(--piece-width, 82cqw), 24rem);
   height: min(var(--piece-height, 82cqh), 18rem);
+  filter: drop-shadow(0 1px 1px #050a1866);
+  animation: work-on-table 320ms ease-out both;
 }
+.archiveCutout img, .catalogCutout img { object-fit: contain; pointer-events: none; }
 /* Presentation limits relative to the velvet area, independent of physical measurements. */
 .tableDisplay[data-tray-category="rings"] { --piece-width: 72cqw; --piece-height: 78cqh; }
 .tableDisplay[data-tray-category="brooches-pins"] { --piece-width: 76cqw; --piece-height: 88cqh; }
@@ -236,8 +236,8 @@
 .tableDisplay[data-tray-category="jewelry-sets"] { --piece-width: 92cqw; --piece-height: 88cqh; }
 .tableDisplay[data-tray-category="pendants"] { --piece-width: 78cqw; --piece-height: 83cqh; }
 .tableDisplay[data-tray-category="bracelets"] { --piece-width: 93cqw; --piece-height: 69cqh; }
-.tableView .archiveCutout[data-gallery-product-number="21"] { --piece-width: 52cqw; --piece-height: 55cqh; }
-.tableView .archiveCutout[data-gallery-product-number="22"] { --piece-width: 67cqw; --piece-height: 72cqh; }
+.archiveCutout[data-gallery-product-number="21"] { --piece-width: 52cqw; --piece-height: 55cqh; }
+.archiveCutout[data-gallery-product-number="22"] { --piece-width: 67cqw; --piece-height: 72cqh; }
 @keyframes work-on-table {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -353,23 +353,14 @@
 .magazineLinks :is(a, button) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 .25rem; border: 0; color: #315170; background: transparent; font: inherit; font-size: .84rem; text-decoration: underline; text-underline-offset: .24em; cursor: pointer; }
 .magazineLinks :is(a, button):focus-visible { outline: 2px solid #355a82; outline-offset: 2px; }
 .staffTrayPreview {
-  --staff-tray-art-height: max(100%, 225cqw);
-  --staff-tray-floor: calc(50% - var(--staff-tray-art-height) * .094) 11.5% calc(50% - var(--staff-tray-art-height) * .063) 10.5%;
   position: relative;
-  isolation: isolate;
-  container-type: inline-size;
-  width: min(100%, 31rem);
-  aspect-ratio: 5 / 4;
-  margin: 1rem 0 0;
-  overflow: hidden;
-  border-radius: .5rem;
+  overflow: clip;
+  border-radius: .38rem;
   background: #68432f;
 }
-.staffTrayPreview .seatedPicture { inset: 50% 0 auto; height: var(--staff-tray-art-height); transform: translateY(-50%); }
-.staffTrayPreview .seatedPicture .architecture { object-fit: fill; transform: none; }
-.staffTrayPreview .tableComposition { inset: var(--staff-tray-floor); grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: .45rem; }
-.staffTrayPreview .tablePaper { transform: none; }
-.staffTrayPreview .catalogCutout { animation: none; }
+.staffTrayStage { position: absolute; top: 0; left: 0; isolation: isolate; transform-origin: left top; }
+.staffTrayStage .seatedPicture .architecture { object-fit: fill; }
+.staffTrayStage .catalogCutout { animation: none; }
 .staffDossierText { width: min(100%, 31rem); margin-top: .5rem; }
 .staffDossierText > summary { padding-block: .35rem; color: #385a77; font-size: .83rem; cursor: pointer; }
 .staffDossierText > .dossier { max-height: none; margin-top: .4rem; padding: .7rem .8rem; overflow: visible; }
@@ -386,9 +377,6 @@
     transform-origin: 41% 63%;
   }
   .roomView > picture > .architecture { object-fit: fill; }
-  .tableView { --portrait-tray-art-height: max(100%, min(195cqw, 120dvh)); }
-  .tableView .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
-  .tableView .seatedPicture .architecture { object-fit: fill; transform: none; }
   .backToGallery { top: max(4%, calc(env(safe-area-inset-top) + .55rem)); }
   .door { top: 28.5%; left: 24.2%; width: 36%; height: 23%; --cue-x: 46%; --cue-y: 59%; }
   .doorTag { top: 72%; left: 57%; transform: translate(-50%, -50%) rotate(64deg); }
@@ -398,7 +386,13 @@
   .book { top: 60.5%; left: 29%; width: 21%; height: 6%; --cue-x: 53%; --cue-y: 47%; }
   .phone { top: 75.6%; left: 3.2%; width: 33%; height: 12.4%; --cue-x: 59%; --cue-y: 56%; }
   .register { top: 75.2%; left: 38%; width: 27%; height: 12.8%; --cue-x: 66%; --cue-y: 43%; }
-  .tableView .tableComposition {
+  .magazine { width: calc(100% - 1.3rem); }
+  .magazineCategories { grid-template-columns: 1fr; }
+}
+@container gallery-tray (max-width: 700px) and (aspect-ratio < 1) {
+  .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
+  .seatedPicture .architecture { object-fit: fill; transform: none; }
+  .tableComposition {
     /* The photo's velvet floor starts 24% from its top and ends at 63%. */
     inset: calc(50% - var(--portrait-tray-art-height) * .245) 16% calc(50% - var(--portrait-tray-art-height) * .125);
     grid-template-columns: minmax(0, 1fr);
@@ -406,13 +400,13 @@
     align-items: stretch;
     gap: .38rem;
   }
-  .tableView .tablePaper {
+  .tablePaper {
     align-self: start;
     width: min(100%, 18rem);
     max-height: 100%;
     transform: none;
   }
-  .tableView .dossier { max-height: 100%; padding: .4rem .55rem; }
+  .dossier { max-height: 100%; padding: .4rem .55rem; }
   .dossier::before { top: .35rem; inset-inline-start: .34rem; width: .29rem; }
   .dossierHeader { gap: .25rem; margin-bottom: .15rem; font-size: .7rem; }
   .dossierSymbol { width: 1.2rem; }
@@ -420,15 +414,13 @@
   .workTitle { padding-bottom: .17rem; font-size: clamp(.9rem, 3.9cqw, 1.08rem); line-height: 1.55; }
   .workDetails dd { padding-block: .04rem; }
   .tableActions { top: calc(50% + var(--portrait-tray-art-height) * .172 + .55rem); }
-  .magazine { width: calc(100% - 1.3rem); }
-  .magazineCategories { grid-template-columns: 1fr; }
 }
-@media (max-width: 350px) and (orientation: portrait) {
-  .tableView .tableComposition { inset-inline: 14%; grid-template-rows: minmax(0, .78fr) minmax(0, 1.38fr); }
-  .tableView .tableComposition:has([data-tray-cutout]) { grid-template-rows: minmax(0, 1.22fr) minmax(0, .94fr); }
-  .tableView .tableDisplay { margin-inline: 3%; }
-  .tableView .dossier { padding-inline: .4rem; }
-  .tableView .dossier[data-archive-card] { padding-block: .2rem; }
+@container gallery-tray (max-width: 350px) and (aspect-ratio < 1) {
+  .tableComposition { inset-inline: 14%; grid-template-rows: minmax(0, .78fr) minmax(0, 1.38fr); }
+  .tableComposition:has([data-tray-cutout]) { grid-template-rows: minmax(0, 1.22fr) minmax(0, .94fr); }
+  .tableDisplay { margin-inline: 3%; }
+  .dossier { padding-inline: .4rem; }
+  .dossier[data-archive-card] { padding-block: .2rem; }
   .dossier[data-archive-card] .dossierHeader { margin-bottom: .08rem; }
   .dossier[data-archive-card] .workTitle { line-height: 1.3; padding-bottom: .1rem; }
   .dossier[data-archive-card] .workDetails { margin-top: .13rem; }
@@ -441,9 +433,11 @@
 @media (orientation: landscape) and (max-height: 550px) {
   .scene { width: 100%; height: 100svh; height: 100dvh; aspect-ratio: auto; }
   .architecture { object-fit: fill; }
-  .tableView .tableComposition { inset-block: 19% 27%; }
-  .tableView .tablePaper { width: min(100%, 17.5rem); }
-  .tableView .dossier { padding: clamp(.45rem, 2svh, .85rem); }
+}
+@container gallery-tray (max-height: 550px) and (aspect-ratio >= 1) {
+  .tableComposition { inset-block: 19% 27%; }
+  .tablePaper { width: min(100%, 17.5rem); }
+  .dossier { padding: clamp(.45rem, 2cqh, .85rem); }
   .dossierHeader { margin-bottom: .25rem; }
   .workTitle { font-size: clamp(.9rem, 1.6cqw, 1.05rem); line-height: 1.7; }
   .workDetails { gap: .23rem .5rem; margin-top: .28rem; font-size: .75rem; line-height: 1.45; }

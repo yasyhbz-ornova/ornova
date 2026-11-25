@@ -1,6 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { galleryOrderHistory, galleryTestCookie } from "./gallery-fixture.mjs";
+import { galleryOrderHistory, galleryStaffCookie, galleryTestCookie } from "./gallery-fixture.mjs";
 
 const tray = (page: Page) => page.getByRole("group", { name: "سینی مخمل آبی افغانی", exact: true });
 const drawer = (page: Page) => page.getByRole("dialog");
@@ -231,6 +231,50 @@ test("the narrow mobile tray fits the full catalog card beneath the product", as
   expect(await card.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
   await expect(card.getByText("ابعاد", { exact: true })).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "ثبت سفارش", exact: true })).toBeInViewport({ ratio: 1 });
+});
+
+test("staff preview matches both public tray layouts and flags a scrolling card before saving", async ({ page, context }) => {
+  async function measure(surface: Locator) {
+    return surface.evaluate(async (element: HTMLElement) => {
+      const backdrop = element.querySelector<HTMLImageElement>("picture img")!;
+      const work = element.querySelector<HTMLImageElement>('img[alt]:not([alt=""])')!;
+      const dossier = element.querySelector<HTMLElement>("article")!;
+      await Promise.all([backdrop.decode(), work.decode(), document.fonts.ready]);
+      const origin = element.getBoundingClientRect();
+      const placement = (item: HTMLElement) => {
+        const box = item.getBoundingClientRect();
+        return [
+          (box.left - origin.left) / origin.width, (box.top - origin.top) / origin.height,
+          box.width / origin.width, box.height / origin.height,
+        ].map((value) => Math.round(value * 1000));
+      };
+      return { frame: [element.offsetWidth, element.offsetHeight], backdrop: backdrop.currentSrc, work: work.currentSrc, composition: [placement(work), placement(dossier)] };
+    });
+  }
+
+  const openRing = () => page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  const publicTray = page.getByRole("region", { name: "نمای نزدیک میز و سینی" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await openRing();
+  const phone = await measure(publicTray);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect.poll(() => publicTray.locator("picture img").evaluate((image: HTMLImageElement) => image.currentSrc)).toContain("velvet-tray-desktop-v1.webp");
+  const desktop = await measure(publicTray);
+
+  await context.addCookies([galleryStaffCookie()]);
+  await page.goto("/admin/catalog");
+  await page.getByRole("button", { name: /^انگشتر نقره «لاجورد شب»/ }).click();
+  const preview = page.getByRole("figure", { name: "پیش‌نمایش سینی در گالری" });
+  await expect(preview.getByRole("img", { name: "پیش‌نمایش تصویر اثر روی سینی" })).toBeVisible();
+  expect(await measure(preview.locator('[data-tray-preview="phone"]'))).toEqual(phone);
+  await preview.getByRole("button", { name: "دسکتاپ", exact: true }).click();
+  expect(await measure(preview.locator('[data-tray-preview="desktop"]'))).toEqual(desktop);
+  await preview.getByRole("button", { name: "گوشی", exact: true }).click();
+  await page.getByRole("textbox", { name: "ابعاد تقریبی", exact: true }).fill("ابعاد دقیقِ مورد نیاز برای بازبینیِ این اثر ".repeat(5));
+  await expect(preview.getByRole("status")).toContainText("داخل کارت پیمایش کنید");
+  const overflow = await preview.getByRole("article").evaluate((card) => card.scrollHeight - card.clientHeight);
+  expect(overflow).toBeGreaterThan(1);
 });
 
 test("the brooch label stays beside the cabinet and the first work is upright", async ({ page }) => {

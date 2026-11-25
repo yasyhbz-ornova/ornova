@@ -304,7 +304,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       <Link {...panelLink("/?galleryPanel=basket", "cashier")} className={styles.register} data-guide-current={visibleGuideStop === "cashier" || undefined} aria-label="باز کردن صندوق درخواست‌ها" />
       {!tableOpen && !magazineOpen && !panelOpen && <GalleryRoomGuide step={guide.step} />}
       </div>
-      <section className={styles.tableView} inert={!tableOpen || panelOpen} aria-hidden={!tableOpen || panelOpen || undefined} aria-label="نمای نزدیک میز و سینی">
+      <section className={`${styles.tableView} ${styles.trayViewport}`} inert={!tableOpen || panelOpen} aria-hidden={!tableOpen || panelOpen || undefined} aria-label="نمای نزدیک میز و سینی">
         {tableOpen && <GalleryTrayBackdrop />}
         {tableOpen && <>
           <button ref={backToGallery} type="button" className={styles.backToGallery} onClick={closeTable}>{(previewProduct ? productPreview?.backLabel : table?.returnTo?.label) ?? "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
