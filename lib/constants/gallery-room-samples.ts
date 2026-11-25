@@ -1,6 +1,6 @@
 import type { CatalogCategoryId } from "./catalog";
 import type { Product } from "./products";
-import { findGalleryProduct } from "../catalog/gallery-product-link";
+import { findGalleryProduct, isPublicGalleryProduct, isWithheldGalleryPhoto } from "../catalog/gallery-product-link";
 import { visibleGalleryRenders, type GalleryRender } from "./gallery-renders";
 import { galleryTrayCutout } from "./gallery-tray-cutouts";
 
@@ -32,7 +32,7 @@ const measuredBounds: Record<string, readonly [number, number, number, number]> 
 };
 
 const firstWork: Partial<Record<CatalogCategoryId, string>> = {
-  rings: "05", "brooches-pins": "01", earrings: "03",
+  rings: "05", "brooches-pins": "07", earrings: "03",
   "jewelry-sets": "40", pendants: "08", bracelets: "45",
 };
 
@@ -56,7 +56,7 @@ export type GalleryRoomSample = (typeof galleryRoomSamples)[number] & { productS
 export const galleryRoomSamplesByCategory = Object.fromEntries(
   (["rings", "brooches-pins", "earrings", "jewelry-sets", "pendants", "bracelets"] as const).map((categoryId) => [
     categoryId,
-    galleryRoomSamples.filter((sample) => sample.categoryId === categoryId)
+    galleryRoomSamples.filter((sample) => sample.categoryId === categoryId && !isWithheldGalleryPhoto(sample.src))
       .sort((a, b) => Number(b.number === firstWork[categoryId]) - Number(a.number === firstWork[categoryId])),
   ]),
 ) as Record<(typeof galleryRoomSamples)[number]["categoryId"], typeof galleryRoomSamples>;
@@ -69,7 +69,7 @@ export function roomSamplesWithCatalog(products: readonly Product[]): Record<str
   for (const product of [...products].sort((a, b) => a.slug.localeCompare(b.slug))) {
     const placement = product.roomPlacement;
     const samples = result[product.categoryId];
-    if (!samples || product.publicationStatus !== "published" || !product.galleryPlacementVerified || !placement
+    if (!samples || !isPublicGalleryProduct(product) || !placement
       || !product.standImage || placement.src !== product.standImage || samples.some((sample) => sample.src === placement.src)) continue;
     samples.push({ number: `catalog:${product.slug}`, title: product.name, categoryId: product.categoryId,
       src: placement.src, image: placement.image, bounds: placement.bounds, productSlug: product.slug });
@@ -109,6 +109,7 @@ export function galleryShowcaseEntries(products: readonly Product[]): GallerySho
 }
 
 export function findGalleryShowcasePhoto(entries: GalleryShowcaseEntries, photo: GalleryShowcasePhoto) {
+  if (isWithheldGalleryPhoto(photo.src)) return null;
   const sample = galleryRoomSamples.find((source) =>
     source.number === photo.number && source.src === photo.src && source.categoryId === photo.categoryId,
   );
@@ -123,7 +124,7 @@ export function trayVisibleShowcaseEntries(products: readonly Product[]) {
   const entries = galleryShowcaseEntries(products);
   for (const category of Object.keys(entries) as CatalogCategoryId[]) {
     entries[category] = entries[category]?.filter(({ product }) =>
-      !product || (product.galleryPlacementVerified === true && Boolean(product.standImage)),
+      !product || isPublicGalleryProduct(product),
     );
   }
   return entries;

@@ -9,6 +9,7 @@ import type { StudioInquiryMode } from "@/components/studio/DesignStudio";
 import { GalleryShowcaseConcept, type GalleryShowcaseHandle } from "./GalleryShowcaseConcept";
 import { OrnovaSymbol } from "./OrnovaBrandMark";
 import { galleryRoomSamples, galleryRoomSamplesByCategory, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
+import { isPublicGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { buildMagazineIndex, emptyMagazineFilters, findMagazineWorks, type MagazineFilters } from "@/lib/catalog/magazine-index";
 import { catalogCategories, catalogFamilies } from "@/lib/constants/catalog";
@@ -31,9 +32,6 @@ const GalleryPhoneNotebook = dynamic(() => import("@/components/ornova/GalleryPh
 const DesignStudio = dynamic(() => import("@/components/studio/DesignStudio").then((mod) => mod.DesignStudio), { loading: LoadingLeaf });
 
 const number = new Intl.NumberFormat("fa-IR");
-function isPublicGalleryProduct(product: Product) {
-  return product.publicationStatus === "published" && product.galleryPlacementVerified === true && Boolean(product.standImage);
-}
 type GalleryPanel = "magazine" | "phone" | "contact" | "studio" | "about" | "account" | "library" | "basket" | "ring-builder" | "size-guide" | "guide";
 type Drawer = { kind: "category"; id: string } | { kind: "collection"; id: string } | { kind: GalleryPanel };
 type ProductTraySelection = {
@@ -152,7 +150,8 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
     } catch { return null; }
   }, [contactContextSnapshot]);
   const contactSourceContext = studioContact?.mode === "transferred" ? "custom-design" : contactContext?.sourceContext;
-  const contactProduct = useMemo(() => products.find((item) => item.slug === contactContext?.productSlug && isPublicGalleryProduct(item)) ?? null, [contactContext?.productSlug, products]);
+  const contactProduct = useMemo(() => products.find((item) => item.slug === contactContext?.productSlug
+    && item.publicationStatus === "published" && item.galleryPlacementVerified && item.standImage) ?? null, [contactContext?.productSlug, products]);
   const archiveOrder = contactContext?.archivePhoto === undefined ? null : galleryRoomSamples.find((photo) => photo.number === contactContext.archivePhoto && photo.trayImage) ?? null;
   const invalidArchiveOrder = contactContext?.archivePhoto !== undefined && !archiveOrder;
   const contactProductSelectionKey = contactProduct && contactContext?.selection !== undefined

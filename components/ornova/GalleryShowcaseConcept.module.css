@@ -103,8 +103,7 @@
   visibility: hidden;
   opacity: 0;
   padding: .45rem .65rem .4rem;
-  border: 1px solid #ab967b;
-  border-top-color: #f4e7ca;
+  border: 0;
   border-radius: 2px 3px 3px 2px;
   background: #efe4cc url("/images/ornova/gallery/review/ornova-dossier-cotton-paper-v1.webp") center / cover;
   box-shadow: 1px 3px 7px #43291655;
@@ -117,9 +116,7 @@
   transform: translateY(-50%);
 }
 .shelfTooltip small { color: #615746; font-size: .69rem; font-weight: 400; }
-.shelfTooltip::before, .shelfTooltip::after { position: absolute; left: 100%; width: .65rem; content: ""; }
-.shelfTooltip::before { top: 50%; border-top: 1px solid #896f51; }
-.shelfTooltip::after { inset-block: -.25rem; }
+.shelfTooltip::after { position: absolute; inset-block: -.25rem; left: 100%; width: .65rem; content: ""; }
 .shelf[data-tooltip-open] .shelfTooltip {
   visibility: visible;
   opacity: 1;
@@ -133,13 +130,18 @@
 .book { top: 73.5%; left: 84.5%; width: 10.5%; height: 5%; }
 .phone { top: 78%; left: 1.5%; width: 11%; height: 18%; }
 .register { top: 78%; left: 13%; width: 9%; height: 17%; }
-.roomView :is(.door, .book, .phone, .register)[data-guide-current] {
-  background-color: #fff1d01a;
-  box-shadow: 0 0 0 1px #fff0d3eb, 0 0 .7rem #ffd99299;
-}
-.roomView :is(.book, .phone, .register)[data-guide-current] { border-radius: .25rem; }
 .shelfTrigger[data-guide-current] .shelfSign { filter: brightness(1.22) drop-shadow(0 0 3px #fff0cc); }
-.door:focus-visible, .shelfTrigger:focus-visible, .book:focus-visible, .phone:focus-visible, .register:focus-visible { outline: 2px solid #355a82; outline-offset: -2px; }
+.roomView :is(.door, .shelfTrigger, .book, .phone, .register):focus-visible { outline: 2px solid transparent; }
+.roomView :is(.door, .shelfTrigger, .book, .phone, .register):focus-visible::after {
+  position: absolute;
+  inset: .18rem .18rem auto auto;
+  width: .45rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff3ce;
+  box-shadow: 0 0 0 2px #463125;
+  content: "";
+}
 .tableView { position: absolute; z-index: 1; inset: 0; isolation: isolate; visibility: hidden; opacity: 0; transition: opacity 420ms ease, visibility 420ms; }
 .scene[data-table-open] .tableView { visibility: visible; opacity: 1; transition: opacity 420ms ease 560ms; }
 .scene[data-shelf-approach] .tableView {
@@ -167,16 +169,15 @@
 }
 .tableDisplay, .tablePaper { display: grid; justify-items: center; min-width: 0; direction: rtl; }
 .tableDisplay { gap: .7rem; }
-.tableProduct { display: grid; width: 100%; min-height: 0; place-items: center; transform: translateY(clamp(-1.65rem, -2.5cqw, -.5rem)); }
-.archiveCutout { position: relative; width: min(92%, 22rem); height: clamp(5rem, 22cqw, 18.5rem); filter: drop-shadow(1px 2px 1px #040912b0) drop-shadow(3px 3px 4px #050a1857); animation: work-on-table 320ms ease-out both; }
-.archiveCutout img { object-fit: contain; }
-.catalogCutout[data-table-product="sepid-brooch"] img { transform: rotate(-90deg) scale(1.12); filter: none; }
+.tableProduct { display: grid; width: 100%; min-height: 0; place-items: center; }
+.archiveCutout, .catalogCutout { position: relative; filter: drop-shadow(0 1px 1px #050a1866); animation: work-on-table 320ms ease-out both; }
+.archiveCutout { width: min(92%, 22rem); height: clamp(5rem, 22cqw, 18.5rem); }
+.archiveCutout img, .catalogCutout img { object-fit: contain; pointer-events: none; }
 .archiveCutout[data-gallery-product-number="21"] img { transform: scale(.65); }
 .archiveCutout[data-gallery-product-number="22"] img { transform: scale(.86); }
-.catalogCutout { position: relative; width: min(94%, 22rem); height: clamp(5rem, 20cqw, 17rem); filter: drop-shadow(1px 2px 1px #040912b0) drop-shadow(3px 3px 4px #050a1857); animation: work-on-table 320ms ease-out both; }
-.catalogCutout img { object-fit: contain; filter: brightness(1.055); pointer-events: none; }
+.catalogCutout { width: min(94%, 22rem); height: clamp(5rem, 20cqw, 17rem); }
 .catalogCutout[data-table-product="lajvard-shab-ring"] { height: clamp(6.7rem, 25cqw, 21rem); }
-.catalogCutout[data-table-product="lajvard-shab-ring"] img { transform: rotate(-86deg); filter: brightness(1.025); }
+.catalogCutout[data-table-product="lajvard-shab-ring"] img { transform: rotate(-86deg); }
 @keyframes work-on-table {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -346,7 +347,7 @@
     gap: .38rem;
   }
   .tableView .tableDisplay { display: block; min-height: 0; }
-  .tableView .tableProduct { height: 100%; grid-template-rows: minmax(0, 1fr); transform: none; }
+  .tableView .tableProduct { height: 100%; grid-template-rows: minmax(0, 1fr); }
   .tableView :is(.archiveCutout, .catalogCutout, .catalogCutout[data-table-product="lajvard-shab-ring"]) { width: min(100%, 15rem); height: min(100%, 9rem); }
   .tableView .tablePaper {
     align-self: start;
@@ -384,7 +385,6 @@
   .architecture { object-fit: fill; }
   .tableView .tableComposition { inset-block: 19% 27%; }
   .archiveCutout, .catalogCutout, .catalogCutout[data-table-product="lajvard-shab-ring"] { height: min(16cqw, 35svh); }
-  .tableProduct { transform: translateY(-.35rem); }
   .tableView .tablePaper { width: min(100%, 17.5rem); }
   .tableView .dossier { padding: clamp(.45rem, 2svh, .85rem); }
   .dossierHeader { margin-bottom: .25rem; }

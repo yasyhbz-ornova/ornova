@@ -152,7 +152,7 @@ export function catalogHref(categoryId?: unknown, subtypeId?: unknown, query?: s
   return `/shop${params.size ? `?${params}` : ""}`;
 }
 
-function normalizeSearch(value: string) {
+export function normalizeSearch(value: string) {
   return value.normalize("NFKC").replace(/ي/g, "ی").replace(/ك/g, "ک")
     .replace(/[\u064b-\u065f\u0670\u0640]/g, "").replace(/[\u200c\u200d\s]+/g, " ").trim().toLocaleLowerCase("fa-IR");
 }

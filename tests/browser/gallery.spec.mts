@@ -174,6 +174,29 @@ test("the narrow mobile tray fits the full catalog card beneath the product", as
   await expect(page.getByRole("button", { name: "ثبت سفارش", exact: true })).toBeInViewport({ ratio: 1 });
 });
 
+test("the brooch label stays beside the cabinet and the first work is upright", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const brooch = page.getByRole("button", { name: "نمایش سنجاق‌سینه روی میز", exact: true });
+  await brooch.hover();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  const [label, box] = await Promise.all([tooltip.boundingBox(), brooch.boundingBox()]);
+  expect(label!.x + label!.width).toBeLessThan(box!.x);
+  await brooch.click();
+  await expect(tray(page).getByRole("heading")).toHaveText("سنجاق‌سینهٔ نواری مشبک");
+  await expect(tray(page).getByRole("img", { name: "سنجاق‌سینهٔ نواری مشبک" })).toHaveCSS("transform", "none");
+  const next = page.getByRole("button", { name: "اثر بعدی" });
+  const titles = new Set<string>();
+  for (;;) {
+    const title = (await tray(page).getByRole("heading").textContent())!;
+    if (titles.has(title)) break;
+    titles.add(title);
+    await next.click();
+  }
+  expect(titles).toEqual(new Set(["سنجاق‌سینهٔ نواری مشبک", "سنجاق‌سینهٔ دندان تاج‌دار", "نشان سینهٔ ترازوی عدالت"]));
+});
+
 test("the visit guide marks its objects and restores keyboard focus on finish and replay", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/");

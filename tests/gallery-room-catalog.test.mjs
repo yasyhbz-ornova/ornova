@@ -81,6 +81,19 @@ test("a published exact tray cutout replaces its archive card without needing a 
   assert.ok(review.some((entry) => !entry.product && entry.sample.src === original.src));
 });
 
+test("withheld tray photos stay in the historical index and a replacement can appear in the gallery", () => {
+  const historical = room.galleryRoomSamples.find(({ number }) => number === "01");
+  const withheld = {
+    ...product, slug: "silent-vase-pin", categoryId: "brooches-pins", roomPlacement: null, gallery: [historical],
+    standImage: "/images/ornova/gallery/products/goldan-khamoosh-stand-cutout-preview-v1.webp",
+  };
+  const visible = room.trayVisibleShowcaseEntries([withheld]);
+  assert.ok(!visible["brooches-pins"].some((entry) => entry.product?.slug === withheld.slug || entry.sample?.number === "01"));
+  assert.equal(room.findGalleryShowcasePhoto(visible, historical), null);
+  const updated = room.trayVisibleShowcaseEntries([{ ...withheld, standImage: photo }]);
+  assert.ok(updated["brooches-pins"].some((entry) => entry.product?.slug === withheld.slug));
+});
+
 test("tray cutouts cover the six displays and match their precise original photos", () => {
   const samples = room.galleryRoomSamples;
   assert.equal(samples.length, 52);
@@ -162,6 +175,7 @@ test("each transparent tray image retains the original RGB of every visible pixe
 
 test("tray masks retain the pictured stone facets and chain while removing the blue stand edge", async () => {
   const checks = [
+    { number: "07", transparent: [[12, 140], [11, 160], [35, 128]], visible: [[18, 200], [50, 160]] },
     { number: "08", transparent: [[43, 68], [40, 74]], visible: [[110, 503], [81, 392]] },
     { number: "21", transparent: [[125, 35]], visible: [[25, 44], [260, 47]] },
     { number: "40", transparent: [[490, 210]], visible: [[145, 283], [405, 284], [475, 221]] },

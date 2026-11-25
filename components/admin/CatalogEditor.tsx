@@ -4,9 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { galleryRenders, isReferenceOnlyGalleryPhoto, type GalleryRender } from "@/lib/constants/gallery-renders";
 import { galleryTrayCutout } from "@/lib/constants/gallery-tray-cutouts";
-import { catalogCategories, resolveCatalogSelection } from "@/lib/constants/catalog";
+import { catalogCategories, normalizeSearch, resolveCatalogSelection } from "@/lib/constants/catalog";
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
+import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 import { dossierFields, incompleteDossierFields, isDossierField, readDossierField, updateDossierField } from "@/lib/catalog/dossier-fields";
 import { appendCatalogPhotoView, draftCatalogFormFromPhoto, reviewCatalogPhotos } from "@/lib/catalog/photo-draft";
 import type { RoomPlacement } from "@/lib/catalog/room-placement";
@@ -21,6 +22,7 @@ const blank = (): CatalogProductInput => ({ slug: "", revision: 0, name: "", cat
 const fieldClass = "w-full rounded-md border border-silver bg-ivory px-3 py-2 text-sm text-graphite outline-none focus-visible:border-sapphire focus-visible:ring-2 focus-visible:ring-sapphire/30";
 const labelClass = "block text-sm leading-7 text-graphite";
 const number = new Intl.NumberFormat("fa-IR");
+const statuses = { published: "منتشرشده", review: "در بازبینی", archived: "بایگانی" } as const;
 
 function hasVisibleCutout(image: HTMLImageElement): boolean {
   const canvas = document.createElement("canvas");
@@ -49,6 +51,8 @@ export function CatalogEditor() {
   const [form, setForm] = useState<CatalogProductInput>(blank);
   const [selected, setSelected] = useState("");
   const [photoCategory, setPhotoCategory] = useState("");
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const [catalogStatus, setCatalogStatus] = useState("");
   const [onlyIncompleteDossiers, setOnlyIncompleteDossiers] = useState(false);
   const [trayPreview, setTrayPreview] = useState<{ path: string; transparent: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +76,12 @@ export function CatalogEditor() {
   const savedRow = rows.find((item) => item.slug === selected);
   const dossierGaps = useMemo(() => new Map(rows.map((row) => [row.slug, incompleteDossierFields(row.details).length])), [rows]);
   const incompleteRows = rows.filter((row) => row.status !== "archived" && (dossierGaps.get(row.slug) ?? 0) > 0);
-  const visibleRows = onlyIncompleteDossiers ? incompleteRows : rows;
+  const queryTerms = normalizeSearch(catalogQuery).split(" ").filter(Boolean);
+  const visibleRows = (onlyIncompleteDossiers ? incompleteRows : rows).filter((row) => {
+    if (catalogStatus && row.status !== catalogStatus) return false;
+    const text = normalizeSearch(`${row.name} ${row.slug} ${row.category_label}`);
+    return queryTerms.every((term) => text.includes(term));
+  });
   const formGaps = incompleteDossierFields(form.details);
   const referenceCover = isReferenceOnlyGalleryPhoto(form.image_path);
   const trayPath = form.stand_image_path?.startsWith("/images/ornova/") && !isReferenceOnlyGalleryPhoto(form.stand_image_path) ? form.stand_image_path : null;
@@ -181,14 +190,26 @@ export function CatalogEditor() {
         <input type="checkbox" className="mt-1" checked={onlyIncompleteDossiers} onChange={(event) => setOnlyIncompleteDossiers(event.target.checked)} />
         فقط شناسنامه‌های در انتظار تکمیل ({number.format(incompleteRows.length)})
       </label>}
+      {catalogReadReady && <div className="mb-4 grid gap-2">
+        <label className={labelClass}>نام یا کد اثر
+          <input type="search" className={fieldClass} value={catalogQuery} onChange={(event) => setCatalogQuery(event.target.value)} />
+        </label>
+        <label className={labelClass}>وضعیت انتشار
+          <select className={fieldClass} value={catalogStatus} onChange={(event) => setCatalogStatus(event.target.value)}>
+            <option value="">همهٔ وضعیت‌ها</option>
+            {Object.entries(statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+      </div>}
       {loading ? <p role="status">در حال خواندن کاتالوگ…</p> : visibleRows.length === 0
-        ? <p className="text-sm">{onlyIncompleteDossiers ? "شناسنامه‌ای در انتظار تکمیل نیست." : "هنوز اثری ثبت نشده است."}</p>
+        ? <p className="text-sm">{rows.length ? "اثری مطابق فیلترها پیدا نشد." : "هنوز اثری ثبت نشده است."}</p>
         : <ul className="space-y-2">{visibleRows.map((row) => {
           const gaps = dossierGaps.get(row.slug) ?? 0;
           return <li key={row.slug}>
             <button type="button" disabled={busy} onClick={() => select(row.slug)} aria-current={selected === row.slug ? "true" : undefined} className="w-full rounded-md border border-silver bg-ivory p-3 text-right text-sm hover:border-sapphire/50 aria-current:border-sapphire disabled:opacity-50">
               <strong className="block font-medium">{row.name}</strong>
-              <span className="mt-1 block text-xs text-graphite/65">{row.status === "published" ? "منتشرشده" : row.status === "archived" ? "بایگانی" : "در بازبینی"} · نسخهٔ {number.format(row.revision)}</span>
+              <span className="mt-1 block text-xs text-graphite/65">{statuses[row.status]} · نسخهٔ {number.format(row.revision)}</span>
+              {isWithheldGalleryPhoto(row.stand_image_path) && <span className="mt-1 block text-xs text-sapphire">عکس فعلی از سینی کنار گذاشته شده</span>}
               {gaps > 0 && row.status !== "archived" && <span className="mt-1 block text-xs text-sapphire">{number.format(gaps)} فیلد شناسنامه در انتظار تکمیل</span>}
             </button>
           </li>;
