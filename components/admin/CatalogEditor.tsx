@@ -11,7 +11,7 @@ import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 import { dossierFields, incompleteDossierFields, isDossierField, readDossierField, updateDossierField } from "@/lib/catalog/dossier-fields";
 import { appendCatalogPhotoView, draftCatalogFormFromPhoto, reviewCatalogPhotos } from "@/lib/catalog/photo-draft";
 import type { RoomPlacement } from "@/lib/catalog/room-placement";
-import { GalleryTrayBackdrop, GalleryTrayDossier } from "@/components/ornova/GalleryTray";
+import { GalleryTrayBackdrop, GalleryTrayDossier, galleryTrayWorkImage } from "@/components/ornova/GalleryTray";
 import trayStyles from "@/components/ornova/GalleryShowcaseConcept.module.css";
 import { RoomPlacementEditor } from "./RoomPlacementEditor";
 
@@ -330,7 +330,7 @@ export function CatalogEditor() {
                   <div className={trayStyles.catalogCutout} data-table-product={form.slug}>
                     <Image
                       key={trayPath}
-                      src={trayPath}
+                      src={galleryTrayWorkImage(trayPath)}
                       alt="پیش‌نمایش تصویر اثر روی سینی"
                       fill
                       sizes="(max-width: 700px) 124px, 190px"

@@ -12,7 +12,7 @@ import { findGalleryShowcasePhoto, trayVisibleShowcaseEntries, type GalleryShowc
 import type { Product } from "@/lib/constants/products";
 import { OrnovaBrandMark } from "./OrnovaBrandMark";
 import { GalleryRoomGuide, useGalleryRoomGuide, type GalleryGuideStop } from "./GalleryRoomGuide";
-import { GalleryTrayBackdrop, GalleryTrayDossier } from "./GalleryTray";
+import { GalleryTrayBackdrop, GalleryTrayDossier, galleryTrayWorkImage } from "./GalleryTray";
 import styles from "./GalleryShowcaseConcept.module.css";
 
 const roomMedium = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1280.webp";
@@ -304,14 +304,14 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
           <button ref={backToGallery} type="button" className={styles.backToGallery} onClick={closeTable}>{(previewProduct ? productPreview?.backLabel : table?.returnTo?.label) ?? "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
           {activeEntry && <><div className={styles.tableComposition} role="group" aria-label="سینی مخمل آبی افغانی">
             {autoAdvance && <span role="status" className="sr-only">{manualWorkTitle}</span>}
-            <div className={styles.tableDisplay}>
+            <div className={styles.tableDisplay} data-tray-category={activeCategory}>
               <div key={linkedProduct?.slug ?? activeSample?.number} className={styles.tableProduct}>
                 {linkedProduct?.standImage
                   ? <div className={styles.catalogCutout} data-table-product={linkedProduct.slug}>
-                      <Image src={linkedProduct.standImage} alt={linkedProduct.name} fill sizes="(max-width: 700px) 124px, 260px" loading="eager" unoptimized />
+                      <Image src={galleryTrayWorkImage(linkedProduct.standImage)} alt={linkedProduct.name} fill sizes="(max-width: 700px) 220px, 352px" loading="eager" unoptimized />
                     </div>
                   : activeSample && trayImage && <div className={styles.archiveCutout} data-gallery-product-number={activeSample.number} data-tray-cutout>
-                        <Image src={trayImage} alt={activeSample.title} fill sizes="(max-width: 700px) 140px, 352px" loading="eager" unoptimized />
+                        <Image src={trayImage} alt={activeSample.title} fill sizes="(max-width: 700px) 240px, 384px" loading="eager" unoptimized />
                       </div>}
               </div>
             </div>

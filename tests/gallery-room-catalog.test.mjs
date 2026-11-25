@@ -173,6 +173,21 @@ test("each transparent tray image retains the original RGB of every visible pixe
   }
 });
 
+test("the horizontal lapis image preserves the original photo's alpha and visible color", async () => {
+  const directory = new URL("../public/images/ornova/gallery/products/", import.meta.url);
+  const source = fileURLToPath(new URL("lajvard-shab-stand-cutout-preview-v1.webp", directory));
+  const horizontal = fileURLToPath(new URL("lajvard-shab-tray-horizontal-v2.webp", directory));
+  const [original, result] = await Promise.all([
+    sharp(source).rotate(270).raw().toBuffer({ resolveWithObject: true }),
+    sharp(horizontal).raw().toBuffer({ resolveWithObject: true }),
+  ]);
+  assert.deepEqual([result.info.width, result.info.height, result.info.channels], [original.info.width, original.info.height, 4]);
+  for (let index = 3; index < result.data.length; index += 4) {
+    assert.equal(result.data[index], original.data[index]);
+    if (result.data[index] > 0) assert.equal(result.data.readUInt32BE(index - 3), original.data.readUInt32BE(index - 3));
+  }
+});
+
 test("tray masks retain the pictured stone facets and chain while removing the blue stand edge", async () => {
   const checks = [
     { number: "07", transparent: [[12, 140], [11, 160], [35, 128]], visible: [[18, 200], [50, 160]] },

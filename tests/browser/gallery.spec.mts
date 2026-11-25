@@ -214,7 +214,17 @@ test("the narrow mobile tray fits the full catalog card beneath the product", as
   await page.goto("/");
   await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
   await page.evaluate(() => document.fonts.ready.then(() => true));
-  const product = await tray(page).locator('[data-table-product="lajvard-shab-ring"]').boundingBox();
+  const ring = tray(page).locator('[data-table-product="lajvard-shab-ring"]');
+  const image = await ring.locator("img").evaluate(async (element: HTMLImageElement) => {
+    await element.decode();
+    const displayWidth = Math.min(element.clientWidth, element.clientHeight * element.naturalWidth / element.naturalHeight);
+    const slot = element.closest<HTMLElement>('[data-tray-category="rings"]');
+    return { source: element.currentSrc, displayWidth, slotWidth: slot?.clientWidth ?? 0 };
+  });
+  expect(image.source).toContain("lajvard-shab-tray-horizontal-v2.webp");
+  expect(image.displayWidth / image.slotWidth).toBeGreaterThan(.68);
+  expect(image.displayWidth / image.slotWidth).toBeLessThan(.76);
+  const product = await ring.boundingBox();
   const card = tray(page).getByRole("article");
   const position = await card.boundingBox();
   expect(position!.y).toBeGreaterThan(product!.y + product!.height);

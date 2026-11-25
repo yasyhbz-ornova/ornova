@@ -171,13 +171,28 @@
 .tableDisplay { gap: .7rem; }
 .tableProduct { display: grid; width: 100%; min-height: 0; place-items: center; }
 .archiveCutout, .catalogCutout { position: relative; filter: drop-shadow(0 1px 1px #050a1866); animation: work-on-table 320ms ease-out both; }
-.archiveCutout { width: min(92%, 22rem); height: clamp(5rem, 22cqw, 18.5rem); }
 .archiveCutout img, .catalogCutout img { object-fit: contain; pointer-events: none; }
-.archiveCutout[data-gallery-product-number="21"] img { transform: scale(.65); }
-.archiveCutout[data-gallery-product-number="22"] img { transform: scale(.86); }
 .catalogCutout { width: min(94%, 22rem); height: clamp(5rem, 20cqw, 17rem); }
-.catalogCutout[data-table-product="lajvard-shab-ring"] { height: clamp(6.7rem, 25cqw, 21rem); }
-.catalogCutout[data-table-product="lajvard-shab-ring"] img { transform: rotate(-86deg); }
+.tableView .tableDisplay {
+  align-self: stretch;
+  min-height: 0;
+  container-type: size;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+}
+.tableView :is(.archiveCutout, .catalogCutout) {
+  width: min(var(--piece-width, 82cqw), 24rem);
+  height: min(var(--piece-height, 82cqh), 18rem);
+}
+/* Presentation limits relative to the velvet area, independent of physical measurements. */
+.tableDisplay[data-tray-category="rings"] { --piece-width: 72cqw; --piece-height: 78cqh; }
+.tableDisplay[data-tray-category="brooches-pins"] { --piece-width: 76cqw; --piece-height: 88cqh; }
+.tableDisplay[data-tray-category="earrings"] { --piece-width: 83cqw; --piece-height: 82cqh; }
+.tableDisplay[data-tray-category="jewelry-sets"] { --piece-width: 92cqw; --piece-height: 88cqh; }
+.tableDisplay[data-tray-category="pendants"] { --piece-width: 78cqw; --piece-height: 83cqh; }
+.tableDisplay[data-tray-category="bracelets"] { --piece-width: 93cqw; --piece-height: 69cqh; }
+.tableView .archiveCutout[data-gallery-product-number="21"] { --piece-width: 52cqw; --piece-height: 55cqh; }
+.tableView .archiveCutout[data-gallery-product-number="22"] { --piece-width: 67cqw; --piece-height: 72cqh; }
 @keyframes work-on-table {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -346,9 +361,6 @@
     align-items: stretch;
     gap: .38rem;
   }
-  .tableView .tableDisplay { display: block; min-height: 0; }
-  .tableView .tableProduct { height: 100%; grid-template-rows: minmax(0, 1fr); }
-  .tableView :is(.archiveCutout, .catalogCutout, .catalogCutout[data-table-product="lajvard-shab-ring"]) { width: min(100%, 15rem); height: min(100%, 9rem); }
   .tableView .tablePaper {
     align-self: start;
     width: min(100%, 18rem);
@@ -368,6 +380,7 @@
 }
 @media (max-width: 350px) and (orientation: portrait) {
   .tableView .tableComposition { inset-inline: 14%; grid-template-rows: minmax(0, .78fr) minmax(0, 1.38fr); }
+  .tableView .tableComposition:has([data-tray-cutout]) { grid-template-rows: minmax(0, 1.22fr) minmax(0, .94fr); }
   .tableView .tableDisplay { margin-inline: 3%; }
   .tableView .dossier { padding-inline: .4rem; }
   .tableView .dossier[data-archive-card] { padding-block: .2rem; }
@@ -384,7 +397,6 @@
   .scene { width: 100%; height: 100svh; height: 100dvh; aspect-ratio: auto; }
   .architecture { object-fit: fill; }
   .tableView .tableComposition { inset-block: 19% 27%; }
-  .archiveCutout, .catalogCutout, .catalogCutout[data-table-product="lajvard-shab-ring"] { height: min(16cqw, 35svh); }
   .tableView .tablePaper { width: min(100%, 17.5rem); }
   .tableView .dossier { padding: clamp(.45rem, 2svh, .85rem); }
   .dossierHeader { margin-bottom: .25rem; }
