@@ -310,7 +310,7 @@ test("staff can preview turns, retry and apply a separate transparent tray image
   await page.getByRole("button", { name: /^انگشتر نقره «لاجورد شب»/ }).click();
   const preview = page.getByRole("figure", { name: "پیش‌نمایش سینی در گالری" });
   const work = preview.getByRole("img", { name: "پیش‌نمایش تصویر اثر روی سینی" });
-  const rotation = preview.getByRole("group", { name: "چرخش عکس روی سینی" });
+  const rotation = preview.getByRole("group", { name: "تنظیم عکس روی سینی" });
   const tilt = () => work.evaluate((element) => getComputedStyle(element.parentElement!).rotate);
   const pathInput = page.getByRole("textbox", { name: "تصویر اثر روی سینی", exact: true });
   await rotation.getByRole("button", { name: "۹۰° چپ", exact: true }).click();
@@ -343,6 +343,77 @@ test("staff can preview turns, retry and apply a separate transparent tray image
     if (image[index] !== original[index] || (image[index] === 255 && image.readUInt32BE(index - 3) !== original.readUInt32BE(index - 3))) changedPixels++;
   }
   expect(changedPixels).toBe(0);
+});
+
+test("staff can remove asymmetric transparent margins and keep the crop during a turn", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await context.addCookies([galleryStaffCookie()]);
+  const loadedPath = "/images/ornova/catalog-media/ef84ff23-2ba9-4813-8b7c-03624b555643.png";
+  const adjustedPath = "/images/ornova/catalog-media/da23678f-ab11-431f-b9ad-c2136958bd08.png";
+  const piece = Buffer.alloc(79 * 35 * 4);
+  for (let y = 0; y < 35; y++) {
+    for (let x = 0; x < 79; x++) {
+      const offset = (y * 79 + x) * 4;
+      piece.set(x === 0 || y === 0 ? [48, 104, 160, 16] : [24, 96, 144, 255], offset);
+    }
+  }
+  const background = { r: 0, g: 0, b: 0, alpha: 0 };
+  const native = await sharp(piece, { raw: { width: 79, height: 35, channels: 4 } }).png().toBuffer();
+  const padded = await sharp({ create: { width: 410, height: 244, channels: 4, background } }).composite([{ input: native, left: 281, top: 196 }]).png().toBuffer();
+  let uploaded: Buffer | undefined;
+  let requests = 0;
+  await page.route(`**${loadedPath}`, (route) => route.fulfill({ contentType: "image/png", body: padded }));
+  await page.route(`**${adjustedPath}`, (route) => route.fulfill({ contentType: "image/png", body: uploaded }));
+  await page.route("**/api/admin/catalog/media", async (route) => {
+    requests++;
+    const request = route.request();
+    const fields = await new Request(request.url(), { method: "POST", headers: request.headers(), body: new Uint8Array(request.postDataBuffer()!) }).formData();
+    const file = fields.get("file");
+    expect(fields.get("purpose")).toBe("tray");
+    if (!(file instanceof File)) throw new Error("Missing adjusted tray image");
+    uploaded = Buffer.from(await file.arrayBuffer());
+    return route.fulfill({ status: 201, json: { path: adjustedPath } });
+  });
+
+  await page.goto("/admin/catalog");
+  await page.getByRole("button", { name: /^انگشتر نقره «لاجورد شب»/ }).click();
+  const pathInput = page.getByRole("textbox", { name: "تصویر اثر روی سینی", exact: true });
+  await pathInput.fill(loadedPath);
+  const preview = page.getByRole("figure", { name: "پیش‌نمایش سینی در گالری" });
+  const work = preview.getByRole("img", { name: "پیش‌نمایش تصویر اثر روی سینی" });
+  const center = preview.getByRole("button", { name: "وسط‌چین کردن اثر", exact: true });
+  await center.click();
+  await expect(work).toHaveJSProperty("width", 81);
+  await expect(work).toHaveJSProperty("height", 37);
+  await preview.getByRole("button", { name: "بازنشانی کادر", exact: true }).click();
+  await expect(work).toHaveJSProperty("naturalWidth", 410);
+  await center.click();
+  await preview.getByRole("button", { name: "۹۰° راست", exact: true }).click();
+  await preview.getByRole("button", { name: "دسکتاپ", exact: true }).click();
+  expect(await work.evaluate((element) => getComputedStyle(element.parentElement!).rotate)).toBe("90deg");
+  await expect(work).toHaveJSProperty("width", 81);
+  await expect(pathInput).toHaveValue(loadedPath);
+  expect(requests).toBe(0);
+
+  await preview.getByRole("button", { name: "استفاده از این کادر", exact: true }).click();
+  await expect(pathInput).toHaveValue(adjustedPath);
+  await expect(work).toHaveJSProperty("naturalWidth", 37);
+  await expect(work).toHaveJSProperty("naturalHeight", 81);
+  await center.click();
+  await expect(preview.getByRole("status").filter({ hasText: "حاشیه‌ای برای برش ندارد" })).toBeVisible();
+  expect(requests).toBe(1);
+
+  const { data: pixels, info } = await sharp(uploaded!).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const paddedPixels = await sharp(padded).ensureAlpha().raw().toBuffer();
+  expect([info.width, info.height]).toEqual([37, 81]);
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      const output = (y * info.width + x) * 4;
+      const source = ((231 - x) * 410 + 280 + y) * 4;
+      expect(pixels[output + 3]).toBe(paddedPixels[source + 3]);
+      if (pixels[output + 3] === 255) expect(pixels.readUInt32BE(output)).toBe(paddedPixels.readUInt32BE(source));
+    }
+  }
 });
 
 test("the brooch label stays beside the cabinet and the first work is upright", async ({ page }) => {

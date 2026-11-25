@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useLayoutEffect, useRef, useState } from "react";
 import { GalleryTrayBackdrop, GalleryTrayDossier, galleryTrayWorkImage } from "@/components/ornova/GalleryTray";
 import styles from "@/components/ornova/GalleryShowcaseConcept.module.css";
+import { drawTrayImage, visibleTrayCrop, type TrayCrop } from "@/lib/catalog/rotate-tray-image";
 
 const previews = {
   phone: { label: "گوشی", width: 390, height: 844 },
@@ -11,7 +12,7 @@ const previews = {
 } as const;
 const number = new Intl.NumberFormat("fa-IR", { useGrouping: false });
 
-export function CatalogTrayPreview({ name, categoryId, details, path, imageReady, busy, onImageLoad, onImageError, onApplyRotation }: {
+export function CatalogTrayPreview({ name, categoryId, details, path, imageReady, busy, onImageLoad, onImageError, onApplyImage }: {
   name: string;
   categoryId: string;
   details: readonly { label: string; value: string }[];
@@ -20,22 +21,37 @@ export function CatalogTrayPreview({ name, categoryId, details, path, imageReady
   busy: boolean;
   onImageLoad(image: HTMLImageElement): void;
   onImageError(): void;
-  onApplyRotation(image: HTMLImageElement, turns: number): Promise<void>;
+  onApplyImage(image: HTMLImageElement, turns: number, crop?: TrayCrop): Promise<void>;
 }) {
   const [layout, setLayout] = useState<keyof typeof previews>("phone");
   const [scale, setScale] = useState(0);
   const [cardScrolls, setCardScrolls] = useState(false);
-  const [rotation, setRotation] = useState({ path, turns: 0 });
-  if (rotation.path !== path) setRotation({ path, turns: 0 });
-  const turns = rotation.path === path ? rotation.turns : 0;
+  const [adjustment, setAdjustment] = useState<{ path: string | null; turns: number; crop?: TrayCrop; note?: string }>({ path, turns: 0 });
+  if (adjustment.path !== path) setAdjustment({ path, turns: 0 });
+  const { turns, crop, note } = adjustment.path === path ? adjustment : { turns: 0, crop: undefined, note: undefined };
   const swapAxes = turns % 2 === 1;
   const frame = useRef<HTMLDivElement>(null);
   const photo = useRef<HTMLImageElement>(null);
+  const croppedPhoto = useRef<HTMLCanvasElement>(null);
   const { width, height } = previews[layout];
 
   function turn(step: number) {
-    setRotation({ path, turns: (turns + step + 4) % 4 });
+    setAdjustment({ path, turns: (turns + step + 4) % 4, crop });
   }
+
+  function centerWork() {
+    if (!photo.current) return;
+    try {
+      const bounds = visibleTrayCrop(photo.current);
+      setAdjustment({ path, turns, crop: bounds ?? undefined, note: bounds ? undefined : "اثر در مرکزِ کادر است و حاشیه‌ای برای برش ندارد." });
+    } catch (error) {
+      setAdjustment({ path, turns, note: error instanceof Error ? error.message : "تنظیم کادر تصویر ممکن نشد." });
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (crop && croppedPhoto.current && photo.current) drawTrayImage(croppedPhoto.current, photo.current, 0, crop);
+  }, [crop]);
 
   useLayoutEffect(() => {
     const element = frame.current;
@@ -70,14 +86,19 @@ export function CatalogTrayPreview({ name, categoryId, details, path, imageReady
       </div>
       <p className="text-xs text-graphite/70"><bdi dir="ltr">{number.format(width)} × {number.format(height)}</bdi> پیکسل</p>
     </div>
-    {path && imageReady && <div className="mb-2 flex flex-wrap items-center gap-2" role="group" aria-label="چرخش عکس روی سینی">
+    {path && imageReady && <div className="mb-2 flex flex-wrap items-center gap-2" role="group" aria-label="تنظیم عکس روی سینی">
       <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => turn(-1)}>۹۰° چپ</button>
       <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => turn(1)}>۹۰° راست</button>
-      {turns !== 0 && <>
-        <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => setRotation({ path, turns: 0 })}>بازنشانی زاویه</button>
-        <button type="button" disabled={busy} className="min-h-11 rounded border border-sapphire px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => { if (photo.current) void onApplyRotation(photo.current, turns); }}>{busy ? "در حال آماده‌سازی…" : "استفاده از این چرخش"}</button>
-        <span className="basis-full text-xs text-graphite/70" role="status">زاویهٔ موقت پیش‌نمایش {number.format(turns * 90)} درجه</span>
-      </>}
+      <button type="button" disabled={busy || !!crop} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={centerWork}>وسط‌چین کردن اثر</button>
+      {turns !== 0 && <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => setAdjustment({ path, turns: 0, crop })}>بازنشانی زاویه</button>}
+      {crop && <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => setAdjustment({ path, turns })}>بازنشانی کادر</button>}
+      {(turns !== 0 || crop) && <button type="button" disabled={busy} className="min-h-11 rounded border border-sapphire px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => { if (photo.current) void onApplyImage(photo.current, turns, crop); }}>{busy ? "در حال آماده‌سازی…" : crop ? "استفاده از این کادر" : "استفاده از این چرخش"}</button>}
+      {(turns !== 0 || crop || note) && <span className="basis-full text-xs text-graphite/70" role="status">
+        {crop && "حاشیهٔ شفاف در پیش‌نمایش کم شد."}
+        {crop && turns !== 0 && " · "}
+        {turns !== 0 && `زاویهٔ موقت پیش‌نمایش ${number.format(turns * 90)} درجه`}
+        {turns !== 0 && note && " · "}{note}
+      </span>}
     </div>}
     <div ref={frame} className={styles.staffTrayPreview} style={{ maxWidth: width, aspectRatio: `${width} / ${height}` }}>
       <div className={`${styles.staffTrayStage} ${styles.trayViewport}`} data-tray-preview={layout} style={{ width, height, transform: `scale(${scale})` }}>
@@ -100,10 +121,11 @@ export function CatalogTrayPreview({ name, categoryId, details, path, imageReady
                     sizes={layout === "phone" ? "240px" : "384px"}
                     loading="eager"
                     unoptimized
-                    style={{ visibility: imageReady ? "visible" : "hidden" }}
+                    style={{ visibility: imageReady && !crop ? "visible" : "hidden" }}
                     onLoad={(event) => onImageLoad(event.currentTarget)}
                     onError={onImageError}
                   />
+                  {crop && <canvas ref={croppedPhoto} role="img" aria-label="پیش‌نمایش تصویر اثر روی سینی" />}
                 </div>
               </div>
             </div>}

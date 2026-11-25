@@ -8,7 +8,7 @@ import { catalogCategories, normalizeSearch, resolveCatalogSelection } from "@/l
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
 import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
-import { rotateTrayImage } from "@/lib/catalog/rotate-tray-image";
+import { prepareTrayImage } from "@/lib/catalog/rotate-tray-image";
 import { dossierFields, incompleteDossierFields, isDossierField, readDossierField, updateDossierField } from "@/lib/catalog/dossier-fields";
 import { appendCatalogPhotoView, draftCatalogFormFromPhoto, reviewCatalogPhotos } from "@/lib/catalog/photo-draft";
 import type { RoomPlacement } from "@/lib/catalog/room-placement";
@@ -332,7 +332,7 @@ export function CatalogEditor() {
             path={trayPath}
             imageReady={trayReady === true}
             busy={busy}
-            onApplyRotation={(image, turns) => uploadImage(() => rotateTrayImage(image, turns), "stand_image_path")}
+            onApplyImage={(image, turns, crop) => uploadImage(() => prepareTrayImage(image, turns, crop), "stand_image_path")}
             onImageLoad={(image) => { if (trayPath) setTrayPreview({ path: trayPath, transparent: /\.(png|webp)$/.test(trayPath) && hasVisibleCutout(image) }); }}
             onImageError={() => { if (trayPath) setTrayPreview({ path: trayPath, transparent: false }); }}
           />
