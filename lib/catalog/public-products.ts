@@ -12,12 +12,13 @@ type CatalogRow = {
   room_placement: unknown;
 };
 
-export async function getPublishedProducts(): Promise<Product[]> {
+export async function getPublishedProducts(signal?: AbortSignal): Promise<Product[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return legacyProducts;
   const client = await createSupabaseServerClient();
-  const { data, error } = await client.from("catalog_products")
+  const query = client.from("catalog_products")
     .select("slug,name,category_id,category_label,subtype_id,description,image_path,stand_image_path,gallery,details,packaging_gallery,turntable_video_path,image_fit,gallery_placement_verified,room_placement")
     .eq("status", "published").order("slug").limit(200);
+  const { data, error } = await (signal ? query.abortSignal(signal) : query);
   // Existing installations show the original catalog until migration 017 is applied.
   if (error?.code === "42P01" || error?.code === "PGRST205") return legacyProducts;
   if (error) throw new Error("Catalog read failed");

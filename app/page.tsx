@@ -27,7 +27,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
   const { galleryPanel, draft } = await searchParams;
   const studioContinuation = galleryPanel === "studio" && isStudioId(draft);
   const [galleryProducts, studioDraftOwner] = await Promise.all([
-    getPublishedProducts(),
+    getPublishedProducts(AbortSignal.timeout(4_000)).catch(() => {
+      console.warn("ORNOVA gallery: public catalog unavailable, showing the archive.");
+      return null;
+    }),
     studioContinuation ? getStudioDraftOwner() : null,
   ]);
   const structuredData = {
@@ -38,5 +41,5 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
     description: "طراحی دیجیتال و قابل ساخت جواهرات نقره برای خاطره‌ها و نشانه‌های شخصی.",
   };
 
-  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts} studioDraftOwner={studioDraftOwner} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
+  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts ?? []} catalogUnavailable={galleryProducts === null} studioDraftOwner={studioDraftOwner} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
 }

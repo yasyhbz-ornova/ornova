@@ -118,7 +118,7 @@ function getGalleryContactSnapshot(): string | null {
   return JSON.stringify(context);
 }
 
-export function VirtualGallery({ imageMode, galleryProducts: products, studioDraftOwner = null }: { imageMode: "offline" | "preview"; galleryProducts: Product[]; studioDraftOwner?: string | null }) {
+export function VirtualGallery({ imageMode, galleryProducts: products, catalogUnavailable = false, studioDraftOwner = null }: { imageMode: "offline" | "preview"; galleryProducts: Product[]; catalogUnavailable?: boolean; studioDraftOwner?: string | null }) {
   const showcaseRef = useRef<GalleryShowcaseHandle>(null);
   const drawerRef = useRef<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -466,6 +466,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, studioDra
             <div><p className={styles.eyebrow}>مجلهٔ اُرنوا</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>فهرست آثار</h1></div>
             <OrnovaSymbol className={styles.magazineFeature} />
           </header>
+          {catalogUnavailable && <p className={styles.intro} role="status">کاتالوگ برخط موقتاً در دسترس نیست. آثار آرشیو را می‌توانید در مجله و روی سینی ببینید.</p>}
           <section className={styles.magazineSearch} aria-label="جست‌وجوی آثار">
             <div className={styles.magazineSearchFields}>
               <label>نام اثر<input ref={magazineSearchInput} type="search" value={magazineFilters.query} onChange={(event) => setMagazineFilters({ ...magazineFilters, query: event.target.value })} placeholder="جست‌وجو در آثار" maxLength={160} /></label>

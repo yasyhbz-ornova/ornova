@@ -25,7 +25,15 @@ const fixture = createServer((request, response) => {
     return authorized ? send(200, galleryQA.user) : send(401);
   }
   if (pathname === "/rest/v1/catalog_products" && staffAuthorized && searchParams.get("select") === "*") return send(200, galleryStaffCatalog);
-  if (pathname === "/rest/v1/catalog_products") return send(404, { code: "PGRST205", message: "Use the bundled catalog" });
+  if (pathname === "/rest/v1/catalog_products") {
+    if (process.env.ORNOVA_QA_CATALOG_FAULT === "error") return send(500, { code: "QA500", message: "Catalog test error" });
+    if (process.env.ORNOVA_QA_CATALOG_FAULT === "stall") {
+      const deadline = setTimeout(() => send(504, { code: "QA504", message: "Catalog test delay" }), 15_000);
+      response.on("close", () => clearTimeout(deadline));
+      return;
+    }
+    return send(404, { code: "PGRST205", message: "Use the bundled catalog" });
+  }
   if (!authorized) return send(401);
   if (pathname === "/rest/v1/profiles") {
     const profile = {
