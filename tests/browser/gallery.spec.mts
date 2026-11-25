@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { galleryTestCookie } from "./gallery-fixture.mjs";
+import { galleryOrderHistory, galleryTestCookie } from "./gallery-fixture.mjs";
 
 const tray = (page: Page) => page.getByRole("group", { name: "سینی مخمل آبی افغانی", exact: true });
 const drawer = (page: Page) => page.getByRole("dialog");
@@ -42,6 +42,55 @@ test("a guest can open the ledger cover and is asked to sign in", async ({ page 
   await page.getByRole("button", { name: "دفتر شخصی اُرنوا", exact: true }).click();
   await expect(page.locator('input[autocomplete="email"]')).toBeVisible();
   await expect(page.getByRole("navigation", { name: "برگ‌های دفتر مشتری" })).toHaveCount(0);
+});
+
+test("mobile order summaries load on demand and keep an open conversation on quote return", async ({ page, context }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await context.addCookies([galleryTestCookie()]);
+  let reads = 0;
+  const messages: string[] = [];
+  await page.route("**/api/account/inquiries", async (route) => {
+    reads++;
+    if (reads === 1) await route.fulfill({ status: 503, json: { error: "Fixture read failure" } });
+    else await route.fulfill({ json: galleryOrderHistory });
+  });
+  await page.route("**/api/inquiries/*/messages", async (route) => {
+    messages.push(route.request().url());
+    await route.fulfill({ json: { events: [], messages: [] } });
+  });
+  await page.goto("/?galleryPanel=studio");
+  await page.getByRole("button", { name: "دفتر شخصی اُرنوا", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "مشخصات من", exact: true })).toBeVisible();
+  expect(reads).toBe(0);
+  const leaves = page.getByRole("navigation", { name: "برگ‌های دفتر مشتری" });
+  await leaves.getByRole("button", { name: "سفارش‌های من", exact: true }).click();
+  await page.getByRole("button", { name: "تلاش دوباره", exact: true }).click();
+  const first = page.locator("details > summary").filter({ hasText: "انگشتر نقره «لاجورد شب»" });
+  await expect(first).toBeVisible();
+  await expect(first).toContainText("پیشنهاد قیمت");
+  await expect(page.locator("details > summary").filter({ hasText: "آویز نقره با طرح اختصاصی" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "گفت‌وگو و روند درخواست" })).toHaveCount(0);
+  expect(messages).toHaveLength(0);
+  await first.click();
+  const draft = page.getByRole("textbox", { name: "پیام تازه درباره‌ی این درخواست" });
+  await draft.fill("پرسش تمرینی دربارهٔ سفارش");
+  await expect.poll(() => messages.length).toBe(1);
+  expect(messages[0]).toContain(galleryOrderHistory.inquiries[0].id);
+  const print = page.getByRole("button", { name: /بازکردن برگهٔ چاپ/ });
+  await print.click();
+  await expect(page.getByRole("heading", { name: "پیشنهاد قیمت", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "بازگشت به سوابق حساب", exact: true }).click();
+  await expect(print).toBeFocused();
+  await expect(draft).toHaveValue("پرسش تمرینی دربارهٔ سفارش");
+  await first.click();
+  await expect(draft).toBeHidden();
+  await leaves.getByRole("button", { name: "ایده و سفارش اختصاصی", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "ایده و سفارش اختصاصی", exact: true })).toBeVisible();
+  await leaves.getByRole("button", { name: "سفارش‌های من", exact: true }).click();
+  await first.click();
+  await expect(draft).toHaveValue("پرسش تمرینی دربارهٔ سفارش");
+  expect(reads).toBe(2);
+  expect(messages).toHaveLength(1);
 });
 
 test("an archive order uses the full-screen checkout ledger", async ({ page, context }) => {

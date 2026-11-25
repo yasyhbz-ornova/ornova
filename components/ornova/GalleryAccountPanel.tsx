@@ -37,6 +37,7 @@ const bookPages = [
   { id: "orders", title: "سفارش‌های من" },
   { id: "idea", title: "ایده و سفارش اختصاصی" },
 ] as const;
+const orderDate = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" });
 type WorkshopBook = { page: WorkshopBookPage; onPageChange(page: WorkshopBookPage): void; authorizeIdea(accountId: string): boolean; idea: ReactNode; hasDraft: boolean; busy: boolean };
 
 export function GalleryAccountPanel({ completionMode, initialError, signOutFailed = false, onContinueCheckout, checkoutTitle, nextDestination, prepareEmailDestination, workshopBook }: { completionMode: boolean; initialError?: string | null; signOutFailed?: boolean; onContinueCheckout?: () => void; checkoutTitle?: string; nextDestination?: string; prepareEmailDestination?: () => string | null; workshopBook?: WorkshopBook }) {
@@ -46,12 +47,26 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
   const [profileUnavailable, setProfileUnavailable] = useState(false);
   const [history, setHistory] = useState<InquiryHistory | null>(null);
   const [historyError, setHistoryError] = useState(false);
+  const [openedInquiries, setOpenedInquiries] = useState<ReadonlySet<string>>(() => new Set());
   const [activeQuote, setActiveQuote] = useState<ActiveQuote | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [editingCheckoutProfile, setEditingCheckoutProfile] = useState(false);
   const bookNav = useRef<HTMLElement>(null);
+  const quoteReturn = useRef<HTMLButtonElement>(null);
+  const quoteView = useRef<HTMLDivElement>(null);
   const bookPageIndex = bookPages.findIndex((page) => page.id === workshopBook?.page);
   const authorizeIdea = workshopBook?.authorizeIdea;
+  const wantsHistory = !completionMode && (!workshopBook || workshopBook.page === "orders");
+  const showingQuote = Boolean(activeQuote && state === "signed-in");
+
+  useEffect(() => {
+    if (showingQuote) quoteView.current?.focus();
+  }, [showingQuote]);
+
+  function closeQuote() {
+    setActiveQuote(null);
+    window.requestAnimationFrame(() => quoteReturn.current?.focus());
+  }
 
   function turnPage(index: number) {
     const next = bookPages[index];
@@ -68,6 +83,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
       setState("checking");
       setHistory(null);
       setHistoryError(false);
+      setOpenedInquiries(new Set());
       try {
         const client = createSupabaseBrowserClient();
         subscription = client.auth.onAuthStateChange((event) => {
@@ -76,6 +92,7 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
           setProfile(null);
           setIdentity(null);
           setHistory(null);
+          setOpenedInquiries(new Set());
           setActiveQuote(null);
           setState("guest");
         }).data.subscription;
@@ -98,16 +115,6 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
         setProfileUnavailable(Boolean(error));
         setProfile(error ? null : data as AccountProfile | null);
         setState(completionMode ? "ready" : "signed-in");
-        if (!completionMode) {
-          try {
-            const response = await fetch("/api/account/inquiries", { cache: "no-store", signal: AbortSignal.timeout(15000) });
-            const result = await response.json() as InquiryHistory & { error?: string };
-            if (!response.ok) throw new Error(result.error ?? "history unavailable");
-            if (active) { setHistory(result); setHistoryError(false); }
-          } catch {
-            if (active) setHistoryError(true);
-          }
-        }
       } catch {
         if (active) setState("unavailable");
       }
@@ -115,6 +122,27 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     void loadSession();
     return () => { active = false; subscription?.unsubscribe(); };
   }, [attempt, authorizeIdea, completionMode]);
+
+  useEffect(() => {
+    if (state !== "signed-in" || !wantsHistory || history || historyError) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 15_000);
+    let active = true;
+    async function loadHistory() {
+      try {
+        const response = await fetch("/api/account/inquiries", { cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error("History unavailable");
+        const result = await response.json() as InquiryHistory;
+        if (active) setHistory(result);
+      } catch {
+        if (active) setHistoryError(true);
+      } finally {
+        window.clearTimeout(timer);
+      }
+    }
+    void loadHistory();
+    return () => { active = false; controller.abort(); window.clearTimeout(timer); };
+  }, [state, wantsHistory, history, historyError]);
 
   const profileReady = Boolean(profile?.display_name?.trim() && profile.phone?.trim() && profile.province?.trim() && profile.city?.trim() && profile.address_line?.trim());
   const checkoutSummary = state === "ready" && completionMode && profileReady && !editingCheckoutProfile;
@@ -167,27 +195,48 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
 
   const historyPage = state === "signed-in" && <section className={`${styles.accountHistory} account-inquiries`} aria-labelledby="gallery-account-inquiries-title">
       <div className="account-section-title"><h2 id="gallery-account-inquiries-title">درخواست‌های من</h2></div>
-      {historyError ? <div className="account-empty" role="alert"><p>پرونده‌های درخواست فعلاً دریافت نشدند؛ این پیام به معنی حذف اطلاعات نیست.</p><button type="button" className="mt-4 text-sm text-sapphire underline underline-offset-4" onClick={() => setAttempt((value) => value + 1)}>تلاش دوباره</button></div>
+      {historyError ? <div className="account-empty" role="alert"><p>پرونده‌های درخواست فعلاً دریافت نشدند.</p><button type="button" className={styles.secondaryLink} onClick={() => setHistoryError(false)}>تلاش دوباره</button></div>
         : !history ? <p className="account-empty" role="status">در حال بازکردن پرونده‌های خصوصی…</p>
-        : history.inquiries.length === 0 ? <div className="account-empty"><p>هنوز درخواستی در پروندهٔ شما ثبت نشده است.</p></div>
-        : <div className="account-list">
+        : history.inquiries.length === 0 ? <div className="account-empty"><p>هنوز سفارشی در دفترت ثبت نشده است.</p>{workshopBook && <button type="button" className={styles.secondaryLink} disabled={workshopBook.busy} onClick={() => turnPage(2)}>ثبت ایدهٔ سفارش</button>}</div>
+        : <div className={styles.orderEntries}>
           {history.detailsError && <p className="account-empty" role="status">بخشی از جزئیات پیوست‌ها موقتاً در دسترس نیست؛ وضعیت درخواست‌ها نمایش داده می‌شود.</p>}
           {history.inquiries.map((inquiry) => {
             const items = history.items.filter((item) => item.inquiry_id === inquiry.id);
             const files = history.files.filter((file) => file.inquiry_id === inquiry.id);
             const quotes = history.quotes.filter((quote) => quote.inquiry_id === inquiry.id);
-            return <article key={inquiry.id}>
-              <div><p className="text-xs text-sapphire">{new Date(inquiry.created_at).toLocaleDateString("fa-IR")}</p><h3>{getInquiryStatusLabel(inquiry.status)}</h3>{getInquiryStatusGuidance(inquiry.status) && !(inquiry.status === "quoted" && quotes.length > 0) && <p className="mt-2 text-sm leading-7 text-graphite/65">{getInquiryStatusGuidance(inquiry.status)}</p>}</div>
-              <div className="account-inquiry-body"><p>{inquiry.message}</p>
-                {items.length > 0 && <ul className="account-inquiry-items" aria-label="قطعات درخواست‌شده">{items.map((item, index) => <li key={`${item.product_name}-${index}`}><div>{item.product_name}<ProductPreferencesSummary value={item.preferences} /></div><span>تعداد {item.quantity.toLocaleString("fa-IR")}</span></li>)}</ul>}
-                {files.length > 0 && <div className="account-inquiry-files"><p>فایل‌های پرونده</p><ul>{files.map((file) => <li key={file.id}><a href={`/api/inquiries/${inquiry.id}/files?fileId=${encodeURIComponent(file.id)}`}>{file.original_name}</a></li>)}</ul></div>}
+            const title = items[0]?.product_name || inquiry.message.trim().split(/\r?\n/, 1)[0] || "درخواست گالری";
+            const canShowGuidance = inquiry.status !== "quoted" || quotes.length === 0;
+            return <details key={inquiry.id} className={styles.orderEntry} onToggle={(event) => {
+              if (event.target !== event.currentTarget || !event.currentTarget.open || openedInquiries.has(inquiry.id)) return;
+              setOpenedInquiries((current) => new Set(current).add(inquiry.id));
+            }}>
+              <summary>
+                <span className={styles.orderTitle}>{title}</span>
+                <span className={styles.orderStatus}>{getInquiryStatusLabel(inquiry.status)}</span>
+                <time dateTime={inquiry.created_at}>{orderDate.format(new Date(inquiry.created_at))}</time>
+              </summary>
+              <div className={styles.orderDetail}>
+                {canShowGuidance && getInquiryStatusGuidance(inquiry.status) && <p className="text-sm leading-7 text-graphite/75">{getInquiryStatusGuidance(inquiry.status)}</p>}
+                <div className="account-inquiry-body"><p>{inquiry.message}</p>
+                  {items.length > 0 && <ul className="account-inquiry-items" aria-label="قطعات درخواست‌شده">{items.map((item, index) => <li key={`${item.product_name}-${index}`}><div>{item.product_name}<ProductPreferencesSummary value={item.preferences} /></div><span>تعداد {item.quantity.toLocaleString("fa-IR")}</span></li>)}</ul>}
+                  {files.length > 0 && <div className="account-inquiry-files"><p>فایل‌های پرونده</p><ul>{files.map((file) => <li key={file.id}><a href={`/api/inquiries/${inquiry.id}/files?fileId=${encodeURIComponent(file.id)}`}>{file.original_name}</a></li>)}</ul></div>}
+                </div>
+                <section className="min-w-0" aria-label="پیشنهادهای قیمت">
+                  <h4 className="mb-2 text-sm text-sapphire">پیشنهادهای قیمت</h4>
+                  {history.quoteError ? <p role="alert" className="text-sm leading-7">پیشنهادهای قیمت فعلاً دریافت نشدند؛ سایر اطلاعات پرونده در دسترس می‌ماند.</p> : quotes.length ? <div className="space-y-5">{quotes.map((quote) => {
+                    const isPreviousVersion = quotes.some((other) => other.document_id === quote.document_id && other.source_revision > quote.source_revision);
+                    return <div key={quote.id}>
+                      <InquiryQuoteCard quote={quote} now={history.quoteReadAt} isPreviousVersion={isPreviousVersion} />
+                      <button type="button" className={styles.secondaryLink} onClick={(event) => {
+                        quoteReturn.current = event.currentTarget;
+                        setActiveQuote({ quote, isPreviousVersion, checkedAt: history.quoteReadAt });
+                      }}>بازکردن برگهٔ چاپ در گالری ←</button>
+                    </div>;
+                  })}</div> : <p className="text-sm leading-7 text-graphite/65">هنوز پیشنهاد قیمت مستقلی در این پرونده ثبت نشده است.</p>}
+                </section>
+                {openedInquiries.has(inquiry.id) && <InquiryConversation inquiryId={inquiry.id} status={inquiry.status} viewer="customer" />}
               </div>
-              <section className="col-span-full my-6 min-w-0" aria-label="پیشنهادهای قیمت"><h4 className="mb-4 text-sm text-sapphire">پیشنهادهای قیمت</h4>{history.quoteError ? <p role="alert" className="text-sm leading-7">پیشنهادهای قیمت فعلاً دریافت نشدند؛ سایر اطلاعات پرونده در دسترس می‌ماند.</p> : quotes.length ? <div className="space-y-5">{quotes.map((quote) => {
-                const isPreviousVersion = quotes.some((other) => other.document_id === quote.document_id && other.source_revision > quote.source_revision);
-                return <div key={quote.id}><InquiryQuoteCard quote={quote} now={history.quoteReadAt} isPreviousVersion={isPreviousVersion} /><button type="button" className="mt-3 min-h-11 border-b border-silver pb-1 text-sm text-sapphire underline underline-offset-4" onClick={() => setActiveQuote({ quote, isPreviousVersion, checkedAt: history.quoteReadAt })}>بازکردن برگهٔ چاپ در گالری ←</button></div>;
-              })}</div> : <p className="py-4 text-sm leading-7 text-graphite/65">هنوز پیشنهاد قیمت مستقلی در این پرونده ثبت نشده است.</p>}</section>
-              <InquiryConversation key={inquiry.id} inquiryId={inquiry.id} status={inquiry.status} viewer="customer" />
-            </article>;
+            </details>;
           })}
         </div>}
     </section>;
@@ -196,7 +245,8 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
     </form>;
 
   return <div className={styles.accountWorkflow}>
-    {activeQuote && state === "signed-in" ? <CustomerQuoteDocument quote={activeQuote.quote} isPreviousVersion={activeQuote.isPreviousVersion} checkedAt={activeQuote.checkedAt} embedded onBack={() => setActiveQuote(null)} onAccepted={(acceptedAt) => { setActiveQuote(current => current && { ...current, quote: { ...current.quote, accepted_at: acceptedAt } }); setHistory(current => current && { ...current, quotes: current.quotes.map(quote => quote.id === activeQuote.quote.id ? { ...quote, accepted_at: acceptedAt } : quote) }); }} /> : <>
+    {showingQuote && activeQuote && <div ref={quoteView} tabIndex={-1} role="region" aria-label="برگهٔ پیشنهاد قیمت"><CustomerQuoteDocument quote={activeQuote.quote} isPreviousVersion={activeQuote.isPreviousVersion} checkedAt={activeQuote.checkedAt} embedded onBack={closeQuote} onAccepted={(acceptedAt) => { setActiveQuote(current => current && { ...current, quote: { ...current.quote, accepted_at: acceptedAt } }); setHistory(current => current && { ...current, quotes: current.quotes.map(quote => quote.id === activeQuote.quote.id ? { ...quote, accepted_at: acceptedAt } : quote) }); }} /></div>}
+    <div className={styles.accountBookContent} hidden={showingQuote} inert={showingQuote || undefined}>
     {signOutFailed && <p className="border-r-2 border-sapphire px-4 py-2 text-sm leading-7 text-graphite/70" role="alert">خروج از حساب انجام نشد؛ دوباره تلاش کن.</p>}
     {completionMode && <p className="text-sm leading-7 text-graphite/75">{checkoutTitle ?? "ادامهٔ سفارش از صندوق گالری"}</p>}
     {workshopBook ? state === "signed-in" ? <div className={styles.customerBook}>
@@ -213,6 +263,6 @@ export function GalleryAccountPanel({ completionMode, initialError, signOutFaile
       </footer>
       {signOut}
     </div> : <div className={styles.customerBookLock}>{content}</div> : profileBook ? <div className={state === "ready" ? styles.customerBook : styles.customerBookLock}>{content}</div> : <>{content}{historyPage}{signOut}</>}
-    </>}
+    </div>
   </div>;
 }
