@@ -190,7 +190,7 @@ test("a portrait phone shows the complete room and opens the real showcase boxes
     const bounds = element.getBoundingClientRect();
     return { src: element.currentSrc, left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom };
   });
-  expect(image.src).toContain("hatam-portrait-v1-");
+  expect(image.src).toContain("hatam-portrait-v2-");
   expect(image.left).toBeLessThanOrEqual(0);
   expect(image.right).toBeGreaterThanOrEqual(320);
   expect(image.top).toBeLessThanOrEqual(0);
@@ -291,7 +291,7 @@ test.describe("touch gallery orientation", () => {
   test("lights each object in turn while keeping its touch target usable", async ({ page }) => {
     let releaseArt!: () => void;
     const artResponse = new Promise<void>((resolve) => { releaseArt = resolve; });
-    await page.route(/\/entry-ornova-orosi-hatam-portrait-v1-\d+\.(?:avif|webp)$/, async (route) => {
+    await page.route(/\/entry-ornova-orosi-hatam-portrait-v\d+-\d+\.(?:avif|webp)$/, async (route) => {
       await artResponse;
       await route.continue();
     });

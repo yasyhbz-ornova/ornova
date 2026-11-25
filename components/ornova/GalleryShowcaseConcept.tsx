@@ -17,10 +17,10 @@ import styles from "./GalleryShowcaseConcept.module.css";
 
 const roomMedium = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1280.webp";
 const roomLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-1670.webp";
-const portraitAvifSmall = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-460.avif";
-const portraitAvifLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-768.avif";
-const portraitWebpSmall = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-460.webp";
-const portraitWebpLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v1-768.webp";
+const portraitAvifSmall = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v2-460.avif";
+const portraitAvifLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v2-768.avif";
+const portraitWebpSmall = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v2-460.webp";
+const portraitWebpLarge = "/images/ornova/gallery/review/entry-ornova-orosi-hatam-portrait-v2-768.webp";
 const portraitMedia = "(max-width: 700px) and (orientation: portrait)";
 const portraitSizes = "(max-aspect-ratio: 426/923) 46.154vh, 100vw";
 
