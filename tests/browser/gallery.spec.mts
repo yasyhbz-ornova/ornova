@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import sharp from "sharp";
 import { galleryOrderHistory, galleryStaffCookie, galleryTestCookie } from "./gallery-fixture.mjs";
 
 const tray = (page: Page) => page.getByRole("group", { name: "سینی مخمل آبی افغانی", exact: true });
@@ -275,6 +276,73 @@ test("staff preview matches both public tray layouts and flags a scrolling card 
   await expect(preview.getByRole("status")).toContainText("داخل کارت پیمایش کنید");
   const overflow = await preview.getByRole("article").evaluate((card) => card.scrollHeight - card.clientHeight);
   expect(overflow).toBeGreaterThan(1);
+});
+
+test("staff can preview turns, retry and apply a separate transparent tray image", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await context.addCookies([galleryStaffCookie()]);
+  const uploadedPath = "/images/ornova/catalog-media/43ac8e1e-e7e6-413a-b782-743f684f53c8.png";
+  let uploaded: Buffer | undefined;
+  let uploadAttempts = 0;
+  let catalogWrites = 0;
+  await page.route(`**${uploadedPath}`, (route) => route.fulfill({ contentType: "image/png", body: uploaded }));
+  await page.route("**/api/admin/catalog", (route) => {
+    if (route.request().method() === "POST") catalogWrites++;
+    return route.continue();
+  });
+  await page.route("**/api/admin/catalog/media", async (route) => {
+    uploadAttempts++;
+    if (uploadAttempts === 1) return route.fulfill({ status: 503, json: { error: "بارگذاری آزمایشی انجام نشد." } });
+    const request = route.request();
+    const data = await new Request(request.url(), {
+      method: "POST", headers: request.headers(), body: new Uint8Array(request.postDataBuffer()!),
+    }).formData();
+    const file = data.get("file");
+    expect(data.get("purpose")).toBe("tray");
+    expect(file).toBeInstanceOf(File);
+    if (!(file instanceof File)) throw new Error("Missing rotated image");
+    expect(file.type).toBe("image/png");
+    uploaded = Buffer.from(await file.arrayBuffer());
+    return route.fulfill({ status: 201, json: { path: uploadedPath } });
+  });
+
+  await page.goto("/admin/catalog");
+  await page.getByRole("button", { name: /^انگشتر نقره «لاجورد شب»/ }).click();
+  const preview = page.getByRole("figure", { name: "پیش‌نمایش سینی در گالری" });
+  const work = preview.getByRole("img", { name: "پیش‌نمایش تصویر اثر روی سینی" });
+  const rotation = preview.getByRole("group", { name: "چرخش عکس روی سینی" });
+  const tilt = () => work.evaluate((element) => getComputedStyle(element.parentElement!).rotate);
+  const pathInput = page.getByRole("textbox", { name: "تصویر اثر روی سینی", exact: true });
+  await rotation.getByRole("button", { name: "۹۰° چپ", exact: true }).click();
+  expect(await tilt()).toBe("270deg");
+  await rotation.getByRole("button", { name: "بازنشانی زاویه", exact: true }).click();
+  expect(await tilt()).toBe("0deg");
+  await rotation.getByRole("button", { name: "۹۰° راست", exact: true }).click();
+  await preview.getByRole("button", { name: "دسکتاپ", exact: true }).click();
+  expect(await tilt()).toBe("90deg");
+  await expect(pathInput).toHaveValue(/lajvard-shab-stand-cutout-preview-v1\.webp$/);
+  expect(uploadAttempts).toBe(0);
+
+  const apply = rotation.getByRole("button", { name: "استفاده از این چرخش", exact: true });
+  await apply.click();
+  await expect(page.getByRole("alert").filter({ hasText: "بارگذاری آزمایشی انجام نشد." })).toBeVisible();
+  expect(await tilt()).toBe("90deg");
+  await apply.click();
+  await expect(pathInput).toHaveValue(uploadedPath);
+  await expect(work).toBeVisible();
+  expect(await tilt()).toBe("0deg");
+  expect(await work.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([182, 490]);
+  await expect(page.getByRole("checkbox", { name: /جای‌گذاری اثر روی سینی/ })).not.toBeChecked();
+  expect(catalogWrites).toBe(0);
+
+  const image = await sharp(uploaded!).ensureAlpha().raw().toBuffer();
+  const original = await sharp("public/images/ornova/gallery/products/lajvard-shab-tray-horizontal-v2.webp").rotate(90).raw().toBuffer();
+  expect(image.length).toBe(original.length);
+  let changedPixels = 0;
+  for (let index = 3; index < image.length; index += 4) {
+    if (image[index] !== original[index] || (image[index] === 255 && image.readUInt32BE(index - 3) !== original.readUInt32BE(index - 3))) changedPixels++;
+  }
+  expect(changedPixels).toBe(0);
 });
 
 test("the brooch label stays beside the cabinet and the first work is upright", async ({ page }) => {

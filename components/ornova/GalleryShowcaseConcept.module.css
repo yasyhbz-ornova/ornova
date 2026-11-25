@@ -360,7 +360,8 @@
 }
 .staffTrayStage { position: absolute; top: 0; left: 0; isolation: isolate; transform-origin: left top; }
 .staffTrayStage .seatedPicture .architecture { object-fit: fill; }
-.staffTrayStage .catalogCutout { animation: none; }
+.staffTrayStage .catalogCutout { animation: none; container-type: size; }
+.staffTrayImage { position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
 .staffDossierText { width: min(100%, 31rem); margin-top: .5rem; }
 .staffDossierText > summary { padding-block: .35rem; color: #385a77; font-size: .83rem; cursor: pointer; }
 .staffDossierText > .dossier { max-height: none; margin-top: .4rem; padding: .7rem .8rem; overflow: visible; }

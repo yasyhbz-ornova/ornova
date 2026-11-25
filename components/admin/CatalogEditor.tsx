@@ -8,6 +8,7 @@ import { catalogCategories, normalizeSearch, resolveCatalogSelection } from "@/l
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
 import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
+import { rotateTrayImage } from "@/lib/catalog/rotate-tray-image";
 import { dossierFields, incompleteDossierFields, isDossierField, readDossierField, updateDossierField } from "@/lib/catalog/dossier-fields";
 import { appendCatalogPhotoView, draftCatalogFormFromPhoto, reviewCatalogPhotos } from "@/lib/catalog/photo-draft";
 import type { RoomPlacement } from "@/lib/catalog/room-placement";
@@ -131,13 +132,14 @@ export function CatalogEditor() {
     setError("");
     setNotice("برش آمادهٔ اثر در فرم قرار گرفت. پیش‌نمایش را بررسی و جای‌گذاری را تأیید کنید.");
   };
-  const uploadImage = async (file: File | undefined, target: "image_path" | "stand_image_path" | "gallery" | "packaging_gallery") => {
+  const uploadImage = async (file: File | undefined | (() => Promise<File>), target: "image_path" | "stand_image_path" | "gallery" | "packaging_gallery") => {
     if (!file || operationInProgress.current) return;
-    if (file.size > 4 * 1024 * 1024) { setError("حجم تصویر باید کمتر از ۴ مگابایت باشد."); return; }
     operationInProgress.current = true;
     setError(""); setNotice(""); setUploading(true);
     try {
-      const data = new FormData(); data.set("file", file);
+      const image = typeof file === "function" ? await file() : file;
+      if (image.size > 4 * 1024 * 1024) throw new Error("حجم تصویر باید کمتر از ۴ مگابایت باشد.");
+      const data = new FormData(); data.set("file", image);
       if (target === "stand_image_path") data.set("purpose", "tray");
       const response = await fetch("/api/admin/catalog/media", { method: "POST", body: data });
       const result = await response.json() as { path?: string; error?: string };
@@ -267,7 +269,7 @@ export function CatalogEditor() {
           {trayReady && trayPath && (!form.image_path || referenceCover) && <button type="button" onClick={() => update("image_path", trayPath)} className="mt-2 block min-h-9 text-sm text-sapphire underline underline-offset-4">استفاده از برش سینی برای تصویر اصلی</button>}
         </div>
         <div>
-          <label className={labelClass}>تصویر اثر روی سینی<input className={fieldClass} dir="ltr" value={form.stand_image_path ?? ""} onChange={(event) => { update("stand_image_path", event.target.value || null); update("gallery_placement_verified", false); }} placeholder="مسیر کامل فایل تصویر" /></label>
+          <label className={labelClass}>تصویر اثر روی سینی<input className={fieldClass} dir="ltr" value={form.stand_image_path ?? ""} disabled={busy} onChange={(event) => { update("stand_image_path", event.target.value || null); update("gallery_placement_verified", false); }} placeholder="مسیر کامل فایل تصویر" /></label>
           <label className="mt-2 inline-block cursor-pointer text-sm text-sapphire underline underline-offset-4">بارگذاری برش سینی<input type="file" accept="image/png,image/webp" disabled={uploading || saving} className="sr-only" onChange={(event) => { void uploadImage(event.target.files?.[0], "stand_image_path"); event.target.value = ""; }} /></label>
         </div>
       </div>
@@ -329,6 +331,8 @@ export function CatalogEditor() {
             details={form.details}
             path={trayPath}
             imageReady={trayReady === true}
+            busy={busy}
+            onApplyRotation={(image, turns) => uploadImage(() => rotateTrayImage(image, turns), "stand_image_path")}
             onImageLoad={(image) => { if (trayPath) setTrayPreview({ path: trayPath, transparent: /\.(png|webp)$/.test(trayPath) && hasVisibleCutout(image) }); }}
             onImageError={() => { if (trayPath) setTrayPreview({ path: trayPath, transparent: false }); }}
           />

@@ -11,20 +11,31 @@ const previews = {
 } as const;
 const number = new Intl.NumberFormat("fa-IR", { useGrouping: false });
 
-export function CatalogTrayPreview({ name, categoryId, details, path, imageReady, onImageLoad, onImageError }: {
+export function CatalogTrayPreview({ name, categoryId, details, path, imageReady, busy, onImageLoad, onImageError, onApplyRotation }: {
   name: string;
   categoryId: string;
   details: readonly { label: string; value: string }[];
   path: string | null;
   imageReady: boolean;
+  busy: boolean;
   onImageLoad(image: HTMLImageElement): void;
   onImageError(): void;
+  onApplyRotation(image: HTMLImageElement, turns: number): Promise<void>;
 }) {
   const [layout, setLayout] = useState<keyof typeof previews>("phone");
   const [scale, setScale] = useState(0);
   const [cardScrolls, setCardScrolls] = useState(false);
+  const [rotation, setRotation] = useState({ path, turns: 0 });
+  if (rotation.path !== path) setRotation({ path, turns: 0 });
+  const turns = rotation.path === path ? rotation.turns : 0;
+  const swapAxes = turns % 2 === 1;
   const frame = useRef<HTMLDivElement>(null);
+  const photo = useRef<HTMLImageElement>(null);
   const { width, height } = previews[layout];
+
+  function turn(step: number) {
+    setRotation({ path, turns: (turns + step + 4) % 4 });
+  }
 
   useLayoutEffect(() => {
     const element = frame.current;
@@ -59,6 +70,15 @@ export function CatalogTrayPreview({ name, categoryId, details, path, imageReady
       </div>
       <p className="text-xs text-graphite/70"><bdi dir="ltr">{number.format(width)} × {number.format(height)}</bdi> پیکسل</p>
     </div>
+    {path && imageReady && <div className="mb-2 flex flex-wrap items-center gap-2" role="group" aria-label="چرخش عکس روی سینی">
+      <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => turn(-1)}>۹۰° چپ</button>
+      <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => turn(1)}>۹۰° راست</button>
+      {turns !== 0 && <>
+        <button type="button" disabled={busy} className="min-h-11 border-b border-silver px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => setRotation({ path, turns: 0 })}>بازنشانی زاویه</button>
+        <button type="button" disabled={busy} className="min-h-11 rounded border border-sapphire px-2 text-sm text-sapphire disabled:opacity-50" onClick={() => { if (photo.current) void onApplyRotation(photo.current, turns); }}>{busy ? "در حال آماده‌سازی…" : "استفاده از این چرخش"}</button>
+        <span className="basis-full text-xs text-graphite/70" role="status">زاویهٔ موقت پیش‌نمایش {number.format(turns * 90)} درجه</span>
+      </>}
+    </div>}
     <div ref={frame} className={styles.staffTrayPreview} style={{ maxWidth: width, aspectRatio: `${width} / ${height}` }}>
       <div className={`${styles.staffTrayStage} ${styles.trayViewport}`} data-tray-preview={layout} style={{ width, height, transform: `scale(${scale})` }}>
         <GalleryTrayBackdrop layout={layout} />
@@ -66,18 +86,25 @@ export function CatalogTrayPreview({ name, categoryId, details, path, imageReady
           <div className={styles.tableDisplay} data-tray-category={categoryId}>
             {path && <div className={styles.tableProduct}>
               <div className={styles.catalogCutout}>
-                <Image
-                  key={path}
-                  src={galleryTrayWorkImage(path)}
-                  alt="پیش‌نمایش تصویر اثر روی سینی"
-                  fill
-                  sizes={layout === "phone" ? "240px" : "384px"}
-                  loading="eager"
-                  unoptimized
-                  style={{ visibility: imageReady ? "visible" : "hidden" }}
-                  onLoad={(event) => onImageLoad(event.currentTarget)}
-                  onError={onImageError}
-                />
+                <div className={styles.staffTrayImage} style={{
+                  width: swapAxes ? "100cqh" : "100%",
+                  height: swapAxes ? "100cqw" : "100%",
+                  rotate: `${turns * 90}deg`,
+                }}>
+                  <Image
+                    ref={photo}
+                    key={path}
+                    src={galleryTrayWorkImage(path)}
+                    alt="پیش‌نمایش تصویر اثر روی سینی"
+                    fill
+                    sizes={layout === "phone" ? "240px" : "384px"}
+                    loading="eager"
+                    unoptimized
+                    style={{ visibility: imageReady ? "visible" : "hidden" }}
+                    onLoad={(event) => onImageLoad(event.currentTarget)}
+                    onError={onImageError}
+                  />
+                </div>
               </div>
             </div>}
           </div>
