@@ -142,6 +142,51 @@
   box-shadow: 0 0 0 2px #463125;
   content: "";
 }
+
+@media (hover: none) and (pointer: coarse) and (max-width: 700px),
+       (hover: none) and (pointer: coarse) and (max-height: 430px) {
+  .roomView :is(.book, .register, .phone, .door)::before {
+    position: absolute;
+    top: var(--cue-y, 50%);
+    left: var(--cue-x, 50%);
+    width: .85rem;
+    aspect-ratio: 1;
+    pointer-events: none;
+    translate: -50% -50%;
+    opacity: 0;
+    background:
+      radial-gradient(circle, #fff9e6 0 13%, #f9c77bb8 19%, transparent 67%),
+      linear-gradient(90deg, transparent, #fff4d9, transparent) center / 100% 1px no-repeat,
+      linear-gradient(transparent, #fff4d9, transparent) center / 1px 100% no-repeat;
+    filter: drop-shadow(0 0 3px #6c482d);
+    animation: room-object-glimmer 900ms ease-out var(--cue-delay) 1 both;
+    content: "";
+  }
+  .book { --cue-delay: 1s; }
+  .register { --cue-delay: 2.3s; --cue-x: 59%; }
+  .phone { --cue-delay: 3.6s; --cue-x: 55%; --cue-y: 43%; }
+  .door { --cue-delay: 4.9s; --cue-y: 62%; }
+  .roomView:is(:not([data-room-art-ready]), [inert], :has([data-guide-current])) :is(.book, .register, .phone, .door)::before {
+    visibility: hidden;
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .roomView :is(.book, .register, .phone, .door)::before {
+      width: .58rem;
+      opacity: .7;
+      background: radial-gradient(circle, #fff7db 0 21%, #f3c584b0 28%, transparent 72%);
+      animation: none;
+    }
+  }
+}
+
+@keyframes room-object-glimmer {
+  0% { opacity: 0; scale: .55; }
+  32% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: .7; }
+}
+
 .tableView { position: absolute; z-index: 1; inset: 0; isolation: isolate; visibility: hidden; opacity: 0; transition: opacity 420ms ease, visibility 420ms; }
 .scene[data-table-open] .tableView { visibility: visible; opacity: 1; transition: opacity 420ms ease 560ms; }
 .scene[data-shelf-approach] .tableView {
@@ -345,14 +390,14 @@
   .tableView .seatedPicture { inset: 50% 0 auto; height: var(--portrait-tray-art-height); transform: translateY(-50%); }
   .tableView .seatedPicture .architecture { object-fit: fill; transform: none; }
   .backToGallery { top: max(4%, calc(env(safe-area-inset-top) + .55rem)); }
-  .door { top: 28.5%; left: 24.2%; width: 36%; height: 23%; }
+  .door { top: 28.5%; left: 24.2%; width: 36%; height: 23%; --cue-x: 46%; --cue-y: 59%; }
   .doorTag { top: 72%; left: 57%; transform: translate(-50%, -50%) rotate(64deg); }
   .shelf { top: var(--portrait-shelf-top); left: 77%; width: 18.7%; height: 3.75%; }
   .shelfSign { top: 51%; left: 51%; width: clamp(.95rem, 4.8cqw, 1.7rem); }
   .shelfGlow { top: 64%; left: 51%; }
-  .book { top: 60.5%; left: 29%; width: 21%; height: 6%; }
-  .phone { top: 75.6%; left: 3.2%; width: 33%; height: 12.4%; }
-  .register { top: 75.2%; left: 38%; width: 27%; height: 12.8%; }
+  .book { top: 60.5%; left: 29%; width: 21%; height: 6%; --cue-x: 53%; --cue-y: 47%; }
+  .phone { top: 75.6%; left: 3.2%; width: 33%; height: 12.4%; --cue-x: 59%; --cue-y: 56%; }
+  .register { top: 75.2%; left: 38%; width: 27%; height: 12.8%; --cue-x: 66%; --cue-y: 43%; }
   .tableView .tableComposition {
     /* The photo's velvet floor starts 24% from its top and ends at 63%. */
     inset: calc(50% - var(--portrait-tray-art-height) * .245) 16% calc(50% - var(--portrait-tray-art-height) * .125);

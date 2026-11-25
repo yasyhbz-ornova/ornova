@@ -285,6 +285,75 @@ test("the visit guide marks its objects and restores keyboard focus on finish an
   await expect(replay).toBeFocused();
 });
 
+test.describe("touch gallery orientation", () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: "no-preference" });
+
+  test("lights each object in turn while keeping its touch target usable", async ({ page }) => {
+    let releaseArt!: () => void;
+    const artResponse = new Promise<void>((resolve) => { releaseArt = resolve; });
+    await page.route(/\/entry-ornova-orosi-hatam-portrait-v1-\d+\.(?:avif|webp)$/, async (route) => {
+      await artResponse;
+      await route.continue();
+    });
+    try {
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await expect.poll(() => magazine(page).evaluate((element) => getComputedStyle(element, "::before").animationPlayState)).toBe("paused");
+      expect(await magazine(page).evaluate((element) => getComputedStyle(element, "::before").visibility)).toBe("hidden");
+    } finally {
+      releaseArt();
+    }
+    await expect(page.locator('[data-room-art-ready="true"]')).toBeAttached();
+    const targets = [
+      magazine(page),
+      page.getByRole("link", { name: "باز کردن صندوق درخواست‌ها", exact: true }),
+      page.getByRole("link", { name: "ارتباط با اُرنوا از تلفن گالری", exact: true }),
+      page.getByRole("link", { name: "ورود به کارگاه طراحی", exact: true }),
+    ];
+    const cues = await Promise.all(targets.map((target) => target.evaluate(async (element) => {
+      const animation = element.getAnimations({ subtree: true })[0];
+      const timing = animation.effect!.getTiming();
+      const delay = timing.delay ?? 0;
+      const duration = Number(timing.duration);
+      animation.pause();
+      animation.currentTime = delay + 290;
+      await new Promise(requestAnimationFrame);
+      const cue = getComputedStyle(element, "::before");
+      const peakOpacity = Number(cue.opacity);
+      const pointerEvents = cue.pointerEvents;
+      animation.currentTime = delay + duration + 1;
+      await new Promise(requestAnimationFrame);
+      return { delay, duration, iterations: timing.iterations, peakOpacity, pointerEvents, endOpacity: Number(getComputedStyle(element, "::before").opacity) };
+    })));
+    for (const [index, cue] of cues.entries()) {
+      expect(cue.peakOpacity).toBeGreaterThan(.75);
+      expect(cue.pointerEvents).toBe("none");
+      expect(cue.endOpacity).toBe(0);
+      expect(cue.iterations).toBe(1);
+      const previous = cues[index - 1];
+      if (previous) expect(cue.delay).toBeGreaterThan(previous.delay + previous.duration);
+    }
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    expect(await targets[0].evaluate((element) => getComputedStyle(element, "::before").animationName)).toBe("none");
+    await page.getByRole("button", { name: "راهنمای بازدید", exact: true }).tap();
+    await expect(page.getByRole("complementary", { name: "راهنمای بازدید" })).toBeVisible();
+    expect(await targets[0].evaluate((element) => getComputedStyle(element, "::before").visibility)).toBe("hidden");
+    await page.getByRole("button", { name: "رد کردن راهنما", exact: true }).tap();
+
+    await targets[0].tap();
+    await expect(drawer(page).getByRole("heading", { name: "فهرست آثار", exact: true })).toBeVisible();
+    await drawer(page).getByRole("button", { name: "بستن پنل", exact: true }).tap();
+    await targets[1].tap();
+    await expect(drawer(page).getByRole("button", { name: /پاکت صندوق/ })).toBeVisible();
+    await drawer(page).getByRole("button", { name: "بستن پنل", exact: true }).tap();
+    await targets[2].tap();
+    await expect(drawer(page).getByRole("tab", { name: "دربارهٔ اُرنوا" })).toBeVisible();
+    await drawer(page).getByRole("button", { name: "بستن پنل", exact: true }).tap();
+    await targets[3].tap();
+    await expect(drawer(page).getByRole("button", { name: "دفتر شخصی اُرنوا", exact: true })).toBeVisible();
+  });
+});
+
 test("downloaded archive receipts include the stamp and only their confirmed amount", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const acceptedId = "39fe816c-5c30-4cde-8200-611bcfb2afd0";

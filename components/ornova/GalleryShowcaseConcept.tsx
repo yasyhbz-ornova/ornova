@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link, { type LinkProps } from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type Ref } from "react";
+import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type Ref } from "react";
 import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catalog";
 import { findGalleryBirthMonth } from "@/lib/constants/collections";
@@ -75,6 +75,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const [paperHovered, setPaperHovered] = useState(false);
   const [paperFocused, setPaperFocused] = useState(false);
   const [manualWorkTitle, setManualWorkTitle] = useState("");
+  const [roomArtReady, setRoomArtReady] = useState(false);
+  const markRoomArtReady = useCallback((image: HTMLImageElement | null) => {
+    if (image?.complete && image.naturalWidth > 0) setRoomArtReady(true);
+  }, []);
   const reducedMotion = useSyncExternalStore(subscribeToMotionPreference, () => window.matchMedia(motionPreference).matches, () => true);
   const returnFocus = useRef<HTMLElement | null>(null);
   const backToGallery = useRef<HTMLButtonElement>(null);
@@ -223,12 +227,14 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
 
   return <main className={styles.root} dir="rtl" onKeyDown={handleEscape}>
     <div className={styles.scene} data-table-open={tableOpen || undefined} data-shelf-approach={(tableOpen && table?.fromShelf && !previewProduct) || undefined}>
-      <div className={styles.roomView} inert={tableOpen || magazineOpen || panelOpen}>
+      <div className={styles.roomView} data-room-art-ready={roomArtReady || undefined} inert={tableOpen || magazineOpen || panelOpen}>
         <picture>
           <source media={portraitMedia} type="image/avif" srcSet={`${portraitAvifSmall} 460w, ${portraitAvifLarge} 768w`} sizes={portraitSizes} />
           <source media={portraitMedia} srcSet={`${portraitWebpSmall} 460w, ${portraitWebpLarge} 768w`} sizes={portraitSizes} />
           <source media="(max-width: 700px)" srcSet="/images/ornova/gallery/review/entry-ornova-orosi-hatam-v23-840.webp" />
           <img
+            ref={markRoomArtReady}
+            onLoad={(event) => markRoomArtReady(event.currentTarget)}
             className={styles.architecture}
             src={roomLarge}
             srcSet={`${roomMedium} 1280w, ${roomLarge} 1670w`}
