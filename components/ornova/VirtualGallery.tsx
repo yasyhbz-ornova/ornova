@@ -41,11 +41,11 @@ type ProductTraySelection = {
 };
 const galleryPanelEvent = "ornova-gallery-panel-change";
 
-function GalleryIndexWork({ id, name, image, archiveNumber, onOpen }: { id: string; name: string; image: string; archiveNumber?: string; onOpen(): void }) {
+function GalleryIndexWork({ id, name, image, caption, archiveNumber, onOpen }: { id: string; name: string; image: string; caption?: string; archiveNumber?: string; onOpen(): void }) {
   return <li>
-    <button id={id} type="button" className={styles.indexWork} data-archive-photo={archiveNumber} aria-label={`نمایش ${name} روی سینی`} onClick={onOpen}>
+    <button id={id} type="button" className={styles.indexWork} data-archive-photo={archiveNumber} aria-label={`نمایش ${name}${caption ? `، ${caption}` : ""} روی سینی`} onClick={onOpen}>
       <span className={styles.indexWorkImage}><Image src={image} alt="" fill sizes="66px" unoptimized /></span>
-      <span>{name}</span>
+      <span>{caption && <small className={styles.indexWorkCaption}>{caption}</small>}{name}</span>
     </button>
   </li>;
 }
@@ -176,8 +176,9 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
   const [selectedBirthMonthId, setSelectedBirthMonthId] = useState("farvardin");
   const [subtypeId, setSubtypeId] = useState<string | null>(null);
   const category = drawer?.kind === "category" ? catalogCategories.find((item) => item.id === drawer.id) : null;
-  const magazineOpen = drawer?.kind === "magazine";
-  const magazineIndex = useMemo(() => magazineOpen ? buildMagazineIndex(products) : [], [magazineOpen, products]);
+  const activeCollection = drawer?.kind === "collection" ? galleryCollections.find((item) => item.id === drawer.id) : undefined;
+  const needsMagazineIndex = drawer?.kind === "magazine" || Boolean(activeCollection?.flowerMonths);
+  const magazineIndex = useMemo(() => needsMagazineIndex ? buildMagazineIndex(products) : [], [needsMagazineIndex, products]);
   const searchingMagazine = Boolean(magazineFilters.query.trim() || magazineFilters.category || magazineFilters.collection);
   const magazineWorks = useMemo(() => searchingMagazine ? findMagazineWorks(magazineIndex, magazineFilters) : [], [magazineIndex, magazineFilters, searchingMagazine]);
   const categoryProducts = useMemo(() => products.filter((product) => product.categoryId === category?.id && isPublicGalleryProduct(product)), [category?.id, products]);
@@ -396,19 +397,26 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     const product = products.find((item) => item.slug === slug && isPublicGalleryProduct(item));
     if (product) openProductOnTray(product, "بازگشت به صندوق", focusId);
   }
-  const activeCollection = drawer?.kind === "collection" ? galleryCollections.find((item) => item.id === drawer.id) : undefined;
   const selectedBirthMonth = activeCollection?.birthMonths?.find((month) => month.id === selectedBirthMonthId) ?? activeCollection?.birthMonths?.[0];
-  const hasBirthMonths = Boolean(activeCollection?.birthMonths?.length);
-  const collectionEntries = useMemo(() => hasBirthMonths ? trayVisibleShowcaseEntries(products) : null, [hasBirthMonths, products]);
+  const hasCollectionPhotos = Boolean(activeCollection?.birthMonths || activeCollection?.flowerMonths);
+  const collectionEntries = useMemo(() => hasCollectionPhotos ? trayVisibleShowcaseEntries(products) : null, [hasCollectionPhotos, products]);
+  function collectionThumbnail(photo?: GalleryShowcasePhoto) {
+    const position = collectionEntries && photo && findGalleryShowcasePhoto(collectionEntries, photo);
+    const entry = position && collectionEntries?.[position.categoryId]?.[position.index];
+    return entry ? showcaseEntryTrayImage(entry) : undefined;
+  }
   const birthMonthWorks = selectedBirthMonth ? [
     { label: "دستبند زودیاک", title: selectedBirthMonth.bracelet, photo: selectedBirthMonth.braceletImage },
     { label: "نیم‌ست صورت فلکی", title: selectedBirthMonth.constellation, photo: selectedBirthMonth.constellationImage },
     { label: "آویز گل فیبوناچی", title: selectedBirthMonth.flowerPendant, photo: selectedBirthMonth.flowerImage },
-  ].map((work) => {
-    const position = collectionEntries && work.photo && findGalleryShowcasePhoto(collectionEntries, work.photo);
-    const entry = position && collectionEntries?.[position.categoryId]?.[position.index];
-    return { ...work, thumbnail: entry ? showcaseEntryTrayImage(entry) : undefined };
-  }) : [];
+  ].map((work) => ({ ...work, thumbnail: collectionThumbnail(work.photo) })) : [];
+  const flowers = activeCollection?.flowerMonths?.map((month) => ({ ...month, thumbnail: collectionThumbnail(month.flowerImage) })) ?? [];
+  const matchedFlowers = flowers.flatMap((month) => month.flowerImage && month.thumbnail
+    ? [{ ...month, photo: month.flowerImage, thumbnail: month.thumbnail }] : []);
+  const pendingFlowers = flowers.filter(({ thumbnail }) => !thumbnail);
+  const otherFlowerPhotos = activeCollection?.flowerMonths ? findMagazineWorks(magazineIndex, { ...emptyMagazineFilters, collection: activeCollection.id }).flatMap(({ archive, image }) =>
+    archive && !flowers.some(({ flowerImage }) => flowerImage?.number === archive.number) ? [{ archive, image }] : [],
+  ) : [];
 
   return <div className={`${styles.root} virtualGallery`} dir="rtl">
   <GalleryShowcaseConcept
@@ -526,15 +534,25 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
                   </button>}
                 </article>)}
               </div>
-            </> : <>
-              <div className={styles.collectionReferences} aria-label={`مراجع مجموعهٔ ${activeCollection.name}`}>
-                {activeCollection.references.map((reference) => <article className={styles.collectionReference} key={reference}>
-                  <span className={styles.collectionReferenceNumber}>مرجع {reference}</span>
-                  <strong>آویز گردنبندِ ماه تولد</strong>
-                  <small>گل و سنگ، نام روی مکعب و روزِ رومی کنار آن پس از تطبیق عکس و مدل ثبت می‌شود.</small>
-                </article>)}
-              </div>
-              <p className={styles.collectionNotice}>این مراجع هنوز عکس تأییدشدهٔ محصول و جزئیات نهایی ندارند؛ فعلاً برای خرید یا افزودن به صندوق ارائه نمی‌شوند.</p>
+            </> : activeCollection.flowerMonths && <>
+              {matchedFlowers.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-flower-matched-title">
+                <h2 id="gallery-flower-matched-title">گل‌های ماه تولد</h2>
+                <ul className={styles.indexWorks}>{matchedFlowers.map(({ id: monthId, name, flowerPendant, photo, thumbnail }) => {
+                  const id = `gallery-flower-month-${monthId}`;
+                  return <GalleryIndexWork key={id} id={id} name={flowerPendant} caption={name} image={thumbnail} archiveNumber={photo.number} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به دفتر")} />;
+                })}</ul>
+              </section>}
+              {otherFlowerPhotos.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-flower-archive-title">
+                <h2 id="gallery-flower-archive-title">آویزهای آرشیوی مجموعه</h2>
+                <ul className={styles.indexWorks}>{otherFlowerPhotos.map(({ archive, image }) => {
+                  const id = `gallery-flower-archive-${archive.number}`;
+                  return <GalleryIndexWork key={id} id={id} name={archive.title} image={image} archiveNumber={archive.number} onOpen={() => openGalleryPhoto(archive, id, "بازگشت به دفتر")} />;
+                })}</ul>
+              </section>}
+              {pendingFlowers.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-flower-pending-title">
+                <h2 id="gallery-flower-pending-title">عکس‌های در حال تطبیق</h2>
+                <ul className={`${styles.indexWorks} ${styles.unmatchedFlowers}`}>{pendingFlowers.map(({ id, name, flowerPendant }) => <li key={id}><small className={styles.indexWorkCaption}>{name}</small>{flowerPendant}</li>)}</ul>
+              </section>}
             </>}
           </section> : <div className={styles.emptyState}><p>این صفحه از مجموعه در دسترس نیست.</p></div>)}
         {drawer.kind === "account" && <section className={styles.accountPage} aria-labelledby="gallery-drawer-title">

@@ -6,9 +6,8 @@ export type GalleryCollection = {
   name: string;
   categoryId: CatalogCategoryId;
   description: string;
-  references: readonly string[];
-  availability: "preparing";
   birthMonths?: readonly BirthMonth[];
+  flowerMonths?: readonly Pick<BirthMonth, "id" | "name" | "flowerPendant" | "flowerImage">[];
 };
 
 export type BirthMonth = {
@@ -119,16 +118,13 @@ export const galleryCollections: readonly GalleryCollection[] = [
     name: "ماه‌های تولد",
     categoryId: "pendants",
     description: "دفتر مجموعهٔ ماه‌های تولد؛ برای هر ماه، دستبند زودیاک، نیم‌ست صورت فلکی و آویز گل فیبوناچی را ببین.",
-    references: [],
-    availability: "preparing",
     birthMonths,
   },
   {
     id: "fibonacci-birth-month",
     name: "فیبوناچی",
     categoryId: "pendants",
-    description: "آویزهای گردنبندی که گل و سنگِ ماه تولد را کنار مکعبی با نام فرد به خط زبان مادری می‌آورند؛ روز تولد نیز با اعداد رومیِ برجسته کنار مکعب می‌نشیند. جزئیات هر مرجع پس از تطبیق با عکس و مدل همان اثر ثبت می‌شود.",
-    references: ["۰۹", "۱۵", "۱۶"],
-    availability: "preparing",
+    description: "آویزهای گردنبندی که گل و سنگِ ماه تولد را کنار مکعبی با نام فرد به خط زبان مادری می‌آورند؛ روز تولد نیز با اعداد رومیِ برجسته کنار مکعب می‌نشیند.",
+    flowerMonths: birthMonths,
   },
 ];

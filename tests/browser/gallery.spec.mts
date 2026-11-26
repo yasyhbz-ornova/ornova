@@ -178,6 +178,35 @@ test("magazine chapters show the same cutouts as the tray and retain the selecte
   await expect(bracelet).toBeFocused();
 });
 
+test("the Fibonacci leaf opens each matched flower and keeps unconfirmed months unlabeled on the tray", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/?galleryPanel=magazine");
+  await drawer(page).getByRole("button", { name: "فیبوناچی", exact: true }).click();
+  const leaf = drawer(page).getByRole("region", { name: "فیبوناچی", exact: true });
+  const matched = leaf.getByRole("region", { name: "گل‌های ماه تولد", exact: true });
+  const pending = leaf.getByRole("region", { name: "عکس‌های در حال تطبیق", exact: true });
+  await expect(matched.getByRole("button")).toHaveCount(8);
+  await expect(pending.getByRole("listitem")).toHaveText([
+    "شهریورآستر با نگین یاسی", "آذرکاملیا با نگین قرمز تیره", "دیگل برف با نگین شفاف", "بهمنبنفشه با نگین بنفش پررنگ",
+  ]);
+  await expect(pending.getByRole("button")).toHaveCount(0);
+  const matchNumbers = ["25", "31", "26", "28", "09", "24", "29", "23"];
+  for (const number of matchNumbers) {
+    const work = matched.locator(`[data-archive-photo="${number}"]`);
+    const source = await work.locator("img").getAttribute("src");
+    await work.click();
+    await expect(tray(page).locator(`[data-gallery-product-number="${number}"] img`)).toHaveAttribute("src", source!);
+    await expect(tray(page).getByRole("article", { name: "شناسنامهٔ اثر روی میز" })).toContainText("ماه تولد");
+    await page.getByRole("button", { name: /بازگشت به دفتر/ }).click();
+    await expect(work).toBeFocused();
+  }
+  const archive = leaf.getByRole("region", { name: "آویزهای آرشیوی مجموعه", exact: true });
+  await expect(archive.getByRole("button")).toHaveCount(3);
+  await archive.locator('[data-archive-photo="27"]').click();
+  await expect(tray(page).locator('[data-gallery-product-number="27"]')).toBeVisible();
+  await expect(tray(page).getByRole("article", { name: "شناسنامهٔ اثر روی میز" })).not.toContainText("ماه تولد");
+});
+
 test("keyboard tray navigation announces the chosen work without announcing automatic changes", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
