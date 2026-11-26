@@ -23,8 +23,12 @@ async function getStudioDraftOwner() {
   } catch { return null; }
 }
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ galleryPanel?: string; draft?: string }> }) {
-  const { galleryPanel, draft } = await searchParams;
+export default async function Home({ searchParams }: { searchParams: Promise<{ galleryPanel?: string; draft?: string; category?: string | string[]; collection?: string | string[] }> }) {
+  const { galleryPanel, draft, category, collection } = await searchParams;
+  const initialMagazine = galleryPanel === "magazine" ? {
+    category: typeof category === "string" ? category : undefined,
+    collection: typeof collection === "string" ? collection : undefined,
+  } : undefined;
   const studioContinuation = galleryPanel === "studio" && isStudioId(draft);
   const [galleryProducts, studioDraftOwner] = await Promise.all([
     getPublishedProducts(AbortSignal.timeout(4_000)).catch(() => {
@@ -41,5 +45,5 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
     description: "طراحی دیجیتال و قابل ساخت جواهرات نقره برای خاطره‌ها و نشانه‌های شخصی.",
   };
 
-  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts ?? []} catalogUnavailable={galleryProducts === null} studioDraftOwner={studioDraftOwner} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
+  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts ?? []} catalogUnavailable={galleryProducts === null} studioDraftOwner={studioDraftOwner} initialMagazine={initialMagazine} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
 }

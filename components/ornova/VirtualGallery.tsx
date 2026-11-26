@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { WorkshopBookPage } from "@/components/ornova/GalleryAccountPanel";
@@ -34,12 +35,40 @@ const DesignStudio = dynamic(() => import("@/components/studio/DesignStudio").th
 
 const number = new Intl.NumberFormat("fa-IR");
 type GalleryPanel = "magazine" | "phone" | "contact" | "studio" | "about" | "account" | "library" | "basket" | "ring-builder" | "size-guide" | "guide";
-type Drawer = { kind: "category"; id: string } | { kind: "collection"; id: string } | { kind: GalleryPanel };
+type Chapter = { kind: "category" | "collection"; id: string };
+type Drawer = Chapter | { kind: GalleryPanel };
+export type MagazineLocation = { category?: string; collection?: string };
 type ProductTraySelection = {
   product: Product;
   origin?: { drawer: Drawer; backLabel: string; focusId?: string; previous: ProductTraySelection | null };
 };
 const galleryPanelEvent = "ornova-gallery-panel-change";
+const magazineHref = "/?galleryPanel=magazine";
+
+function chapterHref(kind: Chapter["kind"], id: string) {
+  return `${magazineHref}&${kind}=${encodeURIComponent(id)}`;
+}
+
+function setMagazineHref(href: string, mode: "pushState" | "replaceState") {
+  window.history[mode](window.history.state, "", href);
+  window.dispatchEvent(new Event(galleryPanelEvent));
+}
+
+function magazineChapter(location?: MagazineLocation) {
+  if (!location) return null;
+  const { category, collection } = location;
+  if (!collection && category && catalogCategories.some(({ id }) => id === category)) return `category:${category}`;
+  if (!category && collection && galleryCollections.some(({ id }) => id === collection)) return `collection:${collection}`;
+  return null;
+}
+
+function getMagazineChapterSnapshot() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("galleryPanel") !== "magazine") return null;
+  const categories = params.getAll("category");
+  const collections = params.getAll("collection");
+  return magazineChapter({ category: categories.length === 1 ? categories[0] : undefined, collection: collections.length === 1 ? collections[0] : undefined });
+}
 
 function GalleryIndexWork({ id, name, image, caption, archiveNumber, onOpen }: { id: string; name: string; image: string; caption?: string; archiveNumber?: string; onOpen(): void }) {
   return <li>
@@ -118,13 +147,14 @@ function getGalleryContactSnapshot(): string | null {
   return JSON.stringify(context);
 }
 
-export function VirtualGallery({ imageMode, galleryProducts: products, catalogUnavailable = false, studioDraftOwner = null }: { imageMode: "offline" | "preview"; galleryProducts: Product[]; catalogUnavailable?: boolean; studioDraftOwner?: string | null }) {
+export function VirtualGallery({ imageMode, galleryProducts: products, catalogUnavailable = false, studioDraftOwner = null, initialMagazine }: { imageMode: "offline" | "preview"; galleryProducts: Product[]; catalogUnavailable?: boolean; studioDraftOwner?: string | null; initialMagazine?: MagazineLocation }) {
   const showcaseRef = useRef<GalleryShowcaseHandle>(null);
   const drawerRef = useRef<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const returnDrawerFocusId = useRef<string | undefined>(undefined);
   const [sizeGuideFromBuilder, setSizeGuideFromBuilder] = useState(false);
-  const returnPanel = useSyncExternalStore(subscribeToGalleryPanel, getGalleryPanelSnapshot, () => null);
+  const returnPanel = useSyncExternalStore(subscribeToGalleryPanel, getGalleryPanelSnapshot, () => initialMagazine ? "magazine" : null);
+  const chapter = useSyncExternalStore(subscribeToGalleryPanel, getMagazineChapterSnapshot, () => magazineChapter(initialMagazine));
   const linkedProductSlug = useSyncExternalStore(subscribeToGalleryPanel, getGalleryProductSnapshot, () => null);
   const studioDraftId = useSyncExternalStore(subscribeToGalleryPanel, getGalleryStudioDraftSnapshot, () => null);
   const workshopBookPage = useSyncExternalStore(subscribeToGalleryPanel, getWorkshopBookSnapshot, () => null);
@@ -171,7 +201,14 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     return `/?galleryPanel=contact${params.size ? `&${params.toString()}` : ""}`;
   }, [archiveOrder, contactContext, contactProduct, contactProductSelectionKey, contactSourceContext, studioContact?.mode]);
   const linkedGalleryProduct = useMemo(() => products.find((item) => item.slug === linkedProductSlug && isPublicGalleryProduct(item)) ?? null, [linkedProductSlug, products]);
-  const drawer = useMemo(() => drawerState ?? (returnPanel ? { kind: returnPanel } : null), [drawerState, returnPanel]);
+  const drawer = useMemo<Drawer | null>(() => {
+    if (drawerState) return drawerState;
+    if (returnPanel === "magazine" && chapter) {
+      const [kind, id] = chapter.split(":");
+      if (kind === "category" || kind === "collection") return { kind, id };
+    }
+    return returnPanel ? { kind: returnPanel } : null;
+  }, [chapter, drawerState, returnPanel]);
   const trayProduct = productTray?.product ?? linkedGalleryProduct;
   const [selectedBirthMonthId, setSelectedBirthMonthId] = useState("farvardin");
   const [subtypeId, setSubtypeId] = useState<string | null>(null);
@@ -201,6 +238,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     if (activePanel === "contact") for (const key of ["draftTransfer", "product", "archive", "selection", "from", "intent", "withoutDraft"]) url.searchParams.delete(key);
     if (activePanel === "studio") for (const key of ["draft", "customerPage"]) url.searchParams.delete(key);
     if (activePanel === "guide") url.searchParams.delete("chapter");
+    if (activePanel === "magazine") for (const key of ["category", "collection"]) url.searchParams.delete(key);
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     window.dispatchEvent(new Event(galleryPanelEvent));
   }, []);
@@ -213,6 +251,13 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     const trigger = returnFocusRef.current;
     window.requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
   }, [clearGalleryReturnState]);
+
+  const returnToMagazine = useCallback((from: Chapter) => {
+    returnDrawerFocusId.current = `gallery-magazine-${from.kind}-${from.id}`;
+    setSubtypeId(null);
+    setDrawer(null);
+    setMagazineHref(magazineHref, "replaceState");
+  }, []);
 
   useEffect(() => {
     if (!drawer) return;
@@ -236,9 +281,8 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        if (drawer.kind === "collection") {
-          returnDrawerFocusId.current = `gallery-magazine-collection-${drawer.id}`;
-          setDrawer({ kind: "magazine" });
+        if (drawer.kind === "collection" || drawer.kind === "category") {
+          returnToMagazine(drawer);
           return;
         }
         closeDrawer();
@@ -255,7 +299,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     };
     window.addEventListener("keydown", onKeyDown);
     return () => { document.body.style.overflow = priorOverflow; window.cancelAnimationFrame(focusFrame); window.removeEventListener("keydown", onKeyDown); };
-  }, [closeDrawer, drawer, studioContact]);
+  }, [closeDrawer, drawer, returnToMagazine, studioContact]);
 
   useEffect(() => {
     const clearLocalDrawer = () => { setDrawer(null); setProductTray(null); setSubtypeId(null); setStudioContact(null); };
@@ -297,8 +341,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     const origin = productTray?.origin;
     setProductTray(origin?.previous ?? null);
     if (origin) {
-      returnDrawerFocusId.current = origin.focusId;
-      setDrawer(origin.drawer);
+      restoreDrawer(origin.drawer, origin.focusId);
     }
   }
   function openGalleryPanel(href: string) {
@@ -311,16 +354,23 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     window.history.pushState(window.history.state, "", href);
     window.dispatchEvent(new Event(galleryPanelEvent));
   }
-  function openCollection(id: string) {
-    openDrawer({ kind: "collection", id });
+  function openChapter(href: string) {
+    setSubtypeId(null);
+    setDrawer(null);
+    setMagazineHref(href, "pushState");
+  }
+  function restoreDrawer(next: Drawer, focusId?: string) {
+    returnDrawerFocusId.current = focusId;
+    setDrawer(next);
+    if (next.kind === "category" || next.kind === "collection") setMagazineHref(chapterHref(next.kind, next.id), "replaceState");
+    if (next.kind === "magazine") setMagazineHref(magazineHref, "replaceState");
   }
   function openGalleryPhoto(photo: GalleryShowcasePhoto, focusId: string, backLabel: string) {
     if (!drawer) return;
     const opened = showcaseRef.current?.openPhoto(photo, {
       label: backLabel,
       onBack() {
-        returnDrawerFocusId.current = focusId;
-        setDrawer(drawer);
+        restoreDrawer(drawer, focusId);
       },
     });
     if (!opened) return;
@@ -353,15 +403,6 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     window.history.replaceState(window.history.state, "", url);
     window.dispatchEvent(new Event(galleryPanelEvent));
   }
-  function openCategory(id: string) {
-    setSubtypeId(null);
-    openDrawer({ kind: "category", id });
-  }
-  function returnFromCategory() {
-    if (category) returnDrawerFocusId.current = `gallery-magazine-category-${category.id}`;
-    setSubtypeId(null);
-    setDrawer({ kind: "magazine" });
-  }
   function openRingBuilderProduct() {
     const product = products.find((item) => item.slug === "lajvard-shab-ring" && isPublicGalleryProduct(item));
     if (product) openProductOnTray(product, "بازگشت به طراحی انگشتر", "ring-builder-sample-product");
@@ -382,12 +423,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     setDrawer({ kind: "ring-builder" });
   }
   function handleDrawerBack() {
-    if (drawer?.kind === "category") { returnFromCategory(); return; }
-    if (drawer?.kind === "collection") {
-      returnDrawerFocusId.current = `gallery-magazine-collection-${drawer.id}`;
-      setDrawer({ kind: "magazine" });
-      return;
-    }
+    if (drawer?.kind === "category" || drawer?.kind === "collection") { returnToMagazine(drawer); return; }
     if (drawer?.kind === "contact" && studioContact) { setDrawer({ kind: "studio" }); return; }
     if (drawer?.kind === "contact" && contactContext?.sourceContext === "ring-builder") { returnToRingBuilder(); return; }
     if (drawer?.kind === "size-guide" && sizeGuideFromBuilder) { setDrawer({ kind: "ring-builder" }); return; }
@@ -417,6 +453,8 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
   const otherFlowerPhotos = activeCollection?.flowerMonths ? findMagazineWorks(magazineIndex, { ...emptyMagazineFilters, collection: activeCollection.id }).flatMap(({ archive, image }) =>
     archive && !flowers.some(({ flowerImage }) => flowerImage?.number === archive.number) ? [{ archive, image }] : [],
   ) : [];
+  const magazineChapterOpen = drawer?.kind === "category" || drawer?.kind === "collection";
+  const magazineNavigation = magazineChapterOpen || drawer?.kind === "magazine";
 
   return <div className={`${styles.root} virtualGallery`} dir="rtl">
   <GalleryShowcaseConcept
@@ -430,8 +468,13 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     {drawer && <div className={styles.overlay} data-studio-open={drawer.kind === "studio" ? "true" : "false"} data-basket-open={drawer.kind === "basket" ? "true" : undefined} data-book-open={drawer.kind === "magazine" || drawer.kind === "category" || drawer.kind === "collection" || drawer.kind === "guide" || drawer.kind === "about" || drawer.kind === "size-guide" || undefined} data-phone-open={drawer.kind === "phone" ? "true" : undefined} data-account-open={drawer.kind === "account" || undefined} role="dialog" aria-modal="true" aria-labelledby="gallery-drawer-title" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDrawer(); }}>
       <aside className={styles.drawer} ref={drawerRef} tabIndex={-1}>
         <div className={styles.drawerTop}>
-          <button type="button" onClick={handleDrawerBack} className={styles.backButton}>{drawer.kind === "category" || drawer.kind === "collection" ? "بازگشت به فهرست" : drawer.kind === "contact" && studioContact ? "بازگشت به کارگاه" : (drawer.kind === "contact" && contactContext?.sourceContext === "ring-builder") || (drawer.kind === "size-guide" && sizeGuideFromBuilder) ? "بازگشت به طراحی انگشتر" : "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
-          <button type="button" onClick={closeDrawer} className={styles.closeButton} aria-label="بستن پنل">×</button>
+          {magazineNavigation ? <>
+            <Link href={magazineChapterOpen ? magazineHref : "/"} prefetch={false} onNavigate={(event) => { event.preventDefault(); handleDrawerBack(); }} className={styles.backButton}>{magazineChapterOpen ? "بازگشت به فهرست" : "بازگشت به گالری"} <span aria-hidden="true">↙</span></Link>
+            <Link href="/" prefetch={false} onNavigate={(event) => { event.preventDefault(); closeDrawer(); }} className={styles.closeButton} aria-label="بستن پنل">×</Link>
+          </> : <>
+            <button type="button" onClick={handleDrawerBack} className={styles.backButton}>{drawer.kind === "contact" && studioContact ? "بازگشت به کارگاه" : (drawer.kind === "contact" && contactContext?.sourceContext === "ring-builder") || (drawer.kind === "size-guide" && sizeGuideFromBuilder) ? "بازگشت به طراحی انگشتر" : "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
+            <button type="button" onClick={closeDrawer} className={styles.closeButton} aria-label="بستن پنل">×</button>
+          </>}
         </div>
         {drawer.kind === "category" && category && <section className={styles.chapterSheet} aria-labelledby="gallery-drawer-title">
           <header className={`${styles.magazineCover} ${styles.chapterHeading}`}>
@@ -505,12 +548,16 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
             <h2 id={`magazine-family-${family.id}`}>{family.label}</h2>
             <div className={styles.magazineLinks}>{catalogCategories.filter((item) => item.family === family.id).map((item) => {
               const index = catalogCategories.findIndex((categoryItem) => categoryItem.id === item.id);
-              return <button id={`gallery-magazine-category-${item.id}`} type="button" key={item.id} onClick={() => openCategory(item.id)}><span>{item.label}</span><i aria-hidden="true" /><small aria-hidden="true">{number.format(index + 1)}</small></button>;
+              const href = chapterHref("category", item.id);
+              return <Link id={`gallery-magazine-category-${item.id}`} href={href} prefetch={false} key={item.id} onNavigate={(event) => { event.preventDefault(); openChapter(href); }}><span>{item.label}</span><i aria-hidden="true" /><small aria-hidden="true">{number.format(index + 1)}</small></Link>;
             })}</div>
           </section>)}</div>
           <section className={styles.collectionIndex} aria-labelledby="magazine-collections-title">
             <h2 id="magazine-collections-title">مجموعه‌ها</h2>
-            <div className={styles.magazineLinks}>{galleryCollections.map((collection, index) => <button id={`gallery-magazine-collection-${collection.id}`} type="button" key={collection.id} onClick={() => openCollection(collection.id)}><span>{collection.name}</span><i aria-hidden="true" /><small aria-hidden="true">{number.format(catalogCategories.length + index + 1)}</small></button>)}</div>
+            <div className={styles.magazineLinks}>{galleryCollections.map((collection, index) => {
+              const href = chapterHref("collection", collection.id);
+              return <Link id={`gallery-magazine-collection-${collection.id}`} href={href} prefetch={false} key={collection.id} onNavigate={(event) => { event.preventDefault(); openChapter(href); }}><span>{collection.name}</span><i aria-hidden="true" /><small aria-hidden="true">{number.format(catalogCategories.length + index + 1)}</small></Link>;
+            })}</div>
           </section>
           <div className={styles.magazineFooter}><button type="button" onClick={() => openDrawer({ kind: "about" })}>دربارهٔ اُرنوا <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "guide" })}>دفتر راهنما <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "phone" })}>دفترچهٔ تلفن <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "account" })}>حساب من <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "library" })}>دفتر طرح‌های شخصی <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "basket" })}>صندوق درخواست <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "studio" })}>کارگاه طراحی <span aria-hidden="true">↖</span></button><button type="button" onClick={() => openDrawer({ kind: "ring-builder" })}>طراحی انگشتر <span aria-hidden="true">↖</span></button><button type="button" onClick={() => { setSizeGuideFromBuilder(false); openDrawer({ kind: "size-guide" }); }}>راهنمای سایز انگشتر <span aria-hidden="true">↖</span></button></div>
           </div>

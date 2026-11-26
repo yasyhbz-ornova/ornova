@@ -82,7 +82,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const reducedMotion = useSyncExternalStore(subscribeToMotionPreference, () => window.matchMedia(motionPreference).matches, () => true);
   const returnFocus = useRef<HTMLElement | null>(null);
   const backToGallery = useRef<HTMLButtonElement>(null);
-  const roomBook = useRef<HTMLButtonElement>(null);
+  const roomBook = useRef<HTMLAnchorElement>(null);
   const closeMagazine = useRef<HTMLButtonElement>(null);
   const tableOpen = activeCategory !== null;
   const visibleGuideStop = !tableOpen && !magazineOpen && !panelOpen ? guide.stop : undefined;
@@ -299,7 +299,11 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
           </div>
         );
       })}
-      <button ref={roomBook} type="button" className={styles.book} data-guide-current={visibleGuideStop === "magazine" || undefined} onClick={(event) => showMagazine(event.currentTarget)} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
+      <Link ref={roomBook} href="/?galleryPanel=magazine" prefetch={false} className={styles.book} data-guide-current={visibleGuideStop === "magazine" || undefined} onNavigate={(event) => {
+        if (!roomBook.current) return;
+        event.preventDefault();
+        showMagazine(roomBook.current);
+      }} aria-label="باز کردن کتاب فهرست همهٔ آثار" />
       <Link {...panelLink("/?galleryPanel=phone", "phone")} className={styles.phone} data-guide-current={visibleGuideStop === "phone" || undefined} aria-label="ارتباط با اُرنوا از تلفن گالری" />
       <Link {...panelLink("/?galleryPanel=basket", "cashier")} className={styles.register} data-guide-current={visibleGuideStop === "cashier" || undefined} aria-label="باز کردن صندوق درخواست‌ها" />
       {!tableOpen && !magazineOpen && !panelOpen && <GalleryRoomGuide step={guide.step} />}

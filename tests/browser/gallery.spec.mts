@@ -5,7 +5,7 @@ import { galleryOrderHistory, galleryStaffCatalog, galleryStaffCookie, galleryTe
 
 const tray = (page: Page) => page.getByRole("group", { name: "سینی مخمل آبی افغانی", exact: true });
 const drawer = (page: Page) => page.getByRole("dialog");
-const magazine = (page: Page) => page.getByRole("button", { name: "باز کردن کتاب فهرست همهٔ آثار" });
+const magazine = (page: Page) => page.getByRole("link", { name: "باز کردن کتاب فهرست همهٔ آثار" });
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("ornova.gallery.guide.v1", "5"));
@@ -137,7 +137,8 @@ test("magazine chapters show the same cutouts as the tray and retain the selecte
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await magazine(page).click();
-  await drawer(page).getByRole("button", { name: "انگشتر", exact: true }).click();
+  await drawer(page).getByRole("link", { name: "انگشتر", exact: true }).click();
+  await expect(page).toHaveURL(/galleryPanel=magazine&category=rings$/);
   const rings = drawer(page).getByRole("region", { name: "انگشتر", exact: true });
   const lapis = rings.getByRole("button", { name: /نمایش انگشتر نقره «لاجورد شب» روی سینی/ });
   const horizontal = /lajvard-shab-tray-horizontal-v2\.webp$/;
@@ -147,8 +148,11 @@ test("magazine chapters show the same cutouts as the tray and retain the selecte
   await expect(tray(page).locator("[data-table-product] img")).toHaveAttribute("src", horizontal);
   await page.getByRole("button", { name: /بازگشت به صفحهٔ مجله/ }).click();
   await expect(lapis).toBeFocused();
-  await drawer(page).getByRole("button", { name: /بازگشت به فهرست/ }).click();
-  await drawer(page).getByRole("button", { name: "ماه‌های تولد", exact: true }).click();
+  await expect(page).toHaveURL(/galleryPanel=magazine&category=rings$/);
+  await drawer(page).getByRole("link", { name: /بازگشت به فهرست/ }).click();
+  await drawer(page).getByRole("link", { name: "ماه‌های تولد", exact: true }).click();
+  await expect(page).toHaveURL(/galleryPanel=magazine&collection=birth-months$/);
+  await page.reload();
 
   const leaf = drawer(page).getByRole("region", { name: "ماه‌های تولد", exact: true });
   const picker = leaf.getByRole("group", { name: "انتخاب ماه تولد" });
@@ -176,12 +180,33 @@ test("magazine chapters show the same cutouts as the tray and retain the selecte
   await page.getByRole("button", { name: /بازگشت به دفتر/ }).click();
   await expect(esfand).toHaveAttribute("aria-pressed", "true");
   await expect(bracelet).toBeFocused();
+  await expect(page).toHaveURL(/galleryPanel=magazine&collection=birth-months$/);
+});
+
+test.describe("magazine before client scripts load", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("the room link, chapter links and return work as server-rendered pages", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await magazine(page).click();
+    await expect(drawer(page).getByRole("heading", { name: "فهرست آثار", exact: true })).toBeVisible();
+    await drawer(page).getByRole("link", { name: "فیبوناچی", exact: true }).click();
+    await expect(page).toHaveURL(/galleryPanel=magazine&collection=fibonacci-birth-month$/);
+    await expect(drawer(page).getByRole("region", { name: "گل‌های ماه تولد", exact: true }).getByRole("listitem")).toHaveCount(8);
+    await drawer(page).getByRole("link", { name: /بازگشت به فهرست/ }).click();
+    await drawer(page).getByRole("link", { name: "انگشتر", exact: true }).click();
+    await expect(page).toHaveURL(/galleryPanel=magazine&category=rings$/);
+    await expect(drawer(page).getByRole("heading", { name: "انگشتر", exact: true })).toBeVisible();
+    await drawer(page).getByRole("link", { name: "بستن پنل" }).click();
+    await expect(drawer(page)).toHaveCount(0);
+  });
 });
 
 test("the Fibonacci leaf opens each matched flower and keeps unconfirmed months unlabeled on the tray", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/?galleryPanel=magazine");
-  await drawer(page).getByRole("button", { name: "فیبوناچی", exact: true }).click();
+  await drawer(page).getByRole("link", { name: "فیبوناچی", exact: true }).click();
   const leaf = drawer(page).getByRole("region", { name: "فیبوناچی", exact: true });
   const matched = leaf.getByRole("region", { name: "گل‌های ماه تولد", exact: true });
   const pending = leaf.getByRole("region", { name: "عکس‌های در حال تطبیق", exact: true });
@@ -643,7 +668,7 @@ test.describe("touch gallery orientation", () => {
 
     await targets[0].tap();
     await expect(drawer(page).getByRole("heading", { name: "فهرست آثار", exact: true })).toBeVisible();
-    await drawer(page).getByRole("button", { name: "بستن پنل", exact: true }).tap();
+    await drawer(page).getByRole("link", { name: "بستن پنل", exact: true }).tap();
     await targets[1].tap();
     await expect(drawer(page).getByRole("button", { name: /پاکت صندوق/ })).toBeVisible();
     await drawer(page).getByRole("button", { name: "بستن پنل", exact: true }).tap();

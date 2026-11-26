@@ -39,6 +39,7 @@
 .backButton, .closeButton { min-height: 46px; border: 0; color: #53677a; background: transparent; font: inherit; font-size: .75rem; cursor: pointer; }
 .backButton { display: inline-flex; align-items: center; gap: .6rem; }
 .closeButton { width: 46px; color: var(--ink); font-size: 1.7rem; }
+a.closeButton { display: inline-grid; place-items: center; }
 .backButton:hover, .closeButton:hover { color: var(--sapphire); }
 .eyebrow { margin: 0 0 .7rem; color: #697888; font-size: .7rem; }
 .title { width: fit-content; max-width: 100%; margin: 0; font-family: var(--font-display); font-size: clamp(1.8rem, 3.6vw, 3rem); font-weight: 400; line-height: 1.5; }
@@ -389,7 +390,7 @@
 }
 .magazineLinks { display: grid; }
 
-.magazineLinks button, .magazineFooter > * {
+.magazineLinks a, .magazineFooter > * {
   display: flex;
   width: 100%;
   min-height: 44px;
@@ -408,11 +409,11 @@
   cursor: pointer;
 }
 
-.magazineLinks button { align-items: center; }
-.magazineLinks button:hover, .magazineFooter > *:hover { color: #304a61; background: #62442d0b; }
-.magazineLinks button:focus-visible, .magazineFooter > *:focus-visible { outline: 2px solid #435b70; outline-offset: -2px; }
-.magazineLinks button > span:first-child { min-width: 0; }
-.magazineLinks button i {
+.magazineLinks a { align-items: center; }
+.magazineLinks a:hover, .magazineFooter > *:hover { color: #304a61; background: #62442d0b; }
+.magazineLinks a:focus-visible, .magazineFooter > *:focus-visible { outline: 2px solid #435b70; outline-offset: -2px; }
+.magazineLinks a > span:first-child { min-width: 0; }
+.magazineLinks a i {
   flex: 1 0 .5rem;
   align-self: center;
   margin-top: .55em;
@@ -422,7 +423,7 @@
 
 .magazineLinks small { flex: 0 0 1.5em; color: #684c43; font-size: .79rem; font-variant-numeric: tabular-nums; text-align: end; }
 .magazineLinks small:first-child { order: 2; }
-.magazineLinks button > span:last-child { order: 1; margin-inline-start: auto; color: #53697a; }
+.magazineLinks a > span:last-child { order: 1; margin-inline-start: auto; color: #53697a; }
 .magazineFooter { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--magazine-gutter, 1.4rem); margin-top: 1rem; border-top: 3px double #9c897b; }
 .magazineFooter > * { align-items: center; justify-content: space-between; border-bottom: 1px solid #b8a99480; font-size: .78rem; }
 .magazineFooter > * span { color: #53697a; }
