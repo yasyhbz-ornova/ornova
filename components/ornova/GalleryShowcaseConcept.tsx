@@ -47,13 +47,18 @@ function subscribeToMotionPreference(listener: () => void) {
 }
 
 type PhotoReturn = { label: string; onBack(): void };
+type WorkPreview = ({ product: Pick<Product, "slug" | "categoryId"> } | { photo: GalleryShowcasePhoto }) & {
+  backLabel?: string;
+  backHref?: string;
+  onClose(): void;
+};
 export type GalleryShowcaseHandle = { openPhoto(photo: GalleryShowcasePhoto, returnTo: PhotoReturn): boolean };
 
-export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, productPreview, onOpenPanel, ref }: {
+export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, workPreview, onOpenPanel, ref }: {
   products: Product[];
   catalogUnavailable?: boolean;
   panelOpen?: boolean;
-  productPreview?: { product: Pick<Product, "slug" | "categoryId">; backLabel?: string; onClose(): void };
+  workPreview?: WorkPreview;
   onOpenPanel?: (href: string) => void;
   ref?: Ref<GalleryShowcaseHandle>;
 }) {
@@ -63,11 +68,17 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const entriesByCategory = useMemo(() => trayVisibleShowcaseEntries(products), [products]);
   const [indices, setIndices] = useState<Record<string, number>>({});
   const [table, setTable] = useState<{ categoryId: CatalogCategoryId; returnTo?: PhotoReturn; fromShelf?: boolean } | null>(null);
-  const previewEntry = productPreview
-    ? entriesByCategory[productPreview.product.categoryId]?.find((entry) => entry.product?.slug === productPreview.product.slug)
-    : undefined;
-  const previewProduct = previewEntry?.product;
-  const activeCategory = previewProduct?.categoryId ?? table?.categoryId ?? null;
+  const previewEntry = useMemo(() => {
+    if (!workPreview) return undefined;
+    if ("product" in workPreview) {
+      const { categoryId, slug } = workPreview.product;
+      return entriesByCategory[categoryId]?.find((entry) => entry.product?.slug === slug);
+    }
+    const position = findGalleryShowcasePhoto(entriesByCategory, workPreview.photo);
+    return position ? entriesByCategory[position.categoryId]?.[position.index] : undefined;
+  }, [entriesByCategory, workPreview]);
+  const previewIdentity = previewEntry?.product?.slug ?? previewEntry?.sample?.src;
+  const activeCategory = previewEntry?.product?.categoryId ?? previewEntry?.sample?.categoryId ?? table?.categoryId ?? null;
   const [magazineOpen, setMagazineOpen] = useState(false);
   const [hoveredShelf, setHoveredShelf] = useState<string | null>(null);
   const [focusedShelf, setFocusedShelf] = useState<string | null>(null);
@@ -81,7 +92,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   }, []);
   const reducedMotion = useSyncExternalStore(subscribeToMotionPreference, () => window.matchMedia(motionPreference).matches, () => true);
   const returnFocus = useRef<HTMLElement | null>(null);
-  const backToGallery = useRef<HTMLButtonElement>(null);
+  const backToGallery = useRef<HTMLElement | null>(null);
+  const setBackToGallery = useCallback((element: HTMLElement | null) => { backToGallery.current = element; }, []);
   const roomBook = useRef<HTMLAnchorElement>(null);
   const closeMagazine = useRef<HTMLButtonElement>(null);
   const tableOpen = activeCategory !== null;
@@ -109,7 +121,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       returnFocus.current?.focus();
       returnFocus.current = null;
     }
-  }, [tableOpen, magazineOpen, panelOpen, previewProduct?.slug]);
+  }, [tableOpen, magazineOpen, panelOpen, previewIdentity]);
 
   function showCategory(id: CatalogCategoryId, trigger?: HTMLElement, returnTo?: PhotoReturn) {
     if (!entriesByCategory[id]?.length) return;
@@ -136,9 +148,9 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   }));
 
   function closeTable() {
-    if (previewProduct && productPreview) {
-      productPreview.onClose();
-      if (!table && !productPreview.backLabel) window.requestAnimationFrame(() => roomBook.current?.focus());
+    if (previewEntry && workPreview) {
+      workPreview.onClose();
+      if (!table && !workPreview.backLabel) window.requestAnimationFrame(() => roomBook.current?.focus());
       return;
     }
     setTable(null);
@@ -194,8 +206,9 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const trayImage = activeEntry && showcaseEntryTrayImage(activeEntry);
   const linkedProduct = activeEntry?.product;
   const canRequestProduct = linkedProduct?.galleryPlacementVerified === true && Boolean(linkedProduct.standImage);
-  const canChangeWork = !previewProduct && !table?.returnTo;
+  const canChangeWork = !previewEntry && !table?.returnTo;
   const autoAdvance = !reducedMotion && canChangeWork;
+  const backLabel = (previewEntry ? workPreview?.backLabel : table?.returnTo?.label) ?? "بازگشت به گالری";
 
   useEffect(() => {
     if (!activeCategory || activeCount < 2 || !autoAdvance || panelOpen || paperHovered || paperFocused) return;
@@ -226,7 +239,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   };
 
   return <main className={styles.root} dir="rtl" onKeyDown={handleEscape}>
-    <div className={styles.scene} data-table-open={tableOpen || undefined} data-shelf-approach={(tableOpen && table?.fromShelf && !previewProduct) || undefined}>
+    <div className={styles.scene} data-table-open={tableOpen || undefined} data-shelf-approach={(tableOpen && table?.fromShelf && !previewEntry) || undefined}>
       <div className={styles.roomView} data-room-art-ready={roomArtReady || undefined} inert={tableOpen || magazineOpen || panelOpen}>
         <picture>
           <source media={portraitMedia} type="image/avif" srcSet={`${portraitAvifSmall} 460w, ${portraitAvifLarge} 768w`} sizes={portraitSizes} />
@@ -311,7 +324,9 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       <section className={`${styles.tableView} ${styles.trayViewport}`} inert={!tableOpen || panelOpen} aria-hidden={!tableOpen || panelOpen || undefined} aria-label="نمای نزدیک میز و سینی">
         {tableOpen && <GalleryTrayBackdrop />}
         {tableOpen && <>
-          <button ref={backToGallery} type="button" className={styles.backToGallery} onClick={closeTable}>{(previewProduct ? productPreview?.backLabel : table?.returnTo?.label) ?? "بازگشت به گالری"} <span aria-hidden="true">↙</span></button>
+          {previewEntry && workPreview?.backHref
+            ? <Link ref={setBackToGallery} href={workPreview.backHref} prefetch={false} className={styles.backToGallery} onNavigate={(event) => { event.preventDefault(); closeTable(); }}>{backLabel} <span aria-hidden="true">↙</span></Link>
+            : <button ref={setBackToGallery} type="button" className={styles.backToGallery} onClick={closeTable}>{backLabel} <span aria-hidden="true">↙</span></button>}
           {activeEntry && <><div className={styles.tableComposition} role="group" aria-label="سینی مخمل آبی افغانی">
             {autoAdvance && <span role="status" className="sr-only">{manualWorkTitle}</span>}
             <div className={styles.tableDisplay} data-tray-category={activeCategory}>

@@ -37,16 +37,16 @@ const number = new Intl.NumberFormat("fa-IR");
 type GalleryPanel = "magazine" | "phone" | "contact" | "studio" | "about" | "account" | "library" | "basket" | "ring-builder" | "size-guide" | "guide";
 type Chapter = { kind: "category" | "collection"; id: string };
 type Drawer = Chapter | { kind: GalleryPanel };
-export type MagazineLocation = { category?: string; collection?: string };
-type ProductTraySelection = {
-  product: Product;
-  origin?: { drawer: Drawer; backLabel: string; focusId?: string; previous: ProductTraySelection | null };
+export type GalleryLocation = { panel?: string; category?: string; collection?: string; month?: string; product?: string; archive?: string; from?: string };
+type TrayWork = { product: Product } | { photo: GalleryShowcasePhoto };
+type TraySelection = TrayWork & {
+  origin?: { drawer: Drawer; backLabel: string; focusId?: string; month?: string; previous: TraySelection | null };
 };
 const galleryPanelEvent = "ornova-gallery-panel-change";
 const magazineHref = "/?galleryPanel=magazine";
 
-function chapterHref(kind: Chapter["kind"], id: string) {
-  return `${magazineHref}&${kind}=${encodeURIComponent(id)}`;
+function chapterHref(kind: Chapter["kind"], id: string, month?: string) {
+  return `${magazineHref}&${kind}=${encodeURIComponent(id)}${month ? `&month=${encodeURIComponent(month)}` : ""}`;
 }
 
 function setMagazineHref(href: string, mode: "pushState" | "replaceState") {
@@ -54,28 +54,49 @@ function setMagazineHref(href: string, mode: "pushState" | "replaceState") {
   window.dispatchEvent(new Event(galleryPanelEvent));
 }
 
-function magazineChapter(location?: MagazineLocation) {
-  if (!location) return null;
+function magazineChapter(location: GalleryLocation = {}) {
+  if (location.panel !== "magazine" && location.panel !== "product") return null;
   const { category, collection } = location;
   if (!collection && category && catalogCategories.some(({ id }) => id === category)) return `category:${category}`;
   if (!category && collection && galleryCollections.some(({ id }) => id === collection)) return `collection:${collection}`;
+  if (!category && !collection && location.panel === "product" && location.from === "magazine") return "magazine";
   return null;
 }
 
 function getMagazineChapterSnapshot() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("galleryPanel") !== "magazine") return null;
-  const categories = params.getAll("category");
-  const collections = params.getAll("collection");
-  return magazineChapter({ category: categories.length === 1 ? categories[0] : undefined, collection: collections.length === 1 ? collections[0] : undefined });
+  return magazineChapter(readGalleryLocation());
 }
 
-function GalleryIndexWork({ id, name, image, caption, archiveNumber, onOpen }: { id: string; name: string; image: string; caption?: string; archiveNumber?: string; onOpen(): void }) {
+function readGalleryLocation(): GalleryLocation {
+  const params = new URLSearchParams(window.location.search);
+  const read = (key: string) => {
+    const values = params.getAll(key);
+    return values.length === 1 ? values[0] : undefined;
+  };
+  return { panel: read("galleryPanel"), category: read("category"), collection: read("collection"), month: read("month"), product: read("product"), archive: read("archive"), from: read("from") };
+}
+
+function magazineDrawer(chapter: string | null): Chapter | null {
+  if (!chapter) return null;
+  const [kind, id] = chapter.split(":");
+  return kind === "category" || kind === "collection" ? { kind, id } : null;
+}
+
+function trayHref(work: { product: string } | { archive: string }, drawer: Drawer | null, month?: string) {
+  const params = new URLSearchParams({ galleryPanel: "product", ...work });
+  if (drawer?.kind === "category" || drawer?.kind === "collection") {
+    params.set(drawer.kind, drawer.id);
+    if (month) params.set("month", month);
+  } else if (drawer?.kind === "magazine") params.set("from", "magazine");
+  return `/?${params}`;
+}
+
+function GalleryIndexWork({ id, name, image, href, caption, archiveNumber, onOpen }: { id: string; name: string; image: string; href: string; caption?: string; archiveNumber?: string; onOpen(): void }) {
   return <li>
-    <button id={id} type="button" className={styles.indexWork} data-archive-photo={archiveNumber} aria-label={`نمایش ${name}${caption ? `، ${caption}` : ""} روی سینی`} onClick={onOpen}>
+    <Link id={id} href={href} prefetch={false} className={styles.indexWork} data-archive-photo={archiveNumber} aria-label={`نمایش ${name}${caption ? `، ${caption}` : ""} روی سینی`} onNavigate={(event) => { event.preventDefault(); onOpen(); }}>
       <span className={styles.indexWorkImage}><Image src={image} alt="" fill sizes="66px" unoptimized /></span>
       <span>{caption && <small className={styles.indexWorkCaption}>{caption}</small>}{name}</span>
-    </button>
+    </Link>
   </li>;
 }
 function subscribeToGalleryPanel(onChange: () => void) {
@@ -98,10 +119,14 @@ function getGalleryGuideChapterSnapshot(): GuideChapter {
   const chapter = params.get("chapter");
   return params.get("galleryPanel") === "guide" && (chapter === "faq" || chapter === "silver-care" || chapter === "silver-properties") ? chapter : "overview";
 }
-function getGalleryProductSnapshot(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("galleryPanel") === "product" ? params.get("product") : null;
+function trayKey(location: GalleryLocation = {}): string | null {
+  if (location.panel !== "product") return null;
+  if (location.product && !location.archive) return `product:${location.product}`;
+  if (location.archive && !location.product) return `archive:${location.archive}`;
+  return null;
 }
+function getGalleryTraySnapshot() { return trayKey(readGalleryLocation()); }
+function getGalleryMonthSnapshot() { return readGalleryLocation().month ?? null; }
 function getGalleryStudioDraftSnapshot(): string | null {
   const params = new URLSearchParams(window.location.search);
   const draft = params.get("draft");
@@ -147,15 +172,16 @@ function getGalleryContactSnapshot(): string | null {
   return JSON.stringify(context);
 }
 
-export function VirtualGallery({ imageMode, galleryProducts: products, catalogUnavailable = false, studioDraftOwner = null, initialMagazine }: { imageMode: "offline" | "preview"; galleryProducts: Product[]; catalogUnavailable?: boolean; studioDraftOwner?: string | null; initialMagazine?: MagazineLocation }) {
+export function VirtualGallery({ imageMode, galleryProducts: products, catalogUnavailable = false, studioDraftOwner = null, initialLocation }: { imageMode: "offline" | "preview"; galleryProducts: Product[]; catalogUnavailable?: boolean; studioDraftOwner?: string | null; initialLocation?: GalleryLocation }) {
   const showcaseRef = useRef<GalleryShowcaseHandle>(null);
   const drawerRef = useRef<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const returnDrawerFocusId = useRef<string | undefined>(undefined);
   const [sizeGuideFromBuilder, setSizeGuideFromBuilder] = useState(false);
-  const returnPanel = useSyncExternalStore(subscribeToGalleryPanel, getGalleryPanelSnapshot, () => initialMagazine ? "magazine" : null);
-  const chapter = useSyncExternalStore(subscribeToGalleryPanel, getMagazineChapterSnapshot, () => magazineChapter(initialMagazine));
-  const linkedProductSlug = useSyncExternalStore(subscribeToGalleryPanel, getGalleryProductSnapshot, () => null);
+  const returnPanel = useSyncExternalStore(subscribeToGalleryPanel, getGalleryPanelSnapshot, () => initialLocation?.panel === "magazine" ? "magazine" : null);
+  const chapter = useSyncExternalStore(subscribeToGalleryPanel, getMagazineChapterSnapshot, () => magazineChapter(initialLocation));
+  const linkedTrayKey = useSyncExternalStore(subscribeToGalleryPanel, getGalleryTraySnapshot, () => trayKey(initialLocation));
+  const linkedMonth = useSyncExternalStore(subscribeToGalleryPanel, getGalleryMonthSnapshot, () => initialLocation?.month ?? null);
   const studioDraftId = useSyncExternalStore(subscribeToGalleryPanel, getGalleryStudioDraftSnapshot, () => null);
   const workshopBookPage = useSyncExternalStore(subscribeToGalleryPanel, getWorkshopBookSnapshot, () => null);
   const accountCompletionMode = useSyncExternalStore(subscribeToGalleryPanel, getGalleryCompletionSnapshot, () => false);
@@ -166,7 +192,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
   const guideChapter = useSyncExternalStore(subscribeToGalleryPanel, getGalleryGuideChapterSnapshot, (): GuideChapter => "overview");
   const contactContextSnapshot = useSyncExternalStore(subscribeToGalleryPanel, getGalleryContactSnapshot, () => null);
   const [drawerState, setDrawer] = useState<Drawer | null>(null);
-  const [productTray, setProductTray] = useState<ProductTraySelection | null>(null);
+  const [productTray, setProductTray] = useState<TraySelection | null>(null);
   const [studioContact, setStudioContact] = useState<{ mode: StudioInquiryMode; studioDraftId: string | null } | null>(null);
   const [accountReturnDestination, setAccountReturnDestination] = useState<string | undefined>();
   const [magazineFilters, setMagazineFilters] = useState<MagazineFilters>(emptyMagazineFilters);
@@ -200,17 +226,24 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     if (contactContext?.sourceContext === "ring-builder" && contactContext.withoutDraft) params.set("withoutDraft", "1");
     return `/?galleryPanel=contact${params.size ? `&${params.toString()}` : ""}`;
   }, [archiveOrder, contactContext, contactProduct, contactProductSelectionKey, contactSourceContext, studioContact?.mode]);
-  const linkedGalleryProduct = useMemo(() => products.find((item) => item.slug === linkedProductSlug && isPublicGalleryProduct(item)) ?? null, [linkedProductSlug, products]);
+  const linkedTray = useMemo<TraySelection | null>(() => {
+    if (!linkedTrayKey) return null;
+    const key = linkedTrayKey.slice(linkedTrayKey.indexOf(":") + 1);
+    const product = linkedTrayKey.startsWith("product:") && products.find((item) => item.slug === key && isPublicGalleryProduct(item));
+    const photo = linkedTrayKey.startsWith("archive:") && galleryRoomSamples.find((item) => item.number === key);
+    if (!product && !photo) return null;
+    if (photo && !findGalleryShowcasePhoto(trayVisibleShowcaseEntries(products), photo)) return null;
+    const back = chapter === "magazine" ? { kind: "magazine" as const } : magazineDrawer(chapter);
+    const month = back?.kind === "collection" && galleryCollections.find((item) => item.id === back.id)?.birthMonths?.some(({ id }) => id === linkedMonth) ? linkedMonth ?? undefined : undefined;
+    const origin = back ? { drawer: back, backLabel: back.kind === "collection" ? "بازگشت به دفتر" : "بازگشت به صفحهٔ مجله", month, previous: null } : undefined;
+    return product ? { product, origin } : photo ? { photo, origin } : null;
+  }, [chapter, linkedMonth, linkedTrayKey, products]);
   const drawer = useMemo<Drawer | null>(() => {
     if (drawerState) return drawerState;
-    if (returnPanel === "magazine" && chapter) {
-      const [kind, id] = chapter.split(":");
-      if (kind === "category" || kind === "collection") return { kind, id };
-    }
+    if (returnPanel === "magazine") return magazineDrawer(chapter) ?? { kind: "magazine" };
     return returnPanel ? { kind: returnPanel } : null;
   }, [chapter, drawerState, returnPanel]);
-  const trayProduct = productTray?.product ?? linkedGalleryProduct;
-  const [selectedBirthMonthId, setSelectedBirthMonthId] = useState("farvardin");
+  const tray = productTray ?? linkedTray;
   const [subtypeId, setSubtypeId] = useState<string | null>(null);
   const category = drawer?.kind === "category" ? catalogCategories.find((item) => item.id === drawer.id) : null;
   const activeCollection = drawer?.kind === "collection" ? galleryCollections.find((item) => item.id === drawer.id) : undefined;
@@ -232,13 +265,13 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     const activePanel = url.searchParams.get("galleryPanel");
     if (!getGalleryPanelSnapshot() && activePanel !== "product") return;
     url.searchParams.delete("galleryPanel");
-    if (activePanel === "product") url.searchParams.delete("product");
+    if (activePanel === "product") for (const key of ["product", "archive", "category", "collection", "month", "from"]) url.searchParams.delete(key);
     if (activePanel === "account") for (const key of ["complete", "archive", "next", "error", "signout"]) url.searchParams.delete(key);
     if (activePanel === "basket") for (const key of ["view", "receipt"]) url.searchParams.delete(key);
     if (activePanel === "contact") for (const key of ["draftTransfer", "product", "archive", "selection", "from", "intent", "withoutDraft"]) url.searchParams.delete(key);
     if (activePanel === "studio") for (const key of ["draft", "customerPage"]) url.searchParams.delete(key);
     if (activePanel === "guide") url.searchParams.delete("chapter");
-    if (activePanel === "magazine") for (const key of ["category", "collection"]) url.searchParams.delete(key);
+    if (activePanel === "magazine") for (const key of ["category", "collection", "month"]) url.searchParams.delete(key);
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     window.dispatchEvent(new Event(galleryPanelEvent));
   }, []);
@@ -308,8 +341,8 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
   }, []);
 
   useEffect(() => {
-    if (linkedProductSlug && !linkedGalleryProduct) clearGalleryReturnState();
-  }, [clearGalleryReturnState, linkedGalleryProduct, linkedProductSlug]);
+    if (linkedTrayKey && !linkedTray) clearGalleryReturnState();
+  }, [clearGalleryReturnState, linkedTray, linkedTrayKey]);
 
   useEffect(() => {
     if (drawer) drawerRef.current?.scrollTo(0, 0);
@@ -331,17 +364,17 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
   }
   function openProductOnTray(product: Product, backLabel: string, focusId?: string) {
     if (!drawer || !isPublicGalleryProduct(product)) return;
-    const previous = productTray ?? (linkedGalleryProduct ? { product: linkedGalleryProduct } : null);
+    const previous = tray;
     clearGalleryReturnState();
     setProductTray({ product, origin: { drawer, backLabel, focusId, previous } });
     setDrawer(null);
   }
   function closeProductTray() {
     clearGalleryReturnState();
-    const origin = productTray?.origin;
+    const origin = tray?.origin;
     setProductTray(origin?.previous ?? null);
     if (origin) {
-      restoreDrawer(origin.drawer, origin.focusId);
+      restoreDrawer(origin.drawer, origin.focusId, origin.month);
     }
   }
   function openGalleryPanel(href: string) {
@@ -349,7 +382,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
       closeProductTray();
       return;
     }
-    if (linkedGalleryProduct && !productTray) setProductTray({ product: linkedGalleryProduct });
+    if (linkedTray && !productTray) setProductTray(linkedTray);
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     window.history.pushState(window.history.state, "", href);
     window.dispatchEvent(new Event(galleryPanelEvent));
@@ -359,10 +392,10 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     setDrawer(null);
     setMagazineHref(href, "pushState");
   }
-  function restoreDrawer(next: Drawer, focusId?: string) {
+  function restoreDrawer(next: Drawer, focusId?: string, month?: string) {
     returnDrawerFocusId.current = focusId;
     setDrawer(next);
-    if (next.kind === "category" || next.kind === "collection") setMagazineHref(chapterHref(next.kind, next.id), "replaceState");
+    if (next.kind === "category" || next.kind === "collection") setMagazineHref(chapterHref(next.kind, next.id, month), "replaceState");
     if (next.kind === "magazine") setMagazineHref(magazineHref, "replaceState");
   }
   function openGalleryPhoto(photo: GalleryShowcasePhoto, focusId: string, backLabel: string) {
@@ -370,7 +403,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     const opened = showcaseRef.current?.openPhoto(photo, {
       label: backLabel,
       onBack() {
-        restoreDrawer(drawer, focusId);
+        restoreDrawer(drawer, focusId, selectedBirthMonth?.id);
       },
     });
     if (!opened) return;
@@ -433,7 +466,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     const product = products.find((item) => item.slug === slug && isPublicGalleryProduct(item));
     if (product) openProductOnTray(product, "بازگشت به صندوق", focusId);
   }
-  const selectedBirthMonth = activeCollection?.birthMonths?.find((month) => month.id === selectedBirthMonthId) ?? activeCollection?.birthMonths?.[0];
+  const selectedBirthMonth = activeCollection?.birthMonths?.find((month) => month.id === linkedMonth) ?? activeCollection?.birthMonths?.[0];
   const hasCollectionPhotos = Boolean(activeCollection?.birthMonths || activeCollection?.flowerMonths);
   const collectionEntries = useMemo(() => hasCollectionPhotos ? trayVisibleShowcaseEntries(products) : null, [hasCollectionPhotos, products]);
   function collectionThumbnail(photo?: GalleryShowcasePhoto) {
@@ -455,13 +488,18 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
   ) : [];
   const magazineChapterOpen = drawer?.kind === "category" || drawer?.kind === "collection";
   const magazineNavigation = magazineChapterOpen || drawer?.kind === "magazine";
+  const trayOrigin = tray?.origin;
+  const trayBack = trayOrigin?.drawer;
+  const trayBackHref = trayBack?.kind === "category" || trayBack?.kind === "collection"
+    ? chapterHref(trayBack.kind, trayBack.id, trayOrigin?.month)
+    : trayBack?.kind === "magazine" ? magazineHref : "/";
 
   return <div className={`${styles.root} virtualGallery`} dir="rtl">
   <GalleryShowcaseConcept
     ref={showcaseRef}
     products={products}
     panelOpen={Boolean(drawer)}
-    productPreview={trayProduct ? { product: trayProduct, backLabel: productTray?.origin?.backLabel, onClose: closeProductTray } : undefined}
+    workPreview={tray ? { ...tray, backLabel: trayOrigin?.backLabel, backHref: linkedTray && !productTray ? trayBackHref : undefined, onClose: closeProductTray } : undefined}
     onOpenPanel={openGalleryPanel}
   />
 
@@ -490,14 +528,14 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
             <ul className={styles.indexWorks}>{filteredProducts.map((product) => {
               if (!product.standImage) return null;
               const id = `gallery-index-product-${product.slug}`;
-              return <GalleryIndexWork key={id} id={id} name={product.name} image={galleryTrayWorkImage(product.standImage)} onOpen={() => openProductOnTray(product, "بازگشت به صفحهٔ مجله", id)} />;
+              return <GalleryIndexWork key={id} id={id} name={product.name} image={galleryTrayWorkImage(product.standImage)} href={trayHref({ product: product.slug }, drawer)} onOpen={() => openProductOnTray(product, "بازگشت به صفحهٔ مجله", id)} />;
             })}</ul>
           </section>}
           {archiveWorks.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-archive-title">
             <h2 id="gallery-archive-title">آرشیو آثار</h2>
             <ul className={styles.indexWorks}>{archiveWorks.map(({ photo, image }) => {
               const id = `gallery-archive-photo-${photo.number}`;
-              return <GalleryIndexWork key={id} id={id} name={photo.title} image={image} archiveNumber={photo.number} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به آرشیو")} />;
+              return <GalleryIndexWork key={id} id={id} name={photo.title} image={image} archiveNumber={photo.number} href={trayHref({ archive: photo.number }, drawer)} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به آرشیو")} />;
             })}</ul>
           </section>}
           {filteredProducts.length === 0 && archiveWorks.length === 0 && <div className={styles.emptyState}>
@@ -535,7 +573,9 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
               {magazineWorks.length > 0 && <ul className={styles.indexWorks} aria-label="نتیجهٔ جست‌وجوی آثار">
                 {magazineWorks.map(({ id, name, image, product, archive }) => {
                   const focusId = `gallery-search-work-${id}`;
-                  return <GalleryIndexWork key={id} id={focusId} name={name} image={image} onOpen={() => {
+                  const href = product ? trayHref({ product: product.slug }, drawer) : archive ? trayHref({ archive: archive.number }, drawer) : null;
+                  if (!href) return null;
+                  return <GalleryIndexWork key={id} id={focusId} name={name} image={image} href={href} onOpen={() => {
                     if (product) openProductOnTray(product, "بازگشت به نتایج", focusId);
                     else if (archive) openGalleryPhoto(archive, focusId, "بازگشت به نتایج");
                   }} />;
@@ -566,7 +606,10 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
             <header className={`${styles.magazineCover} ${styles.chapterHeading}`}><div><p className={styles.eyebrow}>دفتر مجموعه‌های اُرنوا</p><h1 id="gallery-drawer-title" tabIndex={-1} className={styles.title}>{activeCollection.name}</h1><p className={styles.intro}>{activeCollection.description}</p></div></header>
             {activeCollection.birthMonths && selectedBirthMonth ? <>
               <div className={styles.birthMonthPicker} role="group" aria-label="انتخاب ماه تولد">
-                {activeCollection.birthMonths.map((month) => <button type="button" key={month.id} aria-pressed={month.id === selectedBirthMonth.id} onClick={() => setSelectedBirthMonthId(month.id)}>{month.name}</button>)}
+                {activeCollection.birthMonths.map((month) => {
+                  const href = chapterHref("collection", activeCollection.id, month.id);
+                  return <Link key={month.id} href={href} prefetch={false} aria-current={month.id === selectedBirthMonth.id ? "true" : undefined} onNavigate={(event) => { event.preventDefault(); setMagazineHref(href, "replaceState"); }}>{month.name}</Link>;
+                })}
               </div>
               <h2 className={styles.birthMonthTitle}>{selectedBirthMonth.name}</h2>
               <div className={styles.birthMonthWorks} aria-label={`آثار ماه ${selectedBirthMonth.name}`}>
@@ -576,9 +619,9 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
                     <strong>{title}</strong>
                     {(!photo || !thumbnail) && <p className={styles.collectionImagePending}>عکس این طرح در حال تطبیق است.</p>}
                   </header>
-                  {photo && thumbnail && <button id={`gallery-collection-photo-${photo.number}`} type="button" className={styles.birthMonthPhoto} data-collection-photo={photo.number} aria-label={`نمایش ${photo.title} روی سینی`} onClick={(event) => openGalleryPhoto(photo, event.currentTarget.id, "بازگشت به دفتر")}>
+                  {photo && thumbnail && <Link id={`gallery-collection-photo-${photo.number}`} href={trayHref({ archive: photo.number }, drawer, selectedBirthMonth.id)} prefetch={false} className={styles.birthMonthPhoto} data-collection-photo={photo.number} aria-label={`نمایش ${photo.title} روی سینی`} onNavigate={(event) => { event.preventDefault(); openGalleryPhoto(photo, `gallery-collection-photo-${photo.number}`, "بازگشت به دفتر"); }}>
                     <Image src={thumbnail} alt="" fill sizes="(max-width: 640px) 32vw, 220px" unoptimized />
-                  </button>}
+                  </Link>}
                 </article>)}
               </div>
             </> : activeCollection.flowerMonths && <>
@@ -586,14 +629,14 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
                 <h2 id="gallery-flower-matched-title">گل‌های ماه تولد</h2>
                 <ul className={styles.indexWorks}>{matchedFlowers.map(({ id: monthId, name, flowerPendant, photo, thumbnail }) => {
                   const id = `gallery-flower-month-${monthId}`;
-                  return <GalleryIndexWork key={id} id={id} name={flowerPendant} caption={name} image={thumbnail} archiveNumber={photo.number} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به دفتر")} />;
+                  return <GalleryIndexWork key={id} id={id} name={flowerPendant} caption={name} image={thumbnail} archiveNumber={photo.number} href={trayHref({ archive: photo.number }, drawer)} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به دفتر")} />;
                 })}</ul>
               </section>}
               {otherFlowerPhotos.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-flower-archive-title">
                 <h2 id="gallery-flower-archive-title">آویزهای آرشیوی مجموعه</h2>
                 <ul className={styles.indexWorks}>{otherFlowerPhotos.map(({ archive, image }) => {
                   const id = `gallery-flower-archive-${archive.number}`;
-                  return <GalleryIndexWork key={id} id={id} name={archive.title} image={image} archiveNumber={archive.number} onOpen={() => openGalleryPhoto(archive, id, "بازگشت به دفتر")} />;
+                  return <GalleryIndexWork key={id} id={id} name={archive.title} image={image} archiveNumber={archive.number} href={trayHref({ archive: archive.number }, drawer)} onOpen={() => openGalleryPhoto(archive, id, "بازگشت به دفتر")} />;
                 })}</ul>
               </section>}
               {pendingFlowers.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-flower-pending-title">

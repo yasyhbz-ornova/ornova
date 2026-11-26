@@ -114,7 +114,7 @@ test("magazine filters preserve the exact work and its focus on return", async (
   const search = drawer(page).getByRole("searchbox", { name: "نام اثر" });
   const category = drawer(page).getByRole("combobox", { name: "دسته", exact: true });
   const collection = drawer(page).getByRole("combobox", { name: "مجموعه", exact: true });
-  const result = drawer(page).getByRole("button", { name: "نمایش انگشتر با نگین اشکی روی سینی", exact: true });
+  const result = drawer(page).getByRole("link", { name: "نمایش انگشتر با نگین اشکی روی سینی", exact: true });
   await search.fill("اشكي");
   await category.selectOption("rings");
   await expect(result).toBeVisible();
@@ -140,7 +140,7 @@ test("magazine chapters show the same cutouts as the tray and retain the selecte
   await drawer(page).getByRole("link", { name: "انگشتر", exact: true }).click();
   await expect(page).toHaveURL(/galleryPanel=magazine&category=rings$/);
   const rings = drawer(page).getByRole("region", { name: "انگشتر", exact: true });
-  const lapis = rings.getByRole("button", { name: /نمایش انگشتر نقره «لاجورد شب» روی سینی/ });
+  const lapis = rings.getByRole("link", { name: /نمایش انگشتر نقره «لاجورد شب» روی سینی/ });
   const horizontal = /lajvard-shab-tray-horizontal-v2\.webp$/;
   await expect(rings.locator("header img")).toHaveAttribute("src", horizontal);
   await expect(lapis.locator("img")).toHaveAttribute("src", horizontal);
@@ -156,11 +156,11 @@ test("magazine chapters show the same cutouts as the tray and retain the selecte
 
   const leaf = drawer(page).getByRole("region", { name: "ماه‌های تولد", exact: true });
   const picker = leaf.getByRole("group", { name: "انتخاب ماه تولد" });
-  const monthButtons = await picker.getByRole("button").all();
-  expect(monthButtons).toHaveLength(12);
+  const monthLinks = await picker.getByRole("link").all();
+  expect(monthLinks).toHaveLength(12);
   const photos = new Set<string>();
   let pending = 0;
-  for (const month of monthButtons) {
+  for (const month of monthLinks) {
     await month.click();
     const cutouts = await leaf.locator("[data-collection-photo] img").all();
     for (const cutout of cutouts) {
@@ -172,15 +172,15 @@ test("magazine chapters show the same cutouts as the tray and retain the selecte
   }
   expect(photos.size).toBe(29);
   expect(pending).toBe(7);
-  const esfand = picker.getByRole("button", { name: "اسفند", exact: true });
+  const esfand = picker.getByRole("link", { name: "اسفند", exact: true });
   const bracelet = leaf.locator('[data-collection-photo="20"]');
   const braceletSrc = await bracelet.locator("img").getAttribute("src");
   await bracelet.click();
   await expect(tray(page).locator('[data-gallery-product-number="20"] img')).toHaveAttribute("src", braceletSrc!);
   await page.getByRole("button", { name: /بازگشت به دفتر/ }).click();
-  await expect(esfand).toHaveAttribute("aria-pressed", "true");
+  await expect(esfand).toHaveAttribute("aria-current", "true");
   await expect(bracelet).toBeFocused();
-  await expect(page).toHaveURL(/galleryPanel=magazine&collection=birth-months$/);
+  await expect(page).toHaveURL(/galleryPanel=magazine&collection=birth-months&month=esfand$/);
 });
 
 test.describe("magazine before client scripts load", () => {
@@ -201,6 +201,39 @@ test.describe("magazine before client scripts load", () => {
     await drawer(page).getByRole("link", { name: "بستن پنل" }).click();
     await expect(drawer(page)).toHaveCount(0);
   });
+
+  test("the full tray opens exact catalog and archive works and restores the source chapter", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/?galleryPanel=magazine&category=rings");
+    const lapis = drawer(page).getByRole("link", { name: /نمایش انگشتر نقره «لاجورد شب» روی سینی/ });
+    const lapisSource = await lapis.locator("img").getAttribute("src");
+    await lapis.click();
+    await expect(tray(page).locator("[data-table-product] img")).toHaveAttribute("src", lapisSource!);
+    await expect(tray(page).getByRole("heading", { name: /لاجورد شب/ })).toBeVisible();
+    const backToChapter = page.getByRole("link", { name: /بازگشت به صفحهٔ مجله/ });
+    await expect(backToChapter).toBeInViewport();
+    await page.reload();
+    await expect(tray(page).getByRole("heading", { name: /لاجورد شب/ })).toBeVisible();
+    await backToChapter.click();
+    await expect(lapis).toBeVisible();
+
+    await page.goto("/?galleryPanel=magazine&collection=birth-months");
+    const esfand = drawer(page).getByRole("link", { name: "اسفند", exact: true });
+    await esfand.click();
+    const bracelet = drawer(page).locator('[data-collection-photo="20"]');
+    const braceletSource = await bracelet.locator("img").getAttribute("src");
+    await bracelet.click();
+    const archiveImage = tray(page).locator('[data-gallery-product-number="20"] img');
+    await expect(archiveImage).toHaveAttribute("src", braceletSource!);
+    await expect(archiveImage).toBeInViewport();
+    await expect(tray(page).getByRole("article", { name: "شناسنامهٔ اثر روی میز" })).toContainText("اسفند");
+    await page.getByRole("link", { name: /بازگشت به دفتر/ }).click();
+    await expect(esfand).toHaveAttribute("aria-current", "true");
+    await expect(bracelet).toBeVisible();
+
+    await page.goto("/?galleryPanel=product&archive=01");
+    await expect(tray(page)).toHaveCount(0);
+  });
 });
 
 test("the Fibonacci leaf opens each matched flower and keeps unconfirmed months unlabeled on the tray", async ({ page }) => {
@@ -210,11 +243,11 @@ test("the Fibonacci leaf opens each matched flower and keeps unconfirmed months 
   const leaf = drawer(page).getByRole("region", { name: "فیبوناچی", exact: true });
   const matched = leaf.getByRole("region", { name: "گل‌های ماه تولد", exact: true });
   const pending = leaf.getByRole("region", { name: "عکس‌های در حال تطبیق", exact: true });
-  await expect(matched.getByRole("button")).toHaveCount(8);
+  await expect(matched.getByRole("link")).toHaveCount(8);
   await expect(pending.getByRole("listitem")).toHaveText([
     "شهریورآستر با نگین یاسی", "آذرکاملیا با نگین قرمز تیره", "دیگل برف با نگین شفاف", "بهمنبنفشه با نگین بنفش پررنگ",
   ]);
-  await expect(pending.getByRole("button")).toHaveCount(0);
+  await expect(pending.getByRole("link")).toHaveCount(0);
   const matchNumbers = ["25", "31", "26", "28", "09", "24", "29", "23"];
   for (const number of matchNumbers) {
     const work = matched.locator(`[data-archive-photo="${number}"]`);
@@ -226,7 +259,7 @@ test("the Fibonacci leaf opens each matched flower and keeps unconfirmed months 
     await expect(work).toBeFocused();
   }
   const archive = leaf.getByRole("region", { name: "آویزهای آرشیوی مجموعه", exact: true });
-  await expect(archive.getByRole("button")).toHaveCount(3);
+  await expect(archive.getByRole("link")).toHaveCount(3);
   await archive.locator('[data-archive-photo="27"]').click();
   await expect(tray(page).locator('[data-gallery-product-number="27"]')).toBeVisible();
   await expect(tray(page).getByRole("article", { name: "شناسنامهٔ اثر روی میز" })).not.toContainText("ماه تولد");

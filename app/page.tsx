@@ -23,12 +23,20 @@ async function getStudioDraftOwner() {
   } catch { return null; }
 }
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ galleryPanel?: string; draft?: string; category?: string | string[]; collection?: string | string[] }> }) {
-  const { galleryPanel, draft, category, collection } = await searchParams;
-  const initialMagazine = galleryPanel === "magazine" ? {
-    category: typeof category === "string" ? category : undefined,
-    collection: typeof collection === "string" ? collection : undefined,
-  } : undefined;
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
+  const read = (key: string) => typeof params[key] === "string" ? params[key] : undefined;
+  const galleryPanel = read("galleryPanel");
+  const initialLocation = {
+    panel: galleryPanel,
+    category: read("category"),
+    collection: read("collection"),
+    month: read("month"),
+    product: read("product"),
+    archive: read("archive"),
+    from: read("from"),
+  };
+  const draft = read("draft");
   const studioContinuation = galleryPanel === "studio" && isStudioId(draft);
   const [galleryProducts, studioDraftOwner] = await Promise.all([
     getPublishedProducts(AbortSignal.timeout(4_000)).catch(() => {
@@ -45,5 +53,5 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
     description: "طراحی دیجیتال و قابل ساخت جواهرات نقره برای خاطره‌ها و نشانه‌های شخصی.",
   };
 
-  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts ?? []} catalogUnavailable={galleryProducts === null} studioDraftOwner={studioDraftOwner} initialMagazine={initialMagazine} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
+  return <><OrnovaHome imageMode={getStudioImageMode()} galleryProducts={galleryProducts ?? []} catalogUnavailable={galleryProducts === null} studioDraftOwner={studioDraftOwner} initialLocation={initialLocation} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></>;
 }

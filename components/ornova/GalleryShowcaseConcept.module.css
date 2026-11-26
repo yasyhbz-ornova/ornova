@@ -201,6 +201,7 @@
 .seatedPicture { position: absolute; z-index: -1; inset: 0; overflow: hidden; background: #68432f; }
 .seatedPicture .architecture { transform: scale(1.11); transform-origin: 50% 48%; }
 .backToGallery { position: absolute; z-index: 1; top: 4%; inset-inline-start: 4%; min-height: 44px; padding: .45rem .8rem; border: 1px solid #fff4dc85; border-radius: .25rem; color: #fff7e7; background: #3d2b24e6; font: inherit; font-size: .83rem; cursor: pointer; }
+a.backToGallery { display: flex; align-items: center; gap: .25em; text-decoration: none; }
 .tableComposition {
   position: absolute;
   /* Keep the grid within the velvet floor of the corresponding tray photo. */
