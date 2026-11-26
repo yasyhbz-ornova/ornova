@@ -10,6 +10,16 @@ const persianFont = localFont({
   weight: "100 900",
   style: "normal",
   display: "swap",
+  preload: false,
+});
+
+const persianCoreFont = localFont({
+  src: "./fonts/Estedad-fa-latin.woff2",
+  variable: "--font-ornova-core",
+  weight: "100 900",
+  style: "normal",
+  display: "swap",
+  adjustFontFallback: false,
 });
 
 const displayFont = localFont({ src: "./fonts/Gandom.woff2", variable: "--font-ornova-display", weight: "400", style: "normal", display: "swap", preload: false });
@@ -33,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" className={`${persianFont.variable} ${displayFont.variable} h-full antialiased`}>
+    <html lang="fa" dir="rtl" className={`${persianCoreFont.variable} ${persianFont.variable} ${displayFont.variable} h-full antialiased`}>
       <body className="min-h-full bg-ivory text-graphite">
         <div className="flex min-h-screen flex-col">
           <a href="#main-content" className="skip-link">رفتن به محتوای صفحه</a>

@@ -23,6 +23,6 @@
   --space-section: 96px;
   --space-card: 32px;
 
-  --font-persian: var(--font-ornova-text), Tahoma, Arial, sans-serif;
+  --font-persian: var(--font-ornova-core), var(--font-ornova-text), Tahoma, Arial, sans-serif;
   --font-display: var(--font-ornova-display), var(--font-persian);
 }
