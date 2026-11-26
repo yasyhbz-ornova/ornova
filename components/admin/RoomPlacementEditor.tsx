@@ -6,6 +6,7 @@ import type { CatalogProductInput } from "@/lib/catalog/product-input";
 import { roomPlacementSchema, type RoomPlacement } from "@/lib/catalog/room-placement";
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
 import { GalleryStandSurface } from "@/components/ornova/GalleryStandSurface";
+import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 
 type CatalogRow = CatalogProductInput & { room_placement?: RoomPlacement | null };
 type Props = { product: CatalogRow; disabled: boolean; onSaved: (product: CatalogRow) => void };
@@ -18,6 +19,7 @@ export function RoomPlacementEditor({ product, disabled, onSaved }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const stand = galleryRoomStands.find((item) => item.categoryId === product.category_id);
+  const withheld = isWithheldGalleryPhoto(product.stand_image_path);
 
   async function prepare() {
     if (!product.stand_image_path) { setError("ابتدا تصویر اثر روی استند را ذخیره کنید."); return; }
@@ -63,7 +65,11 @@ export function RoomPlacementEditor({ product, disabled, onSaved }: Props) {
   return <section className="rounded-xl border border-silver bg-ivory p-5 md:p-7" aria-label="جای‌گذاری عکس تازه در ویترین گالری">
     <h2 className="text-xl text-graphite">جای‌گذاری عکس در ویترین</h2>
     <p className="mt-2 text-sm leading-7 text-graphite/70">این بخش برای عکس کامل اثر روی استند آبیِ همین دسته است. چهار عدد زیر باید محدودهٔ خود استند در عکس اصلی را مشخص کنند؛ تصویر اصلی تغییر نمی‌کند.</p>
-    {!stand ? <p className="mt-4 text-sm">برای این دسته هنوز استند اختصاصی سالن آماده نیست.</p> : <>
+    {withheld ? <>
+      <p className="mt-3 text-sm text-sapphire">عکس قبلی از ویترین کنار گذاشته شده است. ابتدا برش تازهٔ اثر را در کاتالوگ ذخیره کنید.</p>
+      {product.room_placement && <button type="button" disabled={busy || disabled} onClick={() => { void save(null); }} className="mt-4 rounded-md border border-silver px-4 py-2 text-sm text-graphite disabled:opacity-50">برداشتن از چرخش</button>}
+      {error && <p role="alert" className="mt-3 text-sm text-sapphire">{error}</p>}
+    </> : !stand ? <p className="mt-4 text-sm">برای این دسته هنوز استند اختصاصی سالن آماده نیست.</p> : <>
       {disabled && <p className="mt-3 text-sm text-sapphire">ابتدا تغییرات اصلی اثر را ذخیره کنید.</p>}
       {!product.gallery_placement_verified && <p className="mt-3 text-sm text-sapphire">بررسی جای‌گذاری تصویر در فرم اثر را تأیید و ذخیره کنید.</p>}
       <div className="mt-4 flex flex-wrap gap-3">

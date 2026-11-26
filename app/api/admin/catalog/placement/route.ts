@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isOrnovaStaff, isSameOriginRequest } from "@/lib/auth/authorization";
 import { readQuoteBody } from "@/lib/commerce/quote-request";
 import { roomPlacementSchema } from "@/lib/catalog/room-placement";
+import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     if (body.status) return failure(body.status);
     const parsed = input.safeParse(body.value);
     if (!parsed.success) return failure(400);
+    if (parsed.data.placement && isWithheldGalleryPhoto(parsed.data.placement.src)) return failure(400);
     const { data, error: saveError } = await client.rpc("save_catalog_room_placement", { p_slug: parsed.data.slug, p_revision: parsed.data.revision, p_placement: parsed.data.placement });
     if (saveError) return failure(saveError.code === "23505" || saveError.message.includes("CATALOG_CONFLICT") ? 409 : saveError.message.includes("CATALOG_INVALID") ? 400 : 503);
     return NextResponse.json({ product: data }, { headers });

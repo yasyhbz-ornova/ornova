@@ -86,7 +86,9 @@ export function CatalogEditor() {
   });
   const formGaps = incompleteDossierFields(form.details);
   const referenceCover = isReferenceOnlyGalleryPhoto(form.image_path);
-  const trayPath = form.stand_image_path?.startsWith("/images/ornova/") && !isReferenceOnlyGalleryPhoto(form.stand_image_path) ? form.stand_image_path : null;
+  const withheldTray = isWithheldGalleryPhoto(form.stand_image_path);
+  const preservingWithheldTray = withheldTray && savedRow && savedRow.stand_image_path === form.stand_image_path && savedRow.status === form.status && savedRow.gallery_placement_verified;
+  const trayPath = !withheldTray && form.stand_image_path?.startsWith("/images/ornova/") && !isReferenceOnlyGalleryPhoto(form.stand_image_path) ? form.stand_image_path : null;
   const trayReady = trayPath && trayPath === trayPreview?.path ? trayPreview.transparent : null;
   const previewName = form.name.trim() || "نام اثر";
   const missingLabels = dossierFields.filter(({ id }) => formGaps.includes(id)).map(({ label }) => label).join("، ");
@@ -159,7 +161,7 @@ export function CatalogEditor() {
       setError("برای انتشار، نمای کامل اثر را به‌عنوان تصویر اصلی انتخاب کنید.");
       return;
     }
-    if (form.status !== "archived" && form.gallery_placement_verified && trayReady !== true) {
+    if (form.status !== "archived" && form.gallery_placement_verified && trayReady !== true && !preservingWithheldTray) {
       setError("پیش از ذخیرهٔ جای‌گذاری، یک برش شفاف و خوانا برای سینی انتخاب کنید.");
       return;
     }
@@ -171,7 +173,7 @@ export function CatalogEditor() {
       if (!response.ok || !body.product) throw new Error(body.error || "ذخیرهٔ اثر تأیید نشد.");
       setRows((current) => [body.product!, ...current.filter((item) => item.slug !== body.product!.slug)]);
       setSelected(body.product.slug); setForm(toCatalogForm(body.product));
-      setNotice(body.product.status === "published" ? "اثر منتشر شد و در کاتالوگ عمومی قرار گرفت." : "تغییرات اثر ذخیره شد.");
+      setNotice(isWithheldGalleryPhoto(body.product.stand_image_path) ? "شناسنامه ذخیره شد. عکس سینی همچنان کنار گذاشته شده است." : body.product.status === "published" ? "اثر منتشر شد و در کاتالوگ عمومی قرار گرفت." : "تغییرات اثر ذخیره شد.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "ذخیرهٔ اثر تأیید نشد."); }
     finally { operationInProgress.current = false; setSaving(false); }
   };
@@ -274,7 +276,7 @@ export function CatalogEditor() {
         </div>
       </div>
       {form.stand_image_path && <p id="tray-file-review" role="status" className="text-xs leading-6 text-graphite/75">
-        {!trayPath || trayReady === false ? "این تصویر برای سینی آماده نیست. یک برش شفاف PNG یا WebP انتخاب کنید." : trayReady ? "شفافیت تصویر بررسی شد. کامل‌بودن قطعه و جای آن را در پیش‌نمایش بررسی کنید." : "در حال بررسی پیش‌نمایش برش سینی…"}
+        {withheldTray ? "این عکس از سینی کنار گذاشته شده است. برای نمایش اثر روی سینی، برش تازه‌ای از نمای کامل بارگذاری کنید." : !trayPath || trayReady === false ? "این تصویر برای سینی آماده نیست. یک برش شفاف PNG یا WebP انتخاب کنید." : trayReady ? "شفافیت تصویر بررسی شد. کامل‌بودن قطعه و جای آن را در پیش‌نمایش بررسی کنید." : "در حال بررسی پیش‌نمایش برش سینی…"}
       </p>}
       {!form.stand_image_path && linkedPhotos.some((photo) => photo.needsCompleteView) && <p className="text-sm leading-7 text-sapphire">بخشی از قطعه در عکس مرجع بریده است. برای سینی، برش شفافِ یک نمای کامل را انتخاب کنید.</p>}
       {catalogReadReady && galleryRenders.some((sample) => sample.categoryId === form.category_id) && <fieldset className="rounded-lg border border-silver p-4">
@@ -352,7 +354,7 @@ export function CatalogEditor() {
         </details>
       </fieldset>
       <label className={labelClass}>ویدیوی چرخش، در صورت آماده‌بودن<input className={fieldClass} dir="ltr" value={form.turntable_video_path ?? ""} onChange={(event) => update("turntable_video_path", event.target.value || null)} placeholder="مسیر کامل فایل ویدیو" /></label>
-      <label className="flex items-start gap-3 text-sm leading-7"><input type="checkbox" checked={form.gallery_placement_verified} disabled={busy || (!form.gallery_placement_verified && trayReady !== true)} aria-describedby={form.stand_image_path ? "tray-file-review" : undefined} onChange={(event) => update("gallery_placement_verified", event.target.checked)} className="mt-2" />جای‌گذاری اثر روی سینی و نسبت تصویر بررسی شده است.</label>
+      <label className="flex items-start gap-3 text-sm leading-7"><input type="checkbox" checked={!withheldTray && form.gallery_placement_verified} disabled={busy || withheldTray || (!form.gallery_placement_verified && trayReady !== true)} aria-describedby={form.stand_image_path ? "tray-file-review" : undefined} onChange={(event) => update("gallery_placement_verified", event.target.checked)} className="mt-2" />جای‌گذاری اثر روی سینی و نسبت تصویر بررسی شده است.</label>
       <label className={labelClass}>وضعیت<select className={fieldClass} value={form.status} onChange={(event) => update("status", event.target.value as CatalogProductInput["status"])}><option value="review">در بازبینی</option><option value="published">انتشار عمومی</option><option value="archived">بایگانی</option></select></label>
       </fieldset>
       <p className="text-xs leading-6 text-graphite/65">فایل‌های PNG، JPEG و WebP تا ۴ مگابایت پذیرفته می‌شوند. برای نمایش مستقیم اثر روی سینی، برش شفاف PNG یا WebP را انتخاب و جای‌گذاری را بازبینی کنید.</p>

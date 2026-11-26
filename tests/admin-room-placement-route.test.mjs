@@ -26,6 +26,7 @@ function fixture({ user = { app_metadata: { ornova_role: "staff" } }, authError 
     "@/lib/auth/authorization": authorization,
     "@/lib/commerce/quote-request": requestBody,
     "@/lib/catalog/room-placement": placementSchema,
+    "@/lib/catalog/gallery-product-link": load("lib/catalog/gallery-product-link.ts"),
   });
   const post = (value = { slug: "new-silver-ring", revision: 2, placement }, origin = "http://localhost:3058") => route.POST(new Request("http://localhost:3058/api/admin/catalog/placement", { method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(value) }));
   return { post, writes };
@@ -53,4 +54,13 @@ test("room placement accepts only measured in-image bounds and maps conflicts", 
   assert.equal((await ready.post({ slug: "new-silver-ring", revision: 3, placement: null })).status, 200);
   const conflict = fixture({ rpcError: { message: "CATALOG_CONFLICT" } });
   assert.equal((await conflict.post()).status, 409);
+});
+
+test("room placement cannot restore an image withheld from the gallery", async () => {
+  const subject = fixture();
+  const body = { slug: "silent-vase-pin", revision: 2 };
+  const src = "/images/ornova/gallery/products/goldan-khamoosh-stand-cutout-preview-v1.webp";
+  assert.equal((await subject.post({ ...body, placement: { ...placement, src } })).status, 400);
+  assert.equal(subject.writes.length, 0);
+  assert.equal((await subject.post({ ...body, placement: null })).status, 200);
 });

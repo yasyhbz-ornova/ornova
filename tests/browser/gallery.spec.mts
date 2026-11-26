@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import sharp from "sharp";
-import { galleryOrderHistory, galleryStaffCookie, galleryTestCookie } from "./gallery-fixture.mjs";
+import { galleryOrderHistory, galleryStaffCatalog, galleryStaffCookie, galleryTestCookie } from "./gallery-fixture.mjs";
 
 const tray = (page: Page) => page.getByRole("group", { name: "سینی مخمل آبی افغانی", exact: true });
 const drawer = (page: Page) => page.getByRole("dialog");
@@ -306,6 +306,50 @@ test("the narrow mobile tray fits the full catalog card beneath the product", as
   expect(await card.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
   await expect(card.getByText("ابعاد", { exact: true })).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "ثبت سفارش", exact: true })).toBeInViewport({ ratio: 1 });
+});
+
+test("staff can update a dossier while its old tray photo stays withdrawn, then approve a replacement", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await context.addCookies([galleryStaffCookie()]);
+  const withdrawn = "/images/ornova/gallery/products/goldan-khamoosh-stand-cutout-preview-v1.webp";
+  const replacement = "/images/ornova/catalog-media/43ac8e1e-e7e6-413a-b782-743f684f53c8.png";
+  let record = { ...galleryStaffCatalog[0], slug: "silent-vase-pin", name: "گلدان خاموش", revision: 2, category_id: "brooches-pins", category_label: "سنجاق سینه", stand_image_path: withdrawn };
+  const saves: { stand_image_path: string; gallery_placement_verified: boolean }[] = [];
+  const pixels = await sharp({ create: { width: 36, height: 36, channels: 4, background: { r: 170, g: 190, b: 210, alpha: 1 } } })
+    .extend({ top: 12, bottom: 12, left: 12, right: 12, background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+  await page.route(`**${replacement}`, (route) => route.fulfill({ contentType: "image/png", body: pixels }));
+  await page.route("**/api/admin/catalog/media", (route) => route.fulfill({ status: 201, json: { path: replacement } }));
+  await page.route("**/api/admin/catalog", (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: { products: [record] } });
+    const update = route.request().postDataJSON();
+    saves.push(update);
+    record = { ...record, ...update, revision: record.revision + 1 };
+    return route.fulfill({ json: { product: record } });
+  });
+
+  await page.goto("/admin/catalog");
+  await page.getByRole("button", { name: /^گلدان خاموش/ }).click();
+  const checkbox = page.getByRole("checkbox", { name: /جای‌گذاری اثر روی سینی/ });
+  const save = page.getByRole("button", { name: "ذخیرهٔ اثر", exact: true });
+  await expect(page.getByText(/این عکس از سینی کنار گذاشته شده است/)).toBeVisible();
+  await expect(page.getByRole("group", { name: "تنظیم عکس روی سینی" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "خواندن اندازهٔ عکس استند" })).toHaveCount(0);
+  await expect(checkbox).not.toBeChecked();
+  await expect(checkbox).toBeDisabled();
+  await page.locator('[name="dossier-stone"]').fill("بدون سنگ");
+  await save.click();
+  await expect(page.getByText("شناسنامه ذخیره شد. عکس سینی همچنان کنار گذاشته شده است.", { exact: true })).toBeVisible();
+  expect(saves[0]).toMatchObject({ stand_image_path: withdrawn, gallery_placement_verified: true });
+  await expect(checkbox).not.toBeChecked();
+
+  await page.getByLabel("بارگذاری برش سینی", { exact: true }).setInputFiles({ name: "replacement.png", mimeType: "image/png", buffer: pixels });
+  await expect(page.getByRole("img", { name: "پیش‌نمایش تصویر اثر روی سینی" })).toBeVisible();
+  await expect(checkbox).toBeEnabled();
+  await expect(checkbox).not.toBeChecked();
+  await checkbox.check();
+  await save.click();
+  await expect.poll(() => saves.length).toBe(2);
+  expect(saves[1]).toMatchObject({ stand_image_path: replacement, gallery_placement_verified: true });
 });
 
 test("staff preview matches both public tray layouts and flags a scrolling card before saving", async ({ page, context }) => {

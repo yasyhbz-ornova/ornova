@@ -24,12 +24,15 @@ const product = {
   gallery: [{ src: "/images/ornova/ring.webp", alt: "انگشتر" }], details: [], packaging_gallery: [],
   turntable_video_path: null, image_fit: "contain", gallery_placement_verified: true, status: "published",
 };
-function fixture({ user = { app_metadata: { ornova_role: "staff" } }, authError = null, rpcError = null, listError = null, media = null, mediaStatus = 200 } = {}) {
+function fixture({ user = { app_metadata: { ornova_role: "staff" } }, authError = null, rpcError = null, listError = null, media = null, mediaStatus = 200, storedProduct = null } = {}) {
   const writes = [];
   const mediaReads = [];
   const client = {
     auth: { getUser: async () => ({ data: { user }, error: authError }) },
-    from: () => ({ select: () => ({ order: () => ({ limit: async () => ({ data: [product], error: listError }) }) }) }),
+    from: () => ({ select: () => ({
+      order: () => ({ limit: async () => ({ data: [product], error: listError }) }),
+      eq: (_, slug) => ({ maybeSingle: async () => ({ data: storedProduct?.slug === slug ? storedProduct : null, error: listError }) }),
+    }) }),
     rpc: async (...args) => { writes.push(args); return { data: rpcError ? null : { ...product, revision: product.revision + 1 }, error: rpcError }; },
     storage: { from: (bucket) => ({ getPublicUrl: (name) => ({ data: { publicUrl: `https://fixture.supabase.co/storage/v1/object/public/${bucket}/${name}` } }) }) },
   };
@@ -39,6 +42,7 @@ function fixture({ user = { app_metadata: { ornova_role: "staff" } }, authError 
     "@/lib/commerce/quote-request": requestBody,
     "@/lib/catalog/product-input": schema,
     "@/lib/catalog/tray-image": tray,
+    "@/lib/catalog/gallery-product-link": load("lib/catalog/gallery-product-link.ts"),
     "@/lib/constants/gallery-renders": renders,
   }, async (url, options) => { mediaReads.push({ url, options }); return new Response(media, { status: mediaStatus }); });
   const post = (value = product, origin = "http://localhost:3058") => route.POST(new Request("http://localhost:3058/api/admin/catalog", { method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(value) }));
@@ -80,6 +84,27 @@ test("a reference-only archive photo stays linked during review and publication 
   assert.equal((await reference.post({ ...product, status: "review", image_path: duplicate, stand_image_path: null, gallery, gallery_placement_verified: false })).status, 201);
   assert.equal((await reference.post({ ...product, gallery })).status, 201);
   assert.deepEqual(reference.writes.map(([, args]) => args.p_product.gallery), [gallery, gallery]);
+});
+
+test("a withheld standby photo can be retained only on its existing verified record", async () => {
+  const stand = "/images/ornova/gallery/products/goldan-khamoosh-stand-cutout-preview-v1.webp";
+  const previous = { ...product, slug: "silent-vase-pin", revision: 2, stand_image_path: stand };
+  const created = fixture();
+  assert.equal((await created.post({ ...product, stand_image_path: stand })).status, 400);
+  assert.equal(created.writes.length, 0);
+
+  const retained = fixture({ storedProduct: previous });
+  assert.equal((await retained.post({ ...previous, details: [{ label: "سنگ", value: "بدون سنگ" }] })).status, 200);
+  assert.equal(retained.writes.length, 1);
+
+  const restored = fixture({ storedProduct: { ...previous, gallery_placement_verified: false } });
+  assert.equal((await restored.post(previous)).status, 400);
+  assert.equal(restored.writes.length, 0);
+  assert.equal((await restored.post({ ...previous, status: "review", gallery_placement_verified: false })).status, 200);
+
+  const conflict = fixture({ storedProduct: { ...previous, revision: 3 } });
+  assert.equal((await conflict.post(previous)).status, 409);
+  assert.equal(conflict.writes.length, 0);
 });
 
 test("public catalog filters reference-only imagery and resolves a usable cover for older products", async () => {

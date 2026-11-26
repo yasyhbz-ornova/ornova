@@ -5,6 +5,7 @@ import { readQuoteBody } from "@/lib/commerce/quote-request";
 import { catalogProductInput } from "@/lib/catalog/product-input";
 import { catalogImageMaxBytes, isTransparentTrayImage, trayImageError } from "@/lib/catalog/tray-image";
 import { isReferenceOnlyGalleryPhoto } from "@/lib/constants/gallery-renders";
+import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +43,15 @@ export async function POST(request: Request) {
       return failure(400, "برای انتشار، نمای کامل اثر را به‌عنوان تصویر اصلی انتخاب کنید.");
     }
     if (product.status !== "archived" && product.gallery_placement_verified) {
+      if (isWithheldGalleryPhoto(standPath)) {
+        const message = "این عکس از سینی کنار گذاشته شده است. برای تأیید جای‌گذاری، برش تازه‌ای انتخاب کنید.";
+        if (revision === 0) return failure(400, message);
+        const { data: stored, error: readError } = await client.from("catalog_products")
+          .select("revision,status,stand_image_path,gallery_placement_verified").eq("slug", slug).maybeSingle();
+        if (readError) return failure(503);
+        if (stored?.revision !== revision) return failure(409);
+        if (stored.stand_image_path !== standPath || stored.status !== product.status || !stored.gallery_placement_verified) return failure(400, message);
+      }
       if (isReferenceOnlyGalleryPhoto(standPath)) return failure(400, "برای سینی، برش شفافِ نمای کامل اثر را انتخاب کنید.");
       if (!standPath || !/\.(png|webp)$/.test(standPath)) return failure(400, trayImageError);
       const uploadedImage = uploadedImagePath.exec(standPath);
