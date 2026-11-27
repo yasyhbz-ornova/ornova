@@ -454,6 +454,30 @@ test("staff preview matches both public tray layouts and flags a scrolling card 
   expect(overflow).toBeGreaterThan(1);
 });
 
+test("the weight atlas is staff-only and its estimates stay out of the public dossier field", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const marker = "نام آزمایشی بانک خصوصی وزن";
+  const publicPage = await page.request.get("/?galleryPanel=product&product=lajvard-shab-ring");
+  expect(await publicPage.text()).not.toContain(marker);
+  const guestPage = await page.request.get("/admin/catalog", { maxRedirects: 0 });
+  expect(guestPage.status()).toBe(307);
+  expect(await guestPage.text()).not.toContain(marker);
+  await context.addCookies([galleryTestCookie()]);
+  const customerPage = await page.request.get("/admin/catalog");
+  expect(await customerPage.text()).not.toContain(marker);
+  await page.goto("/admin/catalog");
+  await expect(page.getByText(/بانک داخلی برآورد وزن/)).toHaveCount(0);
+
+  await context.addCookies([galleryStaffCookie()]);
+  await page.goto("/admin/catalog");
+  await page.getByText("بانک داخلی برآورد وزن (۱ اثر)", { exact: true }).click();
+  await expect(page.getByRole("list", { name: "برآورد وزن آثار" })).toContainText(marker);
+  await page.getByRole("button", { name: /^انگشتر نقره «لاجورد شب»/ }).click();
+  await expect(page.getByText(/برآورد داخلی وزن نقره/)).toContainText("۶٫۳۷ گرم");
+  await expect(page.getByRole("textbox", { name: "وزن تقریبی", exact: true })).toHaveValue("پس از طراحی مشخص می‌شود");
+  await expect(page.getByRole("figure", { name: "پیش‌نمایش سینی در گالری" })).not.toContainText("۶٫۳۷ گرم");
+});
+
 test("staff can preview turns, retry and apply a separate transparent tray image", async ({ page, context }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await context.addCookies([galleryStaffCookie()]);

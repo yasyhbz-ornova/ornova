@@ -6,6 +6,7 @@ import { galleryRenders, isReferenceOnlyGalleryPhoto, type GalleryRender } from 
 import { galleryTrayCutout } from "@/lib/constants/gallery-tray-cutouts";
 import { catalogCategories, normalizeSearch, resolveCatalogSelection } from "@/lib/constants/catalog";
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
+import type { InternalWeightEstimate } from "@/lib/catalog/gallery-weight-estimates";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
 import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 import { prepareTrayImage } from "@/lib/catalog/rotate-tray-image";
@@ -24,6 +25,12 @@ const blank = (): CatalogProductInput => ({ slug: "", revision: 0, name: "", cat
 const fieldClass = "w-full rounded-md border border-silver bg-ivory px-3 py-2 text-sm text-graphite outline-none focus-visible:border-sapphire focus-visible:ring-2 focus-visible:ring-sapphire/30";
 const labelClass = "block text-sm leading-7 text-graphite";
 const number = new Intl.NumberFormat("fa-IR");
+const weightNumber = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 2, useGrouping: false });
+const catalogWeightReferences: Readonly<Partial<Record<string, string>>> = {
+  "lajvard-shab-ring": "L",
+  "silent-vase-pin": "V",
+  "sepid-brooch": "07",
+};
 const statuses = { published: "منتشرشده", review: "در بازبینی", archived: "بایگانی" } as const;
 
 function hasVisibleCutout(image: HTMLImageElement): boolean {
@@ -48,7 +55,7 @@ function hasVisibleCutout(image: HTMLImageElement): boolean {
   return false;
 }
 
-export function CatalogEditor() {
+export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly InternalWeightEstimate[] }) {
   const [rows, setRows] = useState<CatalogRow[]>([]);
   const [form, setForm] = useState<CatalogProductInput>(blank);
   const [selected, setSelected] = useState("");
@@ -103,6 +110,9 @@ export function CatalogEditor() {
     photo.categoryId === form.category_id && !form.gallery.some(({ src }) => src === photo.src),
   );
   const linkedPhotos = galleryRenders.filter((photo) => photo.categoryId === form.category_id && form.gallery.some(({ src }) => src === photo.src));
+  const archiveWeightReference = linkedPhotos.find((photo) => photo.src === form.image_path && form.slug === `ornova-gallery-${photo.number}`)?.number;
+  const weightReference = catalogWeightReferences[form.slug] ?? archiveWeightReference;
+  const weightEstimate = weightEstimates.find(({ reference }) => reference === weightReference);
   const formMatchesSaved = savedRow ? JSON.stringify(form) === JSON.stringify(toCatalogForm(savedRow)) : false;
   const hasUnsavedChanges = savedRow ? !formMatchesSaved : JSON.stringify(form) !== JSON.stringify(blank());
   const canLeaveForm = () => !hasUnsavedChanges || window.confirm("تغییرات این شناسنامه ذخیره نشده است. از آن خارج می‌شوید؟");
@@ -190,6 +200,16 @@ export function CatalogEditor() {
   </fieldset>;
   return <div className="mt-8 grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
     <aside className="rounded-xl border border-silver bg-ivory-muted p-4" aria-label="فهرست آثار مدیر">
+      {weightEstimates.length > 0 && <details className="mb-4 border-b border-silver pb-3">
+        <summary className="cursor-pointer text-sm text-sapphire">بانک داخلی برآورد وزن ({number.format(weightEstimates.length)} اثر)</summary>
+        <p className="mt-2 text-xs leading-6 text-graphite/75">فقط وزن تقریبی نقره، بدون سنگ، زنجیر و بند غیرنقره‌ای.</p>
+        <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto text-xs text-graphite" aria-label="برآورد وزن آثار">
+          {weightEstimates.map(({ reference, name, grams }) => <li key={reference} className="flex items-baseline justify-between gap-2 border-b border-silver py-1.5">
+            <span>{name}{/^[0-9]/.test(reference) && <small className="mr-1 text-graphite/65">({number.format(Number(reference))})</small>}</span>
+            <span className="shrink-0">{weightNumber.format(grams)} گرم</span>
+          </li>)}
+        </ul>
+      </details>}
       <button type="button" disabled={busy} onClick={() => select("")} className="mb-4 w-full rounded-md border border-sapphire px-3 py-2 text-sm text-sapphire disabled:opacity-50">اثر تازه</button>
       {rows.length > 0 && <label className="mb-3 flex items-start gap-2 text-xs leading-6 text-graphite">
         <input type="checkbox" className="mt-1" checked={onlyIncompleteDossiers} onChange={(event) => setOnlyIncompleteDossiers(event.target.checked)} />
@@ -307,6 +327,9 @@ export function CatalogEditor() {
       <fieldset className="rounded-lg border border-silver p-4">
         <legend className="px-2 text-sm">شناسنامهٔ روی میز</legend>
         <p className="mb-3 text-sm leading-7 text-graphite/75">مقدارهای تأییدشده را وارد کنید و وزن و ابعاد را همراه واحد بنویسید.</p>
+        {weightEstimate && <p className="mb-3 rounded-md bg-ivory-muted px-3 py-2 text-xs leading-6 text-sapphire">
+          برآورد داخلی وزن نقره <strong>{weightNumber.format(weightEstimate.grams)} گرم</strong> · جای ثبت وزن تأییدشده جداست.
+        </p>}
         {form.slug && <p className="mb-3 rounded-md bg-ivory-muted px-3 py-2 text-xs leading-6 text-sapphire" role="status">
           {formGaps.length ? `برای تکمیل شناسنامه، ${missingLabels} را بررسی کنید.` : "همهٔ فیلدهای لازم برای این شناسنامه پر شده‌اند."}
         </p>}

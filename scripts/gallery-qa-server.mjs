@@ -4,6 +4,16 @@ import { galleryQA, galleryStaffCatalog, galleryStaffSession } from "../tests/br
 
 const command = process.argv[2] ?? "start";
 if (command !== "build" && command !== "start") throw new Error("Expected build or start");
+const weightAtlas = {
+  version: "1.1",
+  unit: "g",
+  basis: "estimated silver metal weight; excludes stones, chain and non-silver strap",
+  publication_status: "internal_only",
+  records: [{
+    reference: "L", name_fa: "نام آزمایشی بانک خصوصی وزن", estimated_weight_g: 6.37,
+    status: "estimated", cad_weight_g: null, actual_weight_g: null, public_price_eligible: false,
+  }],
+};
 
 // The test process is isolated from the configured Supabase project and accepts reads only.
 const fixture = createServer((request, response) => {
@@ -58,6 +68,7 @@ fixture.listen(Number(address.port), address.hostname, () => {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "gallery-qa-public-fixture",
       NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: "false",
       SUPABASE_SERVICE_ROLE_KEY: "",
+      ORNOVA_INTERNAL_WEIGHT_ATLAS: process.env.ORNOVA_INTERNAL_WEIGHT_ATLAS ?? JSON.stringify(weightAtlas),
     },
   });
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { fixture.close(); next.kill(); });

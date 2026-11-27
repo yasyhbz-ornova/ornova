@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 import { CatalogEditor } from "@/components/admin/CatalogEditor";
 import { isOrnovaStaff } from "@/lib/auth/authorization";
+import { readInternalWeightEstimates } from "@/lib/catalog/gallery-weight-estimates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,6 @@ export default async function CatalogAdminPage() {
     <p className="ritual-label">میز آثار / Ornova by Yas</p>
     <h1 className="mt-3 text-3xl text-graphite">کاتالوگ گالری</h1>
     <p className="mt-3 max-w-3xl text-sm leading-8 text-graphite/75">هر اثر ابتدا در بازبینی می‌ماند. انتشار آن، رسانهٔ اصلی، تصویر روی استند و تأیید جای‌گذاری را لازم دارد. مشخصات و قیمت تأییدنشده وارد نکنید.</p>
-    <CatalogEditor />
+    <CatalogEditor weightEstimates={readInternalWeightEstimates()} />
   </main>;
 }
