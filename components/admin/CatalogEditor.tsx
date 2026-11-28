@@ -9,7 +9,7 @@ import type { CatalogProductInput } from "@/lib/catalog/product-input";
 import { birthMonthCategories, birthMonths, findBirthMonth } from "@/lib/constants/collections";
 import type { InternalWeightEstimate } from "@/lib/catalog/gallery-weight-estimates";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
-import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
+import { isPublicGalleryProduct, isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
 import { prepareTrayImage } from "@/lib/catalog/rotate-tray-image";
 import { dossierFields, incompleteDossierFields, isDossierField, readDossierField, updateDossierField } from "@/lib/catalog/dossier-fields";
 import { appendCatalogPhotoView, draftCatalogFormFromPhoto, reviewCatalogPhotos } from "@/lib/catalog/photo-draft";
@@ -33,6 +33,11 @@ const catalogWeightReferences: Readonly<Partial<Record<string, string>>> = {
   "sepid-brooch": "07",
 };
 const statuses = { published: "منتشرشده", review: "در بازبینی", archived: "بایگانی" } as const;
+const monthPhotoSlots = [
+  { categoryId: "bracelets", photoKey: "braceletImage", designKey: "bracelet", label: "دستبند زودیاک" },
+  { categoryId: "jewelry-sets", photoKey: "constellationImage", designKey: "constellation", label: "نیم‌ست صورت فلکی" },
+  { categoryId: "pendants", photoKey: "flowerImage", designKey: "flowerPendant", label: "آویز گل فیبوناچی" },
+] as const;
 
 function hasVisibleCutout(image: HTMLImageElement): boolean {
   const canvas = document.createElement("canvas");
@@ -107,6 +112,17 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
   const previewMonth = findBirthMonth(form.birth_month_id)?.name;
   const missingLabels = dossierFields.filter(({ id }) => formGaps.includes(id)).map(({ label }) => label).join("، ");
   const photoReview = useMemo(() => reviewCatalogPhotos(galleryRenders, rows), [rows]);
+  const monthPhotoQueue = useMemo(() => birthMonths.flatMap((month) => monthPhotoSlots.flatMap((slot) => {
+    if (month[slot.photoKey]) return [];
+    const records = rows.filter((row) => row.birth_month_id === month.id && row.category_id === slot.categoryId);
+    const covered = records.some((row) => row.status === "published" && !isReferenceOnlyGalleryPhoto(row.stand_image_path)
+      && isPublicGalleryProduct({ publicationStatus: row.status, galleryPlacementVerified: row.gallery_placement_verified, standImage: row.stand_image_path ?? undefined }));
+    if (covered) return [];
+    const slug = `birth-${month.id}-${slot.categoryId}`;
+    const existing = records.find((row) => row.status !== "archived") ?? records[0];
+    return [{ month, slot, slug, existing }];
+  })), [rows]);
+  const productName = useRef<HTMLInputElement>(null);
   const formPhotoPaths = new Set([form.image_path, form.stand_image_path, ...form.gallery.map(({ src }) => src)]);
   const unlinkedPhotos = photoReview.available.filter(({ src }) => !formPhotoPaths.has(src));
   const filteredPhotos = unlinkedPhotos.filter((photo) => !photoCategory || photo.categoryId === photoCategory);
@@ -125,12 +141,33 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
   const canLeaveForm = () => !hasUnsavedChanges || window.confirm("تغییرات این شناسنامه ذخیره نشده است. از آن خارج می‌شوید؟");
   const update = <K extends keyof CatalogProductInput>(key: K, value: CatalogProductInput[K]) => setForm((current) => ({ ...current, [key]: value }));
   const select = (slug: string) => {
-    if (operationInProgress.current || !canLeaveForm()) return;
+    if (operationInProgress.current || !canLeaveForm()) return false;
     const row = rows.find((item) => item.slug === slug);
     setSelected(slug);
     setForm(row ? toCatalogForm(row) : blank());
     setNotice(""); setError("");
+    return true;
   };
+  function openMonthPhoto({ month, slot, slug, existing }: (typeof monthPhotoQueue)[number]) {
+    if (existing) {
+      if (select(existing.slug)) window.requestAnimationFrame(() => productName.current?.focus());
+      return;
+    }
+    if (operationInProgress.current || !canLeaveForm()) return;
+    const slotCategory = resolveCatalogSelection(slot.categoryId, null).category;
+    if (!slotCategory) return;
+    let draftSlug = slug;
+    let suffix = 2;
+    while (rows.some((row) => row.slug === draftSlug)) draftSlug = `${slug}-${suffix++}`;
+    setSelected("");
+    setForm({
+      ...blank(), slug: draftSlug, name: `${slot.label} ${month.name}`, description: month[slot.designKey],
+      category_id: slot.categoryId, category_label: slotCategory.label, birth_month_id: month.id,
+    });
+    setNotice("");
+    setError("");
+    window.requestAnimationFrame(() => productName.current?.focus());
+  }
   const updateMedia = (key: "gallery" | "packaging_gallery", index: number, field: "src" | "alt", value: string) => {
     setForm((current) => ({ ...current, [key]: current[key].map((item, position) => position === index ? { ...item, [field]: value } : item) }));
   };
@@ -217,6 +254,19 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
           </li>)}
         </ul>
       </details>}
+      {catalogReadReady && monthPhotoQueue.length > 0 && <details className="mb-4 border-b border-silver pb-3">
+        <summary className="cursor-pointer text-sm text-sapphire">عکس‌های ماه تولد در انتظار تکمیل ({number.format(monthPhotoQueue.length)})</summary>
+        {!hasBirthMonthField && <p className="mt-2 text-xs leading-6 text-graphite/75">باز کردن پیش‌نویس از این فهرست پس از به‌روزرسانی پایگاه داده فعال می‌شود.</p>}
+        <ul className="mt-3 space-y-2" aria-label="جای خالی عکس ماه‌های تولد">
+          {monthPhotoQueue.map((item) => <li key={item.slug} className="rounded-md border border-silver bg-ivory p-2 text-xs leading-6">
+            <strong className="block font-medium">{item.slot.label} {item.month.name}</strong>
+            <p>{item.month[item.slot.designKey]}</p>
+            {hasBirthMonthField && <button type="button" disabled={busy} onClick={() => openMonthPhoto(item)} className="min-h-9 text-sapphire underline underline-offset-4 disabled:opacity-50">
+              {item.existing ? "باز کردن اثر" : "آماده‌سازی پیش‌نویس"}
+            </button>}
+          </li>)}
+        </ul>
+      </details>}
       <button type="button" disabled={busy} onClick={() => select("")} className="mb-4 w-full rounded-md border border-sapphire px-3 py-2 text-sm text-sapphire disabled:opacity-50">اثر تازه</button>
       {rows.length > 0 && <label className="mb-3 flex items-start gap-2 text-xs leading-6 text-graphite">
         <input type="checkbox" className="mt-1" checked={onlyIncompleteDossiers} onChange={(event) => setOnlyIncompleteDossiers(event.target.checked)} />
@@ -284,7 +334,7 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
       <fieldset disabled={busy} className="min-w-0 space-y-5 border-0 p-0">
       <h2 className="text-xl text-graphite">{selected ? "ویرایش اثر" : "ثبت اثر تازه"}</h2>
       <div className="grid gap-4 md:grid-cols-2">
-        <label className={labelClass}>نام اثر<input required maxLength={120} className={fieldClass} value={form.name} onChange={(event) => update("name", event.target.value)} /></label>
+        <label className={labelClass}>نام اثر<input ref={productName} required maxLength={120} className={fieldClass} value={form.name} onChange={(event) => update("name", event.target.value)} /></label>
         <label className={labelClass}>شناسهٔ پایدار انگلیسی<input required disabled={form.revision > 0} pattern="[a-z0-9][a-z0-9-]{1,118}[a-z0-9]" className={fieldClass} dir="ltr" value={form.slug} onChange={(event) => update("slug", event.target.value)} /></label>
         <label className={labelClass}>دسته<select className={fieldClass} value={form.category_id} onChange={(event) => { const found = catalogCategories.find((item) => item.id === event.target.value); if (found) setForm((current) => ({ ...current, category_id: found.id, category_label: found.label, subtype_id: null, birth_month_id: hasBirthMonthField ? null : undefined })); }}>{catalogCategories.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
         <label className={labelClass}>زیرگروه<select className={fieldClass} value={form.subtype_id ?? ""} onChange={(event) => update("subtype_id", event.target.value || null)}><option value="">بدون زیرگروه</option>{category?.types.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>

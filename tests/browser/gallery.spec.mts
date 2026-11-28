@@ -514,6 +514,37 @@ test("the weight atlas is staff-only and its estimates stay out of the public do
   await expect(page.getByRole("figure", { name: "پیش‌نمایش سینی در گالری" })).not.toContainText("۶٫۳۷ گرم");
 });
 
+test("staff can open an existing month draft or prepare a missing work without saving", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await context.addCookies([galleryStaffCookie()]);
+  const flower = { ...galleryStaffCatalog[0], category_id: "pendants", category_label: "آویز گردنبند", birth_month_id: "shahrivar", slug: "flower-test", name: "آویز ثبت‌شدهٔ شهریور" };
+  const halfSet = { ...flower, category_id: "jewelry-sets", category_label: "نیم‌ست", birth_month_id: "ordibehesht", slug: "halfset-test", name: "پیش‌نویس نیم‌ست اردیبهشت", status: "review" };
+  let saves = 0;
+  await page.route("**/api/admin/catalog", async (route) => {
+    if (route.request().method() === "POST") {
+      saves++;
+      return route.fulfill({ status: 400 });
+    }
+    await route.fulfill({ json: { products: [flower, halfSet], hasBirthMonthField: true } });
+  });
+  await page.goto("/admin/catalog");
+  await page.getByText("عکس‌های ماه تولد در انتظار تکمیل (۶)", { exact: true }).click();
+  const queue = page.getByRole("list", { name: "جای خالی عکس ماه‌های تولد" });
+  await expect(queue.getByRole("listitem")).toHaveCount(6);
+  await expect(queue).not.toContainText("شهریور");
+  const name = page.getByRole("textbox", { name: "نام اثر", exact: true });
+  const month = page.getByRole("combobox", { name: "ماه تولد در دفتر مجموعه" });
+  await queue.getByRole("listitem").filter({ hasText: "نیم‌ست صورت فلکی اردیبهشت" }).getByRole("button", { name: "باز کردن اثر" }).click();
+  await expect(name).toHaveValue(halfSet.name);
+  await expect(month).toHaveValue("ordibehesht");
+  await queue.getByRole("listitem").filter({ hasText: "آویز گل فیبوناچی آذر" }).getByRole("button", { name: "آماده‌سازی پیش‌نویس" }).click();
+  await expect(name).toHaveValue("آویز گل فیبوناچی آذر");
+  await expect(name).toBeFocused();
+  await expect(month).toHaveValue("azar");
+  await expect(page.getByRole("combobox", { name: "وضعیت", exact: true })).toHaveValue("review");
+  expect(saves).toBe(0);
+});
+
 test("staff can preview turns, retry and apply a separate transparent tray image", async ({ page, context }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await context.addCookies([galleryStaffCookie()]);
