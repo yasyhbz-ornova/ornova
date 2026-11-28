@@ -202,6 +202,28 @@ test.describe("magazine before client scripts load", () => {
     await expect(drawer(page)).toHaveCount(0);
   });
 
+  test("all six room shelves open their tray and link to the next work without scripts", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    const categories = ["rings", "brooches-pins", "earrings", "jewelry-sets", "pendants", "bracelets"];
+    for (const category of categories) {
+      const href = `/?galleryPanel=tray&category=${category}`;
+      await page.locator(`a[data-stand-id][href="${href}"]`).click();
+      await expect(tray(page).locator(`[data-tray-category="${category}"] img`)).toBeVisible();
+      const title = tray(page).getByRole("heading", { level: 1 });
+      const first = await title.textContent();
+      await page.getByRole("link", { name: "اثر بعدی", exact: true }).click();
+      await expect(title).not.toHaveText(first!);
+      await expect(page).toHaveURL(`${href}&position=1`);
+      await page.getByRole("link", { name: "اثر قبلی", exact: true }).click();
+      await expect(title).toHaveText(first!);
+      await page.getByRole("link", { name: "بازگشت به گالری", exact: true }).click();
+      await expect(tray(page)).toHaveCount(0);
+    }
+    await page.goto("/?galleryPanel=tray&category=unknown&position=999");
+    await expect(tray(page)).toHaveCount(0);
+  });
+
   test("the full tray opens exact catalog and archive works and restores the source chapter", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/?galleryPanel=magazine&category=rings");
@@ -270,7 +292,7 @@ test("keyboard tray navigation announces the chosen work without announcing auto
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   await page.clock.install();
-  await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  await page.getByRole("link", { name: "نمایش انگشتر روی میز", exact: true }).click();
   const heading = tray(page).getByRole("heading");
   const status = tray(page).getByRole("status");
   const initialTitle = await heading.innerText();
@@ -297,7 +319,7 @@ test("mobile tray and cashier retain their layout", async ({ page }) => {
   const welcome = page.getByText("welcome", { exact: true });
   await expect(welcome).toBeVisible();
   expect(await welcome.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(9);
-  await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  await page.getByRole("link", { name: "نمایش انگشتر روی میز", exact: true }).click();
   await expect(tray(page)).toBeVisible();
   await expect(page.getByRole("button", { name: "اثر بعدی" })).toBeVisible();
   await expect(page).toHaveScreenshot("tray.png");
@@ -345,7 +367,7 @@ test("a portrait phone shows the complete room and opens the real showcase boxes
 test("the narrow mobile tray fits the full catalog card beneath the product", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/");
-  await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  await page.getByRole("link", { name: "نمایش انگشتر روی میز", exact: true }).click();
   await page.evaluate(() => document.fonts.ready.then(() => true));
   const ring = tray(page).locator('[data-table-product="lajvard-shab-ring"]');
   const image = await ring.locator("img").evaluate(async (element: HTMLImageElement) => {
@@ -443,7 +465,7 @@ test("staff preview matches both public tray layouts and flags a scrolling card 
     });
   }
 
-  const openRing = () => page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  const openRing = () => page.getByRole("link", { name: "نمایش انگشتر روی میز", exact: true }).click();
   const publicTray = page.getByRole("region", { name: "نمای نزدیک میز و سینی" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -633,7 +655,7 @@ test("staff can remove asymmetric transparent margins and keep the crop during a
 test("the brooch label stays beside the cabinet and the first work is upright", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  const brooch = page.getByRole("button", { name: "نمایش سنجاق‌سینه روی میز", exact: true });
+  const brooch = page.getByRole("link", { name: "نمایش سنجاق‌سینه روی میز", exact: true });
   await brooch.hover();
   const tooltip = page.getByRole("tooltip");
   await expect(tooltip).toBeVisible();
@@ -663,7 +685,7 @@ test("the visit guide marks its objects and restores keyboard focus on finish an
   await expect(next).toBeFocused();
 
   for (const [stop, target] of [
-    ["showcase", page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true })],
+    ["showcase", page.getByRole("link", { name: "نمایش انگشتر روی میز", exact: true })],
     ["magazine", magazine(page)],
     ["cashier", page.getByRole("link", { name: "باز کردن صندوق درخواست‌ها", exact: true })],
     ["phone", page.getByRole("link", { name: "ارتباط با اُرنوا از تلفن گالری", exact: true })],
@@ -786,7 +808,7 @@ test("the tray selection stays attached to the order and its named receipt", asy
 
   await page.goto("/");
   await page.clock.install();
-  await page.getByRole("button", { name: "نمایش انگشتر روی میز", exact: true }).click();
+  await page.getByRole("link", { name: "نمایش انگشتر روی میز", exact: true }).click();
   const selected = tray(page).locator('[data-gallery-product-number="05"]');
   for (let step = 0; step < 12 && !(await selected.count()); step++) {
     await page.getByRole("button", { name: "اثر بعدی" }).click();

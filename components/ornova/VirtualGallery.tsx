@@ -37,7 +37,7 @@ const number = new Intl.NumberFormat("fa-IR");
 type GalleryPanel = "magazine" | "phone" | "contact" | "studio" | "about" | "account" | "library" | "basket" | "ring-builder" | "size-guide" | "guide";
 type Chapter = { kind: "category" | "collection"; id: string };
 type Drawer = Chapter | { kind: GalleryPanel };
-export type GalleryLocation = { panel?: string; category?: string; collection?: string; month?: string; product?: string; archive?: string; from?: string };
+export type GalleryLocation = { panel?: string; category?: string; position?: string; collection?: string; month?: string; product?: string; archive?: string; from?: string };
 type TrayWork = { product: Product } | { photo: GalleryShowcasePhoto };
 type TraySelection = TrayWork & {
   origin?: { drawer: Drawer; backLabel: string; focusId?: string; month?: string; previous: TraySelection | null };
@@ -499,6 +499,7 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     ref={showcaseRef}
     products={products}
     panelOpen={Boolean(drawer)}
+    initialShelf={initialLocation?.panel === "tray" ? initialLocation : undefined}
     workPreview={tray ? { ...tray, backLabel: trayOrigin?.backLabel, backHref: linkedTray && !productTray ? trayBackHref : undefined, onClose: closeProductTray } : undefined}
     onOpenPanel={openGalleryPanel}
   />

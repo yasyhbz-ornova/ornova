@@ -40,6 +40,10 @@ const number = new Intl.NumberFormat("fa-IR");
 const motionPreference = "(prefers-reduced-motion: reduce)";
 const workInterval = 12_000;
 
+function shelfHref(categoryId: CatalogCategoryId, index = 0) {
+  return `/?galleryPanel=tray&category=${encodeURIComponent(categoryId)}${index ? `&position=${index}` : ""}`;
+}
+
 function subscribeToMotionPreference(listener: () => void) {
   const media = window.matchMedia(motionPreference);
   media.addEventListener("change", listener);
@@ -54,10 +58,11 @@ type WorkPreview = ({ product: Pick<Product, "slug" | "categoryId"> } | { photo:
 };
 export type GalleryShowcaseHandle = { openPhoto(photo: GalleryShowcasePhoto, returnTo: PhotoReturn): boolean };
 
-export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, workPreview, onOpenPanel, ref }: {
+export function GalleryShowcaseConcept({ products, catalogUnavailable = false, panelOpen = false, initialShelf, workPreview, onOpenPanel, ref }: {
   products: Product[];
   catalogUnavailable?: boolean;
   panelOpen?: boolean;
+  initialShelf?: { category?: string; position?: string };
   workPreview?: WorkPreview;
   onOpenPanel?: (href: string) => void;
   ref?: Ref<GalleryShowcaseHandle>;
@@ -66,8 +71,16 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const guide = useGalleryRoomGuide();
   const tooltipPrefix = useId();
   const entriesByCategory = useMemo(() => trayVisibleShowcaseEntries(products), [products]);
-  const [indices, setIndices] = useState<Record<string, number>>({});
-  const [table, setTable] = useState<{ categoryId: CatalogCategoryId; returnTo?: PhotoReturn; fromShelf?: boolean } | null>(null);
+  const initialCategory = galleryRoomStands.find(({ categoryId }) => categoryId === initialShelf?.category)?.categoryId;
+  const [indices, setIndices] = useState<Record<string, number>>(() => {
+    if (!initialCategory) return {};
+    const index = Number(initialShelf?.position);
+    const count = entriesByCategory[initialCategory]?.length ?? 0;
+    return Number.isInteger(index) && index > 0 && index < count ? { [initialCategory]: index } : {};
+  });
+  const [table, setTable] = useState<{ categoryId: CatalogCategoryId; returnTo?: PhotoReturn; fromShelf?: boolean; fromLink?: boolean } | null>(
+    () => initialCategory && entriesByCategory[initialCategory]?.length ? { categoryId: initialCategory, fromLink: true } : null,
+  );
   const previewEntry = useMemo(() => {
     if (!workPreview) return undefined;
     if ("product" in workPreview) {
@@ -153,6 +166,11 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       if (!table && !workPreview.backLabel) window.requestAnimationFrame(() => roomBook.current?.focus());
       return;
     }
+    if (table?.fromLink && new URLSearchParams(window.location.search).get("galleryPanel") === "tray") {
+      window.history.replaceState(window.history.state, "", "/");
+      const stand = galleryRoomStands.find(({ categoryId }) => categoryId === table.categoryId);
+      if (stand) returnFocus.current = document.querySelector(`[data-stand-id="${stand.id}"]`);
+    }
     setTable(null);
     table?.returnTo?.onBack();
   }
@@ -209,6 +227,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
   const canChangeWork = !previewEntry && !table?.returnTo;
   const autoAdvance = !reducedMotion && canChangeWork;
   const backLabel = (previewEntry ? workPreview?.backLabel : table?.returnTo?.label) ?? "بازگشت به گالری";
+  const backHref = previewEntry ? workPreview?.backHref : table?.fromLink ? "/" : undefined;
 
   useEffect(() => {
     if (!activeCategory || activeCount < 2 || !autoAdvance || panelOpen || paperHovered || paperFocused) return;
@@ -236,7 +255,17 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
     const work = activeEntries[nextIndex];
     setManualWorkTitle(work.product?.name ?? work.sample?.title ?? "");
     setIndices((current) => ({ ...current, [activeCategory]: nextIndex }));
+    if (table?.fromLink) window.history.replaceState(window.history.state, "", shelfHref(activeCategory, nextIndex));
   };
+
+  function trayArrow(step: number, label: string) {
+    if (!canChangeWork || !activeCategory || activeCount < 2) return null;
+    if (table?.fromLink) {
+      const href = shelfHref(activeCategory, (activeIndex + step + activeCount) % activeCount);
+      return <Link href={href} prefetch={false} className={styles.trayArrow} aria-label={label} onNavigate={(event) => { event.preventDefault(); moveSample(step); }}><span aria-hidden="true" /></Link>;
+    }
+    return <button type="button" className={styles.trayArrow} aria-label={label} onClick={() => moveSample(step)}><span aria-hidden="true" /></button>;
+  }
 
   return <main className={styles.root} dir="rtl" onKeyDown={handleEscape}>
     <div className={styles.scene} data-table-open={tableOpen || undefined} data-shelf-approach={(tableOpen && table?.fromShelf && !previewEntry) || undefined}>
@@ -278,10 +307,10 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             }}
             onPointerLeave={(event) => { if (event.pointerType === "mouse") setHoveredShelf(null); }}
           >
-            <button
+            <a
               className={styles.shelfTrigger}
               data-guide-current={visibleGuideStop === "showcase" || undefined}
-              type="button"
+              href={count ? shelfHref(stand.categoryId) : undefined}
               data-stand-id={stand.id}
               aria-disabled={!count || undefined}
               aria-label={count ? `نمایش ${stand.label} روی میز` : stand.label}
@@ -292,7 +321,11 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
                 setDismissedTooltip(null);
               }}
               onBlur={() => setFocusedShelf(null)}
-              onClick={(event) => showCategory(stand.categoryId, event.currentTarget)}
+              onClick={(event) => {
+                if (!count || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                showCategory(stand.categoryId, event.currentTarget);
+              }}
             >
               <span className={styles.shelfGlow} aria-hidden="true" />
               <Image
@@ -304,7 +337,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
                 unoptimized
                 alt=""
               />
-            </button>
+            </a>
             <div id={tooltip} className={styles.shelfTooltip} role="tooltip">
               <span aria-hidden="true">{stand.label}</span>
               <small>{count ? `${number.format(count)} اثر روی سینی` : "در حال تکمیل"}</small>
@@ -324,8 +357,8 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
       <section className={`${styles.tableView} ${styles.trayViewport}`} inert={!tableOpen || panelOpen} aria-hidden={!tableOpen || panelOpen || undefined} aria-label="نمای نزدیک میز و سینی">
         {tableOpen && <GalleryTrayBackdrop />}
         {tableOpen && <>
-          {previewEntry && workPreview?.backHref
-            ? <Link ref={setBackToGallery} href={workPreview.backHref} prefetch={false} className={styles.backToGallery} onNavigate={(event) => { event.preventDefault(); closeTable(); }}>{backLabel} <span aria-hidden="true">↙</span></Link>
+          {backHref
+            ? <Link ref={setBackToGallery} href={backHref} prefetch={false} className={styles.backToGallery} onNavigate={(event) => { event.preventDefault(); closeTable(); }}>{backLabel} <span aria-hidden="true">↙</span></Link>
             : <button ref={setBackToGallery} type="button" className={styles.backToGallery} onClick={closeTable}>{backLabel} <span aria-hidden="true">↙</span></button>}
           {activeEntry && <><div className={styles.tableComposition} role="group" aria-label="سینی مخمل آبی افغانی">
             {autoAdvance && <span role="status" className="sr-only">{manualWorkTitle}</span>}
@@ -360,7 +393,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             </div>
           </div>
           <div className={styles.tableActions} role="group" aria-label="سفارش و ورق زدن آثار">
-            {canChangeWork && activeCount > 1 && <button type="button" className={styles.trayArrow} aria-label="اثر قبلی" onClick={() => moveSample(-1)}><span aria-hidden="true" /></button>}
+            {trayArrow(-1, "اثر قبلی")}
             <div
               className={styles.orderAction}
               onPointerEnter={(event) => { if (event.pointerType === "mouse") setPaperHovered(true); }}
@@ -372,7 +405,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
                 ? <RequestBasketButton key={linkedProduct.slug} item={{ slug: linkedProduct.slug, name: linkedProduct.name, category: linkedProduct.category }} label="ثبت سفارش" keepExistingQuantity onAdded={openBasket} />
                 : activeSample && <Link {...panelLink(`/?galleryPanel=account&complete=1&archive=${activeSample.number}`)}>ثبت سفارش</Link>}
             </div>
-            {canChangeWork && activeCount > 1 && <button type="button" className={styles.trayArrow} aria-label="اثر بعدی" onClick={() => moveSample(1)}><span aria-hidden="true" /></button>}
+            {trayArrow(1, "اثر بعدی")}
           </div></>}
         </>}
       </section>

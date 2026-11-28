@@ -30,6 +30,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const initialLocation = {
     panel: galleryPanel,
     category: read("category"),
+    position: read("position"),
     collection: read("collection"),
     month: read("month"),
     product: read("product"),
