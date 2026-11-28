@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { displayDossierField } from "@/lib/catalog/dossier-fields";
+import { displayDossierField, incompleteDossierFields, type DossierFieldId } from "@/lib/catalog/dossier-fields";
 import { OrnovaSymbol } from "./OrnovaBrandMark";
 import styles from "./GalleryShowcaseConcept.module.css";
 
@@ -23,6 +23,13 @@ export function GalleryTrayBackdrop({ layout = "responsive" }: { layout?: "respo
 }
 
 const archiveNumber = new Intl.NumberFormat("fa-IR", { minimumIntegerDigits: 2, useGrouping: false });
+const trayFields: readonly { id: DossierFieldId; label: string }[] = [
+  { id: "material", label: "جنس" },
+  { id: "stone", label: "سنگ" },
+  { id: "stoneColor", label: "رنگ سنگ" },
+  { id: "weight", label: "وزن" },
+  { id: "dimensions", label: "ابعاد" },
+];
 
 export function GalleryTrayDossier({ name, details = [], archive, heading: Heading = "h1", live }: {
   name: string;
@@ -31,13 +38,13 @@ export function GalleryTrayDossier({ name, details = [], archive, heading: Headi
   heading?: "h1" | "h2";
   live?: "off" | "polite";
 }) {
-  const material = displayDossierField(details, "material");
-  const stone = displayDossierField(details, "stone");
-  const stoneColor = displayDossierField(details, "stoneColor");
-  const weight = displayDossierField(details, "weight");
-  const dimensions = displayDossierField(details, "dimensions");
+  const pending = archive ? [] : incompleteDossierFields(details);
+  const recorded = archive ? [] : trayFields.flatMap(({ id, label }) => {
+    const value = displayDossierField(details, id);
+    return value && !pending.includes(id) ? [{ id, label, value }] : [];
+  });
 
-  return <article className={styles.dossier} data-archive-card={Boolean(archive) || undefined} tabIndex={0} aria-live={live} aria-label="شناسنامهٔ اثر روی میز">
+  return <article className={styles.dossier} data-archive-card={Boolean(archive) || undefined} data-compact-catalog={!archive && recorded.length <= 2 || undefined} tabIndex={0} aria-live={live} aria-label="شناسنامهٔ اثر روی میز">
     <header className={styles.dossierHeader}>
       <OrnovaSymbol className={styles.dossierSymbol} />
       <span>شناسنامهٔ اثر</span>
@@ -50,13 +57,10 @@ export function GalleryTrayDossier({ name, details = [], archive, heading: Headi
             {archive.category && <div className={styles.dossierWideDetail}><dt>دسته</dt><dd>{archive.category}</dd></div>}
             {archive.month && <div className={styles.dossierWideDetail}><dt>ماه تولد</dt><dd>{archive.month}</dd></div>}
           </>
-        : <>
-            <div><dt>جنس</dt><dd>{material || "نامشخص"}</dd></div>
-            <div><dt>سنگ</dt><dd>{stone || "نامشخص"}</dd></div>
-            <div><dt>وزن</dt><dd>{weight || "نامشخص"}</dd></div>
-            {stoneColor && <div><dt>رنگ سنگ</dt><dd>{stoneColor}</dd></div>}
-            {dimensions && <div className={styles.dossierWideDetail}><dt>ابعاد</dt><dd>{dimensions}</dd></div>}
-          </>}
+        : recorded.map(({ id, label, value }) => <div key={id} className={id === "dimensions" ? styles.dossierWideDetail : undefined}>
+            <dt>{label}</dt><dd>{value}</dd>
+          </div>)}
     </dl>
+    {pending.length > 0 && <p className={styles.dossierPending}>جزئیات تکمیلی پس از بررسی</p>}
   </article>;
 }

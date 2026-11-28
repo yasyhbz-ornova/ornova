@@ -362,8 +362,22 @@ test("the narrow mobile tray fits the full catalog card beneath the product", as
   const position = await card.boundingBox();
   expect(position!.y).toBeGreaterThan(product!.y + product!.height);
   expect(await card.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
-  await expect(card.getByText("ابعاد", { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(card.getByText("آبی شبانه", { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(card.getByText("جزئیات تکمیلی پس از بررسی", { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(card.getByText("پس از بررسی", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "ثبت سفارش", exact: true })).toBeInViewport({ ratio: 1 });
+
+  await page.goto("/?galleryPanel=product&product=sepid-brooch");
+  const brooch = tray(page).locator('[data-table-product="sepid-brooch"] img');
+  const broochHeight = await brooch.evaluate(async (element: HTMLImageElement) => {
+    await element.decode();
+    return Math.min(element.clientHeight, element.clientWidth * element.naturalHeight / element.naturalWidth);
+  });
+  expect(broochHeight).toBeGreaterThan(100);
+  await expect(card.getByRole("heading", { name: /نواری مشبک/ })).toBeInViewport({ ratio: 1 });
+  await expect(card.getByText("نقره", { exact: true })).toBeVisible();
+  await expect(card.getByText("جزئیات تکمیلی پس از بررسی", { exact: true })).toBeVisible();
+  expect(await card.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
 });
 
 test("staff can update a dossier while its old tray photo stays withdrawn, then approve a replacement", async ({ page, context }) => {
@@ -448,7 +462,7 @@ test("staff preview matches both public tray layouts and flags a scrolling card 
   await preview.getByRole("button", { name: "دسکتاپ", exact: true }).click();
   expect(await measure(preview.locator('[data-tray-preview="desktop"]'))).toEqual(desktop);
   await preview.getByRole("button", { name: "گوشی", exact: true }).click();
-  await page.getByRole("textbox", { name: "ابعاد تقریبی", exact: true }).fill("ابعاد دقیقِ مورد نیاز برای بازبینیِ این اثر ".repeat(5));
+  await page.getByRole("textbox", { name: "ابعاد تقریبی", exact: true }).fill(`۱۲ × ۸ میلی‌متر، ${"اندازهٔ کامل اثر برای بازبینی ".repeat(6)}`);
   await expect(preview.getByRole("status")).toContainText("داخل کارت پیمایش کنید");
   const overflow = await preview.getByRole("article").evaluate((card) => card.scrollHeight - card.clientHeight);
   expect(overflow).toBeGreaterThan(1);

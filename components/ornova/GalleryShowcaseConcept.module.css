@@ -297,6 +297,7 @@ a.backToGallery { display: flex; align-items: center; gap: .25em; text-decoratio
 .workDetails > div { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: .25rem; }
 .workDetails .dossierWideDetail { grid-column: 1 / -1; }
 .workDetails dt { color: #534635; white-space: nowrap; }
+.dossierPending { margin: .45rem 0 0; color: #534635; font-size: .72rem; line-height: 1.5; }
 .workTitle, .workDetails dd { margin: 0; padding: .12rem .15rem; border-bottom: 1px solid #ac9b82; overflow-wrap: anywhere; }
 .workTitle { padding: .05rem .15rem .34rem; font-family: "Ornova Nastaliq", var(--font-display), serif; font-size: clamp(1rem, 1.55cqw, 1.35rem); font-weight: 400; line-height: 2; text-align: center; }
 .pending { color: #645647; font-size: .72rem; line-height: 1.65; }
@@ -417,6 +418,7 @@ a.backToGallery { display: flex; align-items: center; gap: .25em; text-decoratio
     align-items: stretch;
     gap: .38rem;
   }
+  .tableComposition:has([data-compact-catalog]) { grid-template-rows: minmax(0, 1.22fr) minmax(0, .94fr); }
   .tablePaper {
     align-self: start;
     width: min(100%, 18rem);
@@ -430,11 +432,13 @@ a.backToGallery { display: flex; align-items: center; gap: .25em; text-decoratio
   .workDetails { gap: .2rem .55rem; margin-top: .22rem; font-size: .75rem; line-height: 1.45; }
   .workTitle { padding-bottom: .17rem; font-size: clamp(.9rem, 3.9cqw, 1.08rem); line-height: 1.55; }
   .workDetails dd { padding-block: .04rem; }
+  .dossierPending { margin-top: .25rem; }
   .tableActions { top: calc(50% + var(--portrait-tray-art-height) * .172 + .55rem); }
 }
 @container gallery-tray (max-width: 350px) and (aspect-ratio < 1) {
   .tableComposition { inset-inline: 14%; grid-template-rows: minmax(0, .78fr) minmax(0, 1.38fr); }
   .tableComposition:has([data-tray-cutout]) { grid-template-rows: minmax(0, 1.22fr) minmax(0, .94fr); }
+  .tableComposition:has([data-compact-catalog]) { grid-template-rows: minmax(0, 1.1fr) minmax(0, 1.06fr); }
   .tableDisplay { margin-inline: 3%; }
   .dossier { padding-inline: .4rem; }
   .dossier[data-archive-card] { padding-block: .2rem; }
