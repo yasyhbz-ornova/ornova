@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type Ref } from "react";
 import { RequestBasketButton } from "@/components/commerce/RequestBasketButton";
 import { catalogCategories, type CatalogCategoryId } from "@/lib/constants/catalog";
-import { findGalleryBirthMonth } from "@/lib/constants/collections";
+import { findBirthMonth, findGalleryBirthMonth } from "@/lib/constants/collections";
 import { galleryRoomStands } from "@/lib/constants/gallery-room";
 import { findGalleryShowcasePhoto, showcaseEntryTrayImage, trayVisibleShowcaseEntries, type GalleryShowcasePhoto } from "@/lib/constants/gallery-room-samples";
 import type { Product } from "@/lib/constants/products";
@@ -382,6 +382,7 @@ export function GalleryShowcaseConcept({ products, catalogUnavailable = false, p
             >
               <GalleryTrayDossier
                 name={activeEntry.product ? activeEntry.product.name : activeEntry.sample.title}
+                month={findBirthMonth(linkedProduct?.birthMonthId)?.name}
                 archive={activeEntry.product ? undefined : {
                   number: activeEntry.sample.number,
                   category: catalogCategories.find(({ id }) => id === activeCategory)?.label,

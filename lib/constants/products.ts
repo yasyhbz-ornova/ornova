@@ -7,6 +7,7 @@ export type Product = {
   category: string;
   categoryId: CatalogCategoryId;
   subtypeId?: string;
+  birthMonthId?: string;
   image: string;
   imageFit?: "contain" | "cover";
   standImage?: string;

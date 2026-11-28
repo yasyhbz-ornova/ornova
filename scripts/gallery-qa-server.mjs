@@ -4,6 +4,19 @@ import { galleryQA, galleryStaffCatalog, galleryStaffSession } from "../tests/br
 
 const command = process.argv[2] ?? "start";
 if (command !== "build" && command !== "start") throw new Error("Expected build or start");
+const monthAssignment = process.env.ORNOVA_QA_MONTH_ASSIGNMENT === "1";
+const assignedFlower = {
+  ...galleryStaffCatalog[0],
+  slug: "test-birth-month-flower",
+  name: "آویز آزمایشی مجموعه",
+  category_id: "pendants",
+  category_label: "آویز گردنبند",
+  birth_month_id: "shahrivar",
+  image_path: "/images/ornova/gallery/final-renders/08-3f570c5c.webp",
+  stand_image_path: "/images/ornova/gallery/tray-cutouts/08-3f570c5c.webp",
+  gallery: [{ src: "/images/ornova/gallery/final-renders/08-3f570c5c.webp", alt: "عکس آزمایشی" }],
+  details: [{ label: "جنس", value: "نقره" }],
+};
 const weightAtlas = {
   version: "1.1",
   unit: "g",
@@ -34,7 +47,9 @@ const fixture = createServer((request, response) => {
     if (staffAuthorized) return send(200, galleryStaffSession.user);
     return authorized ? send(200, galleryQA.user) : send(401);
   }
-  if (pathname === "/rest/v1/catalog_products" && staffAuthorized && searchParams.get("select") === "*") return send(200, galleryStaffCatalog);
+  if (pathname === "/rest/v1/catalog_products" && staffAuthorized && searchParams.get("select") === "*") {
+    return send(200, monthAssignment ? [{ ...galleryStaffCatalog[0], birth_month_id: null }, assignedFlower] : galleryStaffCatalog);
+  }
   if (pathname === "/rest/v1/catalog_products") {
     if (process.env.ORNOVA_QA_CATALOG_FAULT === "error") return send(500, { code: "QA500", message: "Catalog test error" });
     if (process.env.ORNOVA_QA_CATALOG_FAULT === "stall") {
@@ -42,6 +57,7 @@ const fixture = createServer((request, response) => {
       response.on("close", () => clearTimeout(deadline));
       return;
     }
+    if (monthAssignment) return send(200, [{ ...galleryStaffCatalog[0], birth_month_id: null }, assignedFlower]);
     return send(404, { code: "PGRST205", message: "Use the bundled catalog" });
   }
   if (!authorized) return send(401);

@@ -27,7 +27,7 @@ function sourcePhoto(number: string, categoryId: CatalogCategoryId) {
 
 // Month associations follow the owner’s table and the visible design in the final archive.
 // A month may have an identified design before its original photograph is matched.
-const birthMonths: readonly BirthMonth[] = [
+export const birthMonths: readonly BirthMonth[] = [
   {
     id: "farvardin", name: "فروردین",
     bracelet: "حَمَل؛ سر قوچ با شاخ‌های پیچ‌خورده", braceletImage: sourcePhoto("43", "bracelets"),
@@ -101,6 +101,12 @@ const birthMonths: readonly BirthMonth[] = [
     flowerPendant: "سنبل با نگین صورتی ملایم", flowerImage: sourcePhoto("23", "pendants"),
   },
 ];
+
+export const birthMonthCategories: readonly string[] = ["bracelets", "jewelry-sets", "pendants"];
+
+export function findBirthMonth(id: string | null | undefined) {
+  return birthMonths.find((month) => month.id === id);
+}
 
 export function findGalleryBirthMonth(photo: Pick<GalleryRender, "number" | "src" | "categoryId">) {
   return birthMonths.find(({ braceletImage, constellationImage, flowerImage }) =>

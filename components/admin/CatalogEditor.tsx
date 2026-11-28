@@ -6,6 +6,7 @@ import { galleryRenders, isReferenceOnlyGalleryPhoto, type GalleryRender } from 
 import { galleryTrayCutout } from "@/lib/constants/gallery-tray-cutouts";
 import { catalogCategories, normalizeSearch, resolveCatalogSelection } from "@/lib/constants/catalog";
 import type { CatalogProductInput } from "@/lib/catalog/product-input";
+import { birthMonthCategories, birthMonths, findBirthMonth } from "@/lib/constants/collections";
 import type { InternalWeightEstimate } from "@/lib/catalog/gallery-weight-estimates";
 import { toCatalogForm } from "@/lib/catalog/editor-form";
 import { isWithheldGalleryPhoto } from "@/lib/catalog/gallery-product-link";
@@ -66,6 +67,7 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
   const [trayPreview, setTrayPreview] = useState<{ path: string; transparent: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [catalogReadReady, setCatalogReadReady] = useState(false);
+  const [hasBirthMonthField, setHasBirthMonthField] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const operationInProgress = useRef(false);
@@ -75,8 +77,12 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
     const controller = new AbortController();
     fetch("/api/admin/catalog", { cache: "no-store", signal: controller.signal }).then(async (response) => {
       if (!response.ok) throw new Error("فهرست آثار بارگذاری نشد.");
-      const result = await response.json() as { products: CatalogRow[] };
-      if (!controller.signal.aborted) { setRows(result.products ?? []); setCatalogReadReady(true); }
+      const result = await response.json() as { products: CatalogRow[]; hasBirthMonthField?: boolean };
+      if (!controller.signal.aborted) {
+        setRows(result.products ?? []);
+        setHasBirthMonthField(result.hasBirthMonthField === true);
+        setCatalogReadReady(true);
+      }
     }).catch(() => { if (!controller.signal.aborted) setError("فهرست آثار بارگذاری نشد. برای ویرایش، صفحه را دوباره باز کنید."); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -98,6 +104,7 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
   const trayPath = !withheldTray && form.stand_image_path?.startsWith("/images/ornova/") && !isReferenceOnlyGalleryPhoto(form.stand_image_path) ? form.stand_image_path : null;
   const trayReady = trayPath && trayPath === trayPreview?.path ? trayPreview.transparent : null;
   const previewName = form.name.trim() || "نام اثر";
+  const previewMonth = findBirthMonth(form.birth_month_id)?.name;
   const missingLabels = dossierFields.filter(({ id }) => formGaps.includes(id)).map(({ label }) => label).join("، ");
   const photoReview = useMemo(() => reviewCatalogPhotos(galleryRenders, rows), [rows]);
   const formPhotoPaths = new Set([form.image_path, form.stand_image_path, ...form.gallery.map(({ src }) => src)]);
@@ -279,8 +286,14 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
       <div className="grid gap-4 md:grid-cols-2">
         <label className={labelClass}>نام اثر<input required maxLength={120} className={fieldClass} value={form.name} onChange={(event) => update("name", event.target.value)} /></label>
         <label className={labelClass}>شناسهٔ پایدار انگلیسی<input required disabled={form.revision > 0} pattern="[a-z0-9][a-z0-9-]{1,118}[a-z0-9]" className={fieldClass} dir="ltr" value={form.slug} onChange={(event) => update("slug", event.target.value)} /></label>
-        <label className={labelClass}>دسته<select className={fieldClass} value={form.category_id} onChange={(event) => { const found = catalogCategories.find((item) => item.id === event.target.value); if (found) setForm((current) => ({ ...current, category_id: found.id, category_label: found.label, subtype_id: null })); }}>{catalogCategories.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+        <label className={labelClass}>دسته<select className={fieldClass} value={form.category_id} onChange={(event) => { const found = catalogCategories.find((item) => item.id === event.target.value); if (found) setForm((current) => ({ ...current, category_id: found.id, category_label: found.label, subtype_id: null, birth_month_id: hasBirthMonthField ? null : undefined })); }}>{catalogCategories.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
         <label className={labelClass}>زیرگروه<select className={fieldClass} value={form.subtype_id ?? ""} onChange={(event) => update("subtype_id", event.target.value || null)}><option value="">بدون زیرگروه</option>{category?.types.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+        {hasBirthMonthField && category && birthMonthCategories.includes(category.id) && <label className={labelClass}>ماه تولد در دفتر مجموعه
+          <select className={fieldClass} value={form.birth_month_id ?? ""} onChange={(event) => update("birth_month_id", event.target.value || null)}>
+            <option value="">بدون پیوند به ماه</option>
+            {birthMonths.map((month) => <option key={month.id} value={month.id}>{month.name}</option>)}
+          </select>
+        </label>}
       </div>
       <label className={labelClass}>توضیح تأییدشده<textarea required rows={3} maxLength={2000} className={fieldClass} value={form.description} onChange={(event) => update("description", event.target.value)} /></label>
       <div className="grid gap-4 md:grid-cols-2">
@@ -354,6 +367,7 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
             name={previewName}
             categoryId={form.category_id}
             details={form.details}
+            month={previewMonth}
             path={trayPath}
             imageReady={trayReady === true}
             busy={busy}
@@ -363,7 +377,7 @@ export function CatalogEditor({ weightEstimates }: { weightEstimates: readonly I
           />
           <details className={trayStyles.staffDossierText}>
             <summary>متن شناسنامه</summary>
-            <GalleryTrayDossier name={previewName} details={form.details} heading="h2" />
+            <GalleryTrayDossier name={previewName} details={form.details} month={previewMonth} heading="h2" />
           </details>
         </>}
         <details className="mt-4 border-t border-silver pt-3">

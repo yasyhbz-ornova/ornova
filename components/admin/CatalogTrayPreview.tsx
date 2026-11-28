@@ -13,10 +13,11 @@ const previews = {
 } as const;
 const number = new Intl.NumberFormat("fa-IR", { useGrouping: false });
 
-export function CatalogTrayPreview({ name, categoryId, details, path, imageReady, busy, onImageLoad, onImageError, onApplyImage }: {
+export function CatalogTrayPreview({ name, categoryId, details, month, path, imageReady, busy, onImageLoad, onImageError, onApplyImage }: {
   name: string;
   categoryId: string;
   details: readonly { label: string; value: string }[];
+  month?: string;
   path: string | null;
   imageReady: boolean;
   busy: boolean;
@@ -72,7 +73,7 @@ export function CatalogTrayPreview({ name, categoryId, details, path, imageReady
     measure();
     void document.fonts.ready.then(measure);
     return () => { active = false; };
-  }, [details, layout, name]);
+  }, [details, layout, name, month]);
 
   return <figure className="mt-4 min-w-0" aria-label="پیش‌نمایش سینی در گالری">
     <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -131,7 +132,7 @@ export function CatalogTrayPreview({ name, categoryId, details, path, imageReady
               </div>
             </div>}
           </div>
-          <div className={styles.tablePaper}><GalleryTrayDossier name={name} details={details} heading="h2" /></div>
+          <div className={styles.tablePaper}><GalleryTrayDossier name={name} details={details} month={month} heading="h2" /></div>
         </div>
       </div>
     </div>

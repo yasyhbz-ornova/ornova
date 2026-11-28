@@ -22,7 +22,10 @@ export async function GET() {
     if (!isOrnovaStaff(user)) return failure(403);
     const result = await client.from("catalog_products").select("*").order("updated_at", { ascending: false }).limit(200);
     if (result.error) return failure(503);
-    return NextResponse.json({ products: result.data }, { headers });
+    const hasBirthMonthField = result.data?.length
+      ? Object.hasOwn(result.data[0], "birth_month_id")
+      : !(await client.from("catalog_products").select("birth_month_id", { head: true }).limit(1)).error;
+    return NextResponse.json({ products: result.data, hasBirthMonthField }, { headers });
   } catch { return failure(503); }
 }
 
@@ -68,7 +71,12 @@ export async function POST(request: Request) {
       }
     }
     const result = await client.rpc("save_catalog_product", { p_slug: slug, p_revision: revision, p_product: product });
-    if (result.error) return failure(result.error.message.includes("CATALOG_CONFLICT") ? 409 : result.error.message.includes("CATALOG_INVALID") ? 400 : 503);
+    if (result.error) {
+      if (result.error.code === "23505" && result.error.message.includes("catalog_published_birth_month_slot_idx")) {
+        return failure(409, "برای این ماه و دسته یک اثر منتشر شده است. ابتدا اثر قبلی را از این ماه بردارید.");
+      }
+      return failure(result.error.message.includes("CATALOG_CONFLICT") ? 409 : result.error.message.includes("CATALOG_INVALID") ? 400 : 503);
+    }
     return NextResponse.json({ product: result.data }, { status: revision === 0 ? 201 : 200, headers });
   } catch { return failure(503); }
 }

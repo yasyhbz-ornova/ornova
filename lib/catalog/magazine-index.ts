@@ -1,5 +1,5 @@
 import { catalogCategories, filterCatalogProducts } from "../constants/catalog";
-import { findGalleryBirthMonth } from "../constants/collections";
+import { findBirthMonth, findGalleryBirthMonth } from "../constants/collections";
 import { showcaseEntryTrayImage, trayVisibleShowcaseEntries } from "../constants/gallery-room-samples";
 import type { Product } from "../constants/products";
 
@@ -14,8 +14,9 @@ export function buildMagazineIndex(products: readonly Product[]) {
     const archive = product ? undefined : sample;
     const id = product?.slug ?? archive?.number;
     if (!image || !id) return null;
-    const month = sample && findGalleryBirthMonth(sample);
-    const fibonacci = Boolean(sample && (month?.flowerImage?.number === sample.number || sample.title.includes("فیبوناچی")));
+    const assignedMonth = findBirthMonth(product?.birthMonthId);
+    const month = assignedMonth ?? (sample && findGalleryBirthMonth(sample));
+    const fibonacci = Boolean((assignedMonth && category.id === "pendants") || (sample && (month?.flowerImage?.number === sample.number || sample.title.includes("فیبوناچی"))));
     return {
       id,
       name: product?.name ?? archive?.title ?? "",

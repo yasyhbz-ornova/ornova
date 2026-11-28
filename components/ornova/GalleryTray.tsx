@@ -31,9 +31,10 @@ const trayFields: readonly { id: DossierFieldId; label: string }[] = [
   { id: "dimensions", label: "ابعاد" },
 ];
 
-export function GalleryTrayDossier({ name, details = [], archive, heading: Heading = "h1", live }: {
+export function GalleryTrayDossier({ name, details = [], month, archive, heading: Heading = "h1", live }: {
   name: string;
   details?: readonly { label: string; value: string }[];
+  month?: string;
   archive?: { number: string; category?: string; month?: string };
   heading?: "h1" | "h2";
   live?: "off" | "polite";
@@ -44,7 +45,7 @@ export function GalleryTrayDossier({ name, details = [], archive, heading: Headi
     return value && !pending.includes(id) ? [{ id, label, value }] : [];
   });
 
-  return <article className={styles.dossier} data-archive-card={Boolean(archive) || undefined} data-compact-catalog={!archive && recorded.length <= 2 || undefined} tabIndex={0} aria-live={live} aria-label="شناسنامهٔ اثر روی میز">
+  return <article className={styles.dossier} data-archive-card={Boolean(archive) || undefined} data-compact-catalog={!archive && recorded.length + Number(Boolean(month)) <= 2 || undefined} tabIndex={0} aria-live={live} aria-label="شناسنامهٔ اثر روی میز">
     <header className={styles.dossierHeader}>
       <OrnovaSymbol className={styles.dossierSymbol} />
       <span>شناسنامهٔ اثر</span>
@@ -52,6 +53,7 @@ export function GalleryTrayDossier({ name, details = [], archive, heading: Headi
     </header>
     <Heading className={styles.workTitle}>{name}</Heading>
     <dl className={styles.workDetails}>
+      {month && <div className={styles.dossierWideDetail}><dt>ماه تولد</dt><dd>{month}</dd></div>}
       {archive
         ? <>
             {archive.category && <div className={styles.dossierWideDetail}><dt>دسته</dt><dd>{archive.category}</dd></div>}

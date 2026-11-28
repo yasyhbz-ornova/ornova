@@ -14,7 +14,7 @@ import { galleryTrayWorkImage } from "@/lib/constants/gallery-tray-cutouts";
 import { isPublicGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { findGalleryProduct } from "@/lib/catalog/gallery-product-link";
 import { buildMagazineIndex, emptyMagazineFilters, findMagazineWorks, type MagazineFilters } from "@/lib/catalog/magazine-index";
-import { catalogCategories, catalogFamilies } from "@/lib/constants/catalog";
+import { catalogCategories, catalogFamilies, type CatalogCategoryId } from "@/lib/constants/catalog";
 import { galleryCollections } from "@/lib/constants/collections";
 import type { Product } from "@/lib/constants/products";
 import { REQUEST_LINE_ID_PATTERN } from "@/lib/commerce/request-basket";
@@ -362,11 +362,11 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
     setStudioContact({ mode, studioDraftId });
     setDrawer({ kind: "contact" });
   }
-  function openProductOnTray(product: Product, backLabel: string, focusId?: string) {
+  function openProductOnTray(product: Product, backLabel: string, focusId?: string, month?: string) {
     if (!drawer || !isPublicGalleryProduct(product)) return;
     const previous = tray;
     clearGalleryReturnState();
-    setProductTray({ product, origin: { drawer, backLabel, focusId, previous } });
+    setProductTray({ product, origin: { drawer, backLabel, focusId, month, previous } });
     setDrawer(null);
   }
   function closeProductTray() {
@@ -469,19 +469,27 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
   const selectedBirthMonth = activeCollection?.birthMonths?.find((month) => month.id === linkedMonth) ?? activeCollection?.birthMonths?.[0];
   const hasCollectionPhotos = Boolean(activeCollection?.birthMonths || activeCollection?.flowerMonths);
   const collectionEntries = useMemo(() => hasCollectionPhotos ? trayVisibleShowcaseEntries(products) : null, [hasCollectionPhotos, products]);
+  const assignedMonthProducts = useMemo(() => new Map(products
+    .filter((product) => product.birthMonthId && isPublicGalleryProduct(product))
+    .map((product) => [`${product.birthMonthId}:${product.categoryId}`, product])), [products]);
   function collectionThumbnail(photo?: GalleryShowcasePhoto) {
     const position = collectionEntries && photo && findGalleryShowcasePhoto(collectionEntries, photo);
     const entry = position && collectionEntries?.[position.categoryId]?.[position.index];
     return entry ? showcaseEntryTrayImage(entry) : undefined;
   }
+  function monthWork(month: string, category: CatalogCategoryId, photo?: GalleryShowcasePhoto & { title: string }) {
+    const product = assignedMonthProducts.get(`${month}:${category}`);
+    if (product?.standImage) return { product, photo: undefined, thumbnail: galleryTrayWorkImage(product.standImage) };
+    return { product: undefined, photo, thumbnail: collectionThumbnail(photo) };
+  }
   const birthMonthWorks = selectedBirthMonth ? [
-    { label: "دستبند زودیاک", title: selectedBirthMonth.bracelet, photo: selectedBirthMonth.braceletImage },
-    { label: "نیم‌ست صورت فلکی", title: selectedBirthMonth.constellation, photo: selectedBirthMonth.constellationImage },
-    { label: "آویز گل فیبوناچی", title: selectedBirthMonth.flowerPendant, photo: selectedBirthMonth.flowerImage },
-  ].map((work) => ({ ...work, thumbnail: collectionThumbnail(work.photo) })) : [];
-  const flowers = activeCollection?.flowerMonths?.map((month) => ({ ...month, thumbnail: collectionThumbnail(month.flowerImage) })) ?? [];
-  const matchedFlowers = flowers.flatMap((month) => month.flowerImage && month.thumbnail
-    ? [{ ...month, photo: month.flowerImage, thumbnail: month.thumbnail }] : []);
+    { label: "دستبند زودیاک", title: selectedBirthMonth.bracelet, ...monthWork(selectedBirthMonth.id, "bracelets", selectedBirthMonth.braceletImage) },
+    { label: "نیم‌ست صورت فلکی", title: selectedBirthMonth.constellation, ...monthWork(selectedBirthMonth.id, "jewelry-sets", selectedBirthMonth.constellationImage) },
+    { label: "آویز گل فیبوناچی", title: selectedBirthMonth.flowerPendant, ...monthWork(selectedBirthMonth.id, "pendants", selectedBirthMonth.flowerImage) },
+  ] : [];
+  const flowers = activeCollection?.flowerMonths?.map((month) => ({ ...month, ...monthWork(month.id, "pendants", month.flowerImage) })) ?? [];
+  const matchedFlowers = flowers.flatMap((month) => month.thumbnail && (month.product || month.photo)
+    ? [{ ...month, thumbnail: month.thumbnail }] : []);
   const pendingFlowers = flowers.filter(({ thumbnail }) => !thumbnail);
   const otherFlowerPhotos = activeCollection?.flowerMonths ? findMagazineWorks(magazineIndex, { ...emptyMagazineFilters, collection: activeCollection.id }).flatMap(({ archive, image }) =>
     archive && !flowers.some(({ flowerImage }) => flowerImage?.number === archive.number) ? [{ archive, image }] : [],
@@ -614,23 +622,36 @@ export function VirtualGallery({ imageMode, galleryProducts: products, catalogUn
               </div>
               <h2 className={styles.birthMonthTitle}>{selectedBirthMonth.name}</h2>
               <div className={styles.birthMonthWorks} aria-label={`آثار ماه ${selectedBirthMonth.name}`}>
-                {birthMonthWorks.map(({ label, title, photo, thumbnail }) => <article className={styles.birthMonthWork} key={label}>
+                {birthMonthWorks.map(({ label, title, photo, product, thumbnail }) => {
+                  const work = product ? { product: product.slug } : photo ? { archive: photo.number } : null;
+                  const id = `gallery-collection-photo-${product?.slug ?? photo?.number}`;
+                  return <article className={styles.birthMonthWork} key={label}>
                   <header className={styles.birthMonthCaption}>
                     <span className={styles.collectionReferenceNumber}>{label}</span>
-                    <strong>{title}</strong>
-                    {(!photo || !thumbnail) && <p className={styles.collectionImagePending}>عکس این طرح در حال تطبیق است.</p>}
+                    <strong>{product?.name ?? title}</strong>
+                    {(!work || !thumbnail) && <p className={styles.collectionImagePending}>عکس این طرح در حال تطبیق است.</p>}
                   </header>
-                  {photo && thumbnail && <Link id={`gallery-collection-photo-${photo.number}`} href={trayHref({ archive: photo.number }, drawer, selectedBirthMonth.id)} prefetch={false} className={styles.birthMonthPhoto} data-collection-photo={photo.number} aria-label={`نمایش ${photo.title} روی سینی`} onNavigate={(event) => { event.preventDefault(); openGalleryPhoto(photo, `gallery-collection-photo-${photo.number}`, "بازگشت به دفتر"); }}>
+                  {work && thumbnail && <Link id={id} href={trayHref(work, drawer, selectedBirthMonth.id)} prefetch={false} className={styles.birthMonthPhoto} data-collection-photo={photo?.number} aria-label={`نمایش ${product?.name ?? photo?.title} روی سینی`} onNavigate={(event) => {
+                    event.preventDefault();
+                    if (product) openProductOnTray(product, "بازگشت به دفتر", id, selectedBirthMonth.id);
+                    else if (photo) openGalleryPhoto(photo, id, "بازگشت به دفتر");
+                  }}>
                     <Image src={thumbnail} alt="" fill sizes="(max-width: 640px) 32vw, 220px" unoptimized />
                   </Link>}
-                </article>)}
+                </article>;
+                })}
               </div>
             </> : activeCollection.flowerMonths && <>
               {matchedFlowers.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-flower-matched-title">
                 <h2 id="gallery-flower-matched-title">گل‌های ماه تولد</h2>
-                <ul className={styles.indexWorks}>{matchedFlowers.map(({ id: monthId, name, flowerPendant, photo, thumbnail }) => {
+                <ul className={styles.indexWorks}>{matchedFlowers.map(({ id: monthId, name, flowerPendant, photo, product, thumbnail }) => {
                   const id = `gallery-flower-month-${monthId}`;
-                  return <GalleryIndexWork key={id} id={id} name={flowerPendant} caption={name} image={thumbnail} archiveNumber={photo.number} href={trayHref({ archive: photo.number }, drawer)} onOpen={() => openGalleryPhoto(photo, id, "بازگشت به دفتر")} />;
+                  const work = product ? { product: product.slug } : photo ? { archive: photo.number } : null;
+                  if (!work) return null;
+                  return <GalleryIndexWork key={id} id={id} name={product?.name ?? flowerPendant} caption={name} image={thumbnail} archiveNumber={photo?.number} href={trayHref(work, drawer)} onOpen={() => {
+                    if (product) openProductOnTray(product, "بازگشت به دفتر", id);
+                    else if (photo) openGalleryPhoto(photo, id, "بازگشت به دفتر");
+                  }} />;
                 })}</ul>
               </section>}
               {otherFlowerPhotos.length > 0 && <section className={styles.indexSection} aria-labelledby="gallery-flower-archive-title">

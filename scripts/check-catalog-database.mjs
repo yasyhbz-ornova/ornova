@@ -115,5 +115,19 @@ try {
   await as(staff,save(4,{...replaced,status:"archived"}),true);
   await assert.rejects(as(customer,request([{product_slug:"test-ring",quantity:1}])),/invalid product/);
   assert.equal((await one(`select product_name from public.inquiry_items where inquiry_id='${created.id}'`)).product_name,"انگشتر آزمون");
+  await db.exec(read("20261128074209_catalog_birth_month_assignment.sql"));
+  const assigned = { ...published, category_id: "pendants", category_label: "آویز", birth_month_id: "shahrivar" };
+  const saveAssigned = (slug, revision, details) => `select (public.save_catalog_product('${slug}',${revision},${json(details)})).revision as revision`;
+  await assert.rejects(as(customer,saveAssigned("birthday-flower",0,assigned)),/CATALOG_FORBIDDEN/);
+  await assert.rejects(as(staff,saveAssigned("invalid-birthday",0,{...assigned,category_id:"rings"}),true),/catalog_birth_month_slot_valid/);
+  assert.equal((await as(staff,saveAssigned("birthday-flower",0,assigned),true))[0].revision,1);
+  assert.equal((await as(customer,"select birth_month_id from public.catalog_products where slug='birthday-flower'"))[0].birth_month_id,"shahrivar");
+  await assert.rejects(as(staff,saveAssigned("duplicate-flower",0,assigned),true),/catalog_published_birth_month_slot_idx/);
+  const { birth_month_id, ...legacyAssigned } = assigned;
+  assert.equal((await as(staff,saveAssigned("birthday-flower",1,legacyAssigned),true))[0].revision,2);
+  assert.equal((await one("select birth_month_id from public.catalog_products where slug='birthday-flower'")).birth_month_id,birth_month_id);
+  await as(staff,saveAssigned("birthday-flower",2,{...assigned,birth_month_id:null}),true);
+  assert.equal((await one("select birth_month_id from public.catalog_products where slug='birthday-flower'")).birth_month_id,null);
+  assert.equal((await as(staff,saveAssigned("duplicate-flower",0,assigned),true))[0].revision,1);
   console.log("PASS: catalog migrations, verified detail restoration, RLS, staff media, measured room placement, revisions, publication and request snapshots");
 } finally { await db.close(); }

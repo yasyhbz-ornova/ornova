@@ -13,11 +13,12 @@ function load(path, dependencies = {}, network = globalThis.fetch, runtime = pro
   return loaded.exports;
 }
 const catalog = load("lib/constants/catalog.ts");
-const schema = load("lib/catalog/product-input.ts", { "@/lib/constants/catalog": catalog });
+const renders = load("lib/constants/gallery-renders.ts");
+const collections = load("lib/constants/collections.ts", { "./gallery-renders": renders });
+const schema = load("lib/catalog/product-input.ts", { "@/lib/constants/catalog": catalog, "@/lib/constants/collections": collections });
 const authorization = load("lib/auth/authorization.ts");
 const requestBody = load("lib/commerce/quote-request.ts");
 const tray = load("lib/catalog/tray-image.ts");
-const renders = load("lib/constants/gallery-renders.ts");
 const product = {
   slug: "new-silver-ring", revision: 0, name: "انگشتر نمونه", category_id: "rings", category_label: "انگشتر", subtype_id: null,
   description: "شرح بررسی‌شده", image_path: "/images/ornova/ring.webp", stand_image_path: "/images/ornova/ring.webp",
@@ -74,6 +75,18 @@ test("catalog validation prevents unverified publication and database conflict i
   assert.equal(ready.writes[0][1].p_product.slug, undefined);
 });
 
+test("birth month is written only for an eligible category and reports the occupied slot", async () => {
+  const assigned = { ...product, category_id: "pendants", category_label: "آویز گردنبند", birth_month_id: "shahrivar" };
+  const valid = fixture();
+  assert.equal((await valid.post({ ...product, birth_month_id: "shahrivar" })).status, 400);
+  assert.equal((await valid.post({ ...assigned, birth_month_id: "unknown" })).status, 400);
+  assert.equal(valid.writes.length, 0);
+  assert.equal((await valid.post(assigned)).status, 201);
+  assert.equal(valid.writes[0][1].p_product.birth_month_id, "shahrivar");
+  const conflict = fixture({ rpcError: { code: "23505", message: "catalog_published_birth_month_slot_idx" } });
+  assert.equal((await conflict.post(assigned)).status, 409);
+});
+
 test("a reference-only archive photo stays linked during review and publication but cannot be the public cover or tray", async () => {
   const reference = fixture();
   const duplicate = renders.galleryRenders.find(({ number }) => number === "06").src;
@@ -118,15 +131,23 @@ test("public catalog filters reference-only imagery and resolves a usable cover 
     { ...product, slug: "reference-only", image_path: duplicate, stand_image_path: duplicate, gallery: [reference] },
     product,
   ];
-  const client = { from: () => ({ select: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: rows, error: null }) }) }) }) }) };
+  const selections = [];
+  const client = { from: () => ({ select: (fields) => {
+    selections.push(fields);
+    return { eq: () => ({ order: () => ({ limit: async () => fields.includes("birth_month_id")
+      ? { data: null, error: { code: "42703", message: "column catalog_products.birth_month_id does not exist" } }
+      : { data: rows, error: null } }) }) };
+  } }) };
   const { getPublishedProducts } = load("lib/catalog/public-products.ts", {
     "@/lib/supabase/server": { createSupabaseServerClient: async () => client },
     "@/lib/constants/catalog": catalog,
     "@/lib/constants/gallery-renders": renders,
+    "@/lib/constants/collections": collections,
     "@/lib/constants/products": { products: [] },
     "@/lib/catalog/room-placement": load("lib/catalog/room-placement.ts"),
   }, globalThis.fetch, { env: { NEXT_PUBLIC_SUPABASE_URL: "https://fixture.invalid", NEXT_PUBLIC_SUPABASE_ANON_KEY: "test" } });
   const [legacy, trayOnly, missingTray, ordinary] = await getPublishedProducts();
+  assert.equal(selections.length, 2);
   assert.equal(legacy.image, full.src);
   assert.deepEqual(legacy.gallery, [full]);
   assert.deepEqual(legacy.packagingGallery, [full]);
